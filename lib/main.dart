@@ -1,25 +1,30 @@
 import 'package:flutter/material.dart';
-import 'screens/splash/splash_screen.dart'; // تأكدي من صحة المسار لملف السبلاش عندكِ
+import 'screens/home/home_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'services/local_db_service.dart';
+// import 'screens/splash/splash_screen.dart'; // فعّلها إذا بدك تبدأ بشاشة Splash
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LocalDbService.instance.init(); // تهيئة قاعدة البيانات المحلية (Hive)
+  runApp(const NablusGuideApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class NablusGuideApp extends StatelessWidget {
+  const NablusGuideApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'دليل نابلس السياحي',
+      title: 'دليل نابلس الذكي',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0B1220),
         fontFamily: 'Tajawal',
-        scaffoldBackgroundColor: const Color(0xFFF8FAF9),
       ),
-      // تشغيل صفحة السبلاش كأول شاشة في التطبيق
-      home: const SplashScreen(), 
+      // نقطة البداية الآن: شاشة تسجيل الدخول
+      home: LoginScreen(),
     );
   }
 }

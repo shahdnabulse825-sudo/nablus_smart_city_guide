@@ -1,218 +1,2305 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' hide TextDirection;
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'dart:async';
-import 'package:intl/intl.dart';
-import 'news_screen.dart'; 
+import 'dart:convert';
+import '../restaurants/restaurants_screen.dart';
+import '../common/detail_screen.dart';
+import 'package:flutter_map/flutter_map.dart';
+import '../map/map_screen.dart';
+import '../news/news_screen.dart';
+import '../ai_assistant/ai_assistant_screen.dart';
+import '../auth/login_screen.dart';
+import '../../services/auth_service.dart';
+import '../category/category_list_screen.dart';
+import '../category/category_data.dart';
+import '../category/more_categories_screen.dart';
+import '../explore/explore_screen.dart';
+import '../notifications/notifications_screen.dart';
+import '../places/all_places_screen.dart';
+import '../events/events_screen.dart';
+import '../info/about_us_screen.dart';
+import '../info/privacy_policy_screen.dart';
+import '../info/terms_screen.dart';
+import '../info/faq_screen.dart';
+import '../../widgets/themed_image.dart';
 
+// ==================== إدارة الحالة العامة (الثيم / اللغة / العملات / الوقت) ====================
+class AppState extends ChangeNotifier {
+  AppState._internal() {
+    _startClock();
+    fetchRates();
+  }
+  static final AppState instance = AppState._internal();
+
+  // ---------- الثيم ----------
+  bool isDark = true;
+  void toggleTheme() {
+    isDark = !isDark;
+    notifyListeners();
+  }
+
+  // ---------- اللغة ----------
+  bool isArabic = true;
+  void toggleLanguage() {
+    isArabic = !isArabic;
+    notifyListeners();
+  }
+
+  TextDirection get dir => isArabic ? TextDirection.rtl : TextDirection.ltr;
+
+  /// يرجع النص العربي أو الإنجليزي حسب اللغة الحالية
+  String t(String ar, String en) => isArabic ? ar : en;
+
+  // ---------- الساعة الحية ----------
+  String currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
+  Timer? _clockTimer;
+  void _startClock() {
+    _clockTimer = Timer.periodic(Duration(seconds: 1), (_) {
+      currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
+      notifyListeners();
+    });
+  }
+
+  // ---------- أسعار العملات الحقيقية ----------
+  bool ratesLoading = true;
+  String? ratesError;
+  double usdToIls = 3.73;
+  double jodToIls = 5.26;
+  double eurToIls = 4.02;
+
+  Future<void> fetchRates() async {
+    ratesLoading = true;
+    ratesError = null;
+    notifyListeners();
+    try {
+      final res = await http
+          .get(Uri.parse('https://open.er-api.com/v6/latest/USD'))
+          .timeout(Duration(seconds: 10));
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        final rates = data['rates'] as Map<String, dynamic>;
+        final usdIls = (rates['ILS'] as num).toDouble();
+        final usdJod = (rates['JOD'] as num).toDouble();
+        final usdEur = (rates['EUR'] as num).toDouble();
+        usdToIls = usdIls;
+        jodToIls = usdIls / usdJod;
+        eurToIls = usdIls / usdEur;
+      } else {
+        ratesError = 'فشل تحميل الأسعار';
+      }
+    } catch (e) {
+      ratesError = 'تعذر الاتصال بالإنترنت';
+    }
+    ratesLoading = false;
+    notifyListeners();
+  }
+}
+
+// ==================== الألوان الأساسية (تتغيّر تلقائيًا حسب الثيم) ====================
+// ==================== تخمين كلمة بحث مناسبة لصورة حقيقية حسب الوصف العربي ====================
+String guessPhotoQuery(String subtitleAr, String titleAr) {
+  final text = '$subtitleAr $titleAr';
+  if (text.contains('معلم تاريخي') || text.contains('البلدة القديمة') || text.contains('خان')) {
+    return 'old town stone alley';
+  }
+  if (text.contains('جبل') || text.contains('طبيعي')) {
+    return 'mountain landscape';
+  }
+  if (text.contains('حديقة') || text.contains('حدائق') || text.contains('پارك')) {
+    return 'public park garden';
+  }
+  if (text.contains('جامع') || text.contains('مسجد') || text.contains('ديني')) {
+    return 'mosque islamic architecture';
+  }
+  if (text.contains('ميدان') || text.contains('مربع')) {
+    return 'city square';
+  }
+  if (text.contains('مطعم') || text.contains('مطاعم') || text.contains('مأكولات') || text.contains('شاورما')) {
+    return 'middle eastern restaurant food';
+  }
+  if (text.contains('حلويات') || text.contains('كنافة')) {
+    return 'kunafa dessert';
+  }
+  if (text.contains('مقهى') || text.contains('كافيه') || text.contains('كافي')) {
+    return 'coffee shop interior';
+  }
+  if (text.contains('فندق') || text.contains('قصر')) {
+    return 'hotel exterior building';
+  }
+  if (text.contains('تسوق') || text.contains('مول') || text.contains('مركز')) {
+    return 'shopping mall interior';
+  }
+  if (text.contains('مؤتمر')) {
+    return 'conference hall event';
+  }
+  if (text.contains('معرض') || text.contains('الكتاب')) {
+    return 'book fair exhibition';
+  }
+  if (text.contains('مهرجان')) {
+    return 'street festival crowd';
+  }
+  if (text.contains('فعاليات') || text.contains('ثقافي') || text.contains('ثقافية')) {
+    return 'cultural event celebration';
+  }
+  if (text.contains('سياحة') || text.contains('سياحي') || text.contains('زوار') || text.contains('زيارة')) {
+    return 'tourists sightseeing';
+  }
+  if (text.contains('تطوير') || text.contains('مشروع') || text.contains('بناء')) {
+    return 'urban development construction';
+  }
+  if (text.contains('جامعة') || text.contains('النجاح')) {
+    return 'university campus';
+  }
+  if (text.contains('مستشفى') || text.contains('عيادة') || text.contains('صحة')) {
+    return 'hospital medical';
+  }
+  if (text.contains('صيدلية') || text.contains('صيدليات')) {
+    return 'pharmacy medicine shelves';
+  }
+  if (text.contains('مواصلات') || text.contains('باص') || text.contains('محطة') || text.contains('سرفيس')) {
+    return 'bus station street';
+  }
+  return 'nablus palestine city';
+}
+
+class AppColors {
+  static bool get _dark => AppState.instance.isDark;
+
+  static Color get bgDark =>
+      _dark ? Color(0xFF0B1220) : Color(0xFFF3F5F9);
+  static Color get cardDark => _dark ? Color(0xFF121B2E) : Colors.white;
+  static Color get cardDark2 =>
+      _dark ? Color(0xFF17233B) : Color(0xFFE9ECF2);
+  static Color get sidebarDark =>
+      _dark ? Color(0xFF0E1626) : Colors.white;
+  static Color get borderColor =>
+      _dark ? Color(0xFF23304A) : Color(0xFFE1E4EA);
+
+  // ألوان الهوية (ثابتة بكل الأحوال)
+  static const purple = Color(0xFF6C5CE7);
+  static const purpleLight = Color(0xFF8B7CF6);
+  static const blue = Color(0xFF3B82F6);
+  static const teal = Color(0xFF14B8A6);
+  static const gold = Color(0xFFF5A623);
+  static const green = Color(0xFF22C55E);
+  static const red = Color(0xFFEF4444);
+
+  static Color get textWhite =>
+      _dark ? Color(0xFFF3F5FA) : Color(0xFF1A1F2B);
+  static Color get textGrey =>
+      _dark ? Color(0xFF9AA5B8) : Color(0xFF667085);
+}
+
+// ==================== الشاشة الرئيسية ====================
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  bool _isDarkMode = false;
-
-  Color get bgColor => _isDarkMode ? const Color(0xFF1E272E) : const Color(0xFFF4F6FC);
-  Color get cardColor => _isDarkMode ? const Color(0xFF2D3436) : Colors.white;
-  Color get textColor => _isDarkMode ? Colors.white : const Color(0xFF2D3436);
-  final Color primaryColor = const Color(0xFF6C5CE7);
-  final Color accentColor = const Color(0xFFFF7675);
-
-  String _temp = "--", _usdRate = "--", _jodRate = "--", _eurRate = "--", _currentTime = "";
-
-  void _handleNavigation(String tabName) {
-    if (tabName == 'الأخبار') {
-      Navigator.push(context, MaterialPageRoute(builder: (context) => const NewsScreen()));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("جاري الانتقال إلى $tabName...")));
-    }
-  }
+  final ScrollController _scrollController = ScrollController();
 
   @override
-  void initState() {
-    super.initState();
-    fetchWeather();
-    fetchExchangeRates();
-    _currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
-    Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) setState(() => _currentTime = DateFormat('hh:mm:ss a').format(DateTime.now()));
-    });
-  }
-
-  Future<void> fetchExchangeRates() async {
-    final String apiKey = "f283fa22e58b0d96ce9e8f59";
-    final url = Uri.parse('https://v6.exchangerate-api.com/v6/$apiKey/latest/USD');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          double ilsRate = data['conversion_rates']['ILS'].toDouble();
-          _usdRate = ilsRate.toStringAsFixed(2);
-          _jodRate = (ilsRate * 1.41).toStringAsFixed(2);
-          _eurRate = (ilsRate * 1.08).toStringAsFixed(2);
-        });
-      }
-    } catch (e) { debugPrint("خطأ في العملات: $e"); }
-  }
-
-  Future<void> fetchWeather() async {
-    final String apiKey = "12cfcdd21283950891b0ebeafc7da981";
-    final url = Uri.parse('https://api.openweathermap.org/data/2.5/weather?q=Nablus&appid=$apiKey&units=metric');
-    try {
-      final response = await http.get(url);
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() => _temp = (data['main']['temp']).round().toString());
-      }
-    } catch (e) { debugPrint("خطأ في الطقس: $e"); }
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bgColor,
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildCurrencySidebar(),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+    return ListenableBuilder(
+      listenable: AppState.instance,
+      builder: (context, _) {
+        return Directionality(
+          textDirection:
+              TextDirection.ltr, // تخطيط الصفحة العام (مواقع الأقسام) يبقى ثابت
+          child: Scaffold(
+            backgroundColor: AppColors.bgDark,
+            body: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SideBar(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scrollController,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TopBar(),
+                        BannerSlider(),
+                        SearchBar_(),
+                        StatsRow(),
+                        CategoriesSection(),
+                        FavoritePlacesSection(),
+                        MostVisitedAndNewestSection(),
+                        EventsAndMapSection(),
+                        LatestNewsSection(),
+                        FooterSection(
+                          onScrollToTop: () => _scrollController.animateTo(
+                            0,
+                            duration: Duration(milliseconds: 500),
+                            curve: Curves.easeOut,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ==================== الشريط الجانبي ====================
+class SideBar extends StatelessWidget {
+  SideBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 210,
+      color: AppColors.sidebarDark,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // الشعار
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [AppColors.purple, AppColors.blue]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.location_city,
+                      color: Colors.white, size: 22),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('دليل نابلس الذكي',
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(
+                              color: AppColors.textWhite,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold)),
+                      Text('Nablus Smart Guide',
+                          style: TextStyle(
+                              color: AppColors.textGrey, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+
+            // أسعار العملات
+            SideCard(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildTopBar(), 
-                  const SizedBox(height: 40),
-                  _buildHeroSection(),
-                  const SizedBox(height: 20),
-                  _buildDynamicStatusBar(),
-                  const SizedBox(height: 40),
-                  _buildCategoriesGrid(), 
-                  const SizedBox(height: 20),
-                  _buildAdditionalCategoriesGrid(), 
-                  const SizedBox(height: 40),
-                  _buildLowerSections(),
+                  SideSectionTitle(
+                    icon: Icons.attach_money,
+                    iconBg: AppColors.gold,
+                    titleAr: 'أسعار العملات',
+                    titleEn: 'Exchange Rates',
+                  ),
+                  SizedBox(height: 10),
+                  if (AppState.instance.ratesLoading)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  else if (AppState.instance.ratesError != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(AppState.instance.ratesError!,
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                                color: AppColors.red, fontSize: 10)),
+                        SizedBox(height: 6),
+                        GestureDetector(
+      behavior: HitTestBehavior.opaque,
+                          onTap: () => AppState.instance.fetchRates(),
+                          child: Text('إعادة المحاولة',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(
+                                  color: AppColors.blue, fontSize: 11)),
+                        ),
+                      ],
+                    )
+                  else ...[
+                    CurrencyRow(
+                        flagColor: Colors.blue,
+                        code: 'USD',
+                        rate:
+                            '${AppState.instance.usdToIls.toStringAsFixed(2)} ILS'),
+                    Divider(color: AppColors.borderColor, height: 16),
+                    CurrencyRow(
+                        flagColor: Colors.green,
+                        code: 'JOD',
+                        rate:
+                            '${AppState.instance.jodToIls.toStringAsFixed(2)} ILS'),
+                    Divider(color: AppColors.borderColor, height: 16),
+                    CurrencyRow(
+                        flagColor: Colors.indigo,
+                        code: 'EUR',
+                        rate:
+                            '${AppState.instance.eurToIls.toStringAsFixed(2)} ILS'),
+                  ],
                 ],
               ),
             ),
+            SizedBox(height: 16),
+
+            // تواصل معنا
+            SideCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SideSectionTitle(
+                    icon: Icons.headset_mic,
+                    iconBg: AppColors.teal,
+                    titleAr: 'تواصل معنا',
+                    titleEn: 'Contact Us',
+                  ),
+                  SizedBox(height: 12),
+                  ContactRow(
+                      icon: Icons.phone, text: '+970 59 123 4567'),
+                  SizedBox(height: 10),
+                  ContactRow(
+                      icon: Icons.email, text: 'info@nablus-guide.com'),
+                  SizedBox(height: 10),
+                  ContactRow(
+                      icon: Icons.location_on, text: 'Nablus, Palestine'),
+                  SizedBox(height: 14),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      SocialIcon(icon: Icons.facebook),
+                      SocialIcon(icon: Icons.camera_alt),
+                      SocialIcon(icon: Icons.alternate_email),
+                      SocialIcon(icon: Icons.play_circle_fill),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+
+            // تحميل التطبيق
+            SideCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SideSectionTitle(
+                    icon: Icons.download,
+                    iconBg: AppColors.blue,
+                    titleAr: 'حمل التطبيق',
+                    titleEn: 'Download App',
+                  ),
+                  SizedBox(height: 12),
+                  StoreButton(
+                      icon: Icons.play_arrow,
+                      line1: 'GET IT ON',
+                      line2: 'Google Play'),
+                  SizedBox(height: 8),
+                  StoreButton(
+                      icon: Icons.apple, line1: 'Download on the', line2: 'App Store'),
+                  SizedBox(height: 14),
+                  Container(
+                    height: 90,
+                    width: 90,
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: QrImageView(
+                      data: 'https://nablus-guide.com/download',
+                      version: QrVersions.auto,
+                      backgroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SideCard extends StatelessWidget {
+  final Widget child;
+  SideCard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: child,
+    );
+  }
+}
+
+class SideSectionTitle extends StatelessWidget {
+  final IconData icon;
+  final Color iconBg;
+  final String titleAr;
+  final String titleEn;
+  SideSectionTitle(
+      {super.key,
+      required this.icon,
+      required this.iconBg,
+      required this.titleAr,
+      required this.titleEn});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+              color: iconBg.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, size: 16, color: iconBg),
+        ),
+        SizedBox(width: 8),
+        Text(app.t(titleAr, titleEn),
+            textDirection: app.dir,
+            style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 12,
+                fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+}
+
+class CurrencyRow extends StatelessWidget {
+  final Color flagColor;
+  final String code;
+  final String rate;
+  CurrencyRow(
+      {super.key,
+      required this.flagColor,
+      required this.code,
+      required this.rate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        CircleAvatar(radius: 10, backgroundColor: flagColor),
+        SizedBox(width: 8),
+        Text(code,
+            style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+        Spacer(),
+        Text(rate,
+            style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 12,
+                fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+class ContactRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  ContactRow({super.key, required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.purpleLight),
+        SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+        ),
+      ],
+    );
+  }
+}
+
+class SocialIcon extends StatelessWidget {
+  final IconData icon;
+  SocialIcon({super.key, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: EdgeInsets.only(right: 8),
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: AppColors.cardDark2,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Icon(icon, size: 14, color: AppColors.textWhite),
+    );
+  }
+}
+
+class StoreButton extends StatelessWidget {
+  final IconData icon;
+  final String line1;
+  final String line2;
+  StoreButton(
+      {super.key, required this.icon, required this.line1, required this.line2});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(line1,
+                  style: TextStyle(color: Colors.white70, fontSize: 8)),
+              Text(line2,
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== الشريط العلوي ====================
+class TopBar extends StatelessWidget {
+  TopBar({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      color: AppColors.sidebarDark,
+      child: Row(
+        children: [
+          Icon(Icons.access_time, size: 16, color: AppColors.textGrey),
+          SizedBox(width: 6),
+          Text(app.currentTime,
+              style: TextStyle(color: AppColors.textGrey, fontSize: 13)),
+          Spacer(),
+          NavItem(
+              iconAr: 'الرئيسية',
+              iconEn: 'Home',
+              icon: Icons.home,
+              active: true),
+          NavItem(
+              iconAr: 'استكشف',
+              iconEn: 'Explore',
+              icon: Icons.explore,
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => ExploreScreen()))),
+          NavItem(
+              iconAr: 'الخريطة',
+              iconEn: 'Map',
+              icon: Icons.map,
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => MapScreen()))),
+          NavItem(
+              iconAr: 'الأخبار',
+              iconEn: 'News',
+              icon: Icons.article,
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => NewsScreen()))),
+          NavItem(
+              iconAr: 'المساعد الذكي',
+              iconEn: 'AI Assistant',
+              icon: Icons.smart_toy,
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => AiAssistantScreen()))),
+          Spacer(),
+          GestureDetector(
+      behavior: HitTestBehavior.opaque,
+            onTap: () {
+              Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => NotificationsScreen()));
+            },
+            child: Stack(
+              children: [
+                Icon(Icons.notifications_none,
+                    color: AppColors.textWhite, size: 22),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                        color: AppColors.red, shape: BoxShape.circle),
+                    child: Text('3',
+                        style: TextStyle(color: Colors.white, fontSize: 8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          // زر تبديل الثيم (فعّال الآن)
+          GestureDetector(
+      behavior: HitTestBehavior.opaque,
+            onTap: () => app.toggleTheme(),
+            child: Icon(
+                app.isDark ? Icons.dark_mode : Icons.light_mode,
+                color: AppColors.textWhite,
+                size: 20),
+          ),
+          SizedBox(width: 16),
+          // زر تبديل اللغة (فعّال الآن)
+          GestureDetector(
+      behavior: HitTestBehavior.opaque,
+            onTap: () => app.toggleLanguage(),
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark2,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(app.isArabic ? 'عربي  EN' : 'EN  عربي',
+                  style: TextStyle(color: AppColors.textWhite, fontSize: 12)),
+            ),
+          ),
+          SizedBox(width: 16),
+          // زر تسجيل الخروج
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _confirmLogout(context),
+            child: Icon(Icons.logout, color: AppColors.red, size: 20),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTopBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(15)),
-          child: Text("الساعة: $_currentTime", style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold)),
+  void _confirmLogout(BuildContext context) {
+    final app = AppState.instance;
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: app.dir,
+        child: AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text(app.t('تسجيل الخروج', 'Log Out'),
+              textDirection: app.dir,
+              style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold)),
+          content: Text(
+              app.t('هل أنت متأكد من رغبتك بتسجيل الخروج؟',
+                  'Are you sure you want to log out?'),
+              textDirection: app.dir,
+              style: TextStyle(color: AppColors.textGrey)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(app.t('إلغاء', 'Cancel'),
+                  style: TextStyle(color: AppColors.textGrey)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                AuthService.instance.logout();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  (route) => false,
+                );
+              },
+              child: Text(app.t('تسجيل الخروج', 'Log Out'),
+                  style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ),
-        _buildHeader(),
-      ],
+      ),
     );
   }
+}
 
-  Widget _buildHeader() {
-    return Row(
-      children: ['الرئيسية', 'استكشف', 'الخريطة', 'المساعد الذكي', 'الأخبار']
-          .map((tab) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: InkWell(
-                  onTap: () => _handleNavigation(tab), // ربط الضغط بالدالة
-                  child: Text(tab, style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
-                ),
-              ))
-          .toList(),
-    );
-  }
+class NavItem extends StatelessWidget {
+  final String iconAr;
+  final String iconEn;
+  final IconData icon;
+  final bool active;
+  final VoidCallback? onTap;
+  NavItem(
+      {super.key,
+      required this.iconAr,
+      required this.iconEn,
+      required this.icon,
+      this.active = false,
+      this.onTap});
 
-  Widget _buildCategoriesGrid() => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-    _buildCategoryCard('صيدليات', Icons.local_pharmacy, Colors.redAccent),
-    _buildCategoryCard('مطاعم', Icons.restaurant, accentColor),
-    _buildCategoryCard('فنادق', Icons.hotel, primaryColor),
-    _buildCategoryCard('سياحة', Icons.castle, Colors.green),
-  ]);
-
-  Widget _buildAdditionalCategoriesGrid() => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-    _buildCategoryCard('صحة', Icons.health_and_safety, Colors.blue),
-    _buildCategoryCard('مواصلات', Icons.directions_bus, Colors.teal),
-    _buildCategoryCard('تسوق', Icons.shopping_bag, Colors.pink),
-  ]);
-
-  Widget _buildCurrencySidebar() {
-    return Container(
-      width: 200,
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20),
-       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Text("أسعار الصرف", style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-            IconButton(icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode, color: textColor),
-             onPressed: () => setState(() => _isDarkMode = !_isDarkMode))
-          ]),
-          const Divider(),
-          _buildCurrencyRow("USD", _usdRate),
-          _buildCurrencyRow("JOD", _jodRate),
-          _buildCurrencyRow("EUR", _eurRate),
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final color = active ? AppColors.blue : AppColors.textGrey;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color),
+            SizedBox(height: 2),
+            Text(app.t(iconAr, iconEn),
+                textDirection: app.dir,
+                style: TextStyle(
+                    color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+            if (active)
+              Container(
+                margin: EdgeInsets.only(top: 3),
+                height: 2,
+              width: 20,
+              color: AppColors.blue,
+            ),
         ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== شريط الصور المتحركة (Banner) ====================
+class BannerSlider extends StatefulWidget {
+  BannerSlider({super.key});
+
+  @override
+  State<BannerSlider> createState() => _BannerSliderState();
+}
+
+class _BannerSliderState extends State<BannerSlider> {
+  int _current = 0;
+  final CarouselSliderController _controller = CarouselSliderController();
+
+  final List<Map<String, String>> _slides = [
+    {
+      'title': '🏛 مرحباً بك في نابلس',
+      'subtitle': 'تاريخ عريق... مستقبل مشرق',
+      'titleEn': '🏛 Welcome to Nablus',
+      'subtitleEn': 'Rich History... Bright Future',
+    },
+    {
+      'title': '🕌 اكتشف البلدة القديمة',
+      'subtitle': 'أزقة تحمل قصص آلاف السنين',
+      'titleEn': '🕌 Discover the Old City',
+      'subtitleEn': 'Alleys That Hold Thousand-Year Stories',
+    },
+    {
+      'title': '🍽 نكهات نابلس الأصيلة',
+      'subtitle': 'الكنافة النابلسية وأشهى المأكولات',
+      'titleEn': '🍽 Authentic Nablus Flavors',
+      'subtitleEn': 'Nabulsi Kunafa and the Finest Dishes',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.all(20),
+      child: SizedBox(
+        height: 210,
+        child: Stack(
+          children: [
+            CarouselSlider.builder(
+              carouselController: _controller,
+              itemCount: _slides.length,
+              options: CarouselOptions(
+                height: 210,
+                viewportFraction: 1,
+                autoPlay: true,
+                autoPlayInterval: Duration(seconds: 4),
+                onPageChanged: (index, reason) {
+                  setState(() => _current = index);
+                },
+              ),
+              itemBuilder: (context, index, realIndex) {
+                final slide = _slides[index];
+                final app = AppState.instance;
+                final shownTitle =
+                    app.isArabic ? slide['title']! : (slide['titleEn'] ?? slide['title']!);
+                final shownSubtitle = app.isArabic
+                    ? slide['subtitle']!
+                    : (slide['subtitleEn'] ?? slide['subtitle']!);
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // صورة الخلفية: صورة حقيقية إذا موجودة، وإلا صورة بديلة حقيقية من الإنترنت
+                      Image.asset(
+                        'assets/images/nablus_bg.jpeg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stack) => Image.network(
+                          'https://picsum.photos/seed/nablus-home-banner/1200/500',
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stack) =>
+                              Container(color: AppColors.cardDark2),
+                        ),
+                      ),
+                      // تعتيم فوق الصورة لإظهار النص بوضوح
+                      Container(color: Colors.black.withOpacity(0.35)),
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(shownTitle,
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 26,
+                                    fontFamily: 'Tajawal',
+                                    fontWeight: FontWeight.bold)),
+                            SizedBox(height: 6),
+                            Text(shownSubtitle,
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                    color: Colors.white70,
+                                    fontFamily: 'Tajawal',
+                                    fontSize: 14)),
+                            SizedBox(height: 14),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.of(context).push(MaterialPageRoute(
+                                  builder: (context) => ExploreScreen(),
+                                ));
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.blue,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20)),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 22, vertical: 10),
+                              ),
+                              child: Text(app.t('استكشف الآن', 'Explore Now'),
+                                  textDirection: app.dir,
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontFamily: 'Tajawal')),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            // أسهم التنقل باستخدام carousel controller
+            Positioned(
+              left: 12,
+              top: 90,
+              child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+                onTap: () => _controller.previousPage(),
+                child: _arrowButton(Icons.chevron_left),
+              ),
+            ),
+            Positioned(
+              right: 12,
+              top: 90,
+              child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+                onTap: () => _controller.nextPage(),
+                child: _arrowButton(Icons.chevron_right),
+              ),
+            ),
+            // نقاط المؤشر الحقيقية المرتبطة بحالة الكاروسيل
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_slides.length, (i) {
+                  final active = i == _current;
+                  return Container(
+                    margin: EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: active ? AppColors.blue : Colors.white54,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildCurrencyRow(String name, String rate) => 
-  Padding
-  (padding: const EdgeInsets.symmetric(vertical: 8),
-   child: 
-   Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-  children:
-   [Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: textColor)),
-   Text("$rate ILS", style: TextStyle(color: textColor))]
-   )
+  Widget _arrowButton(IconData icon) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.4),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: 18),
+    );
+  }
+}
 
-   );
+// ==================== شريط البحث ====================
+class SearchBar_ extends StatelessWidget {
+  SearchBar_({super.key});
 
-  Widget _buildHeroSection() => Column(children: 
-  [Text('دليلك الكامل لمدينة نابلس',
-   style: TextStyle(color: textColor, fontSize: 32, fontWeight: FontWeight.bold)), 
-   const SizedBox(height: 20),
-     Container(width: 600, decoration: BoxDecoration(color: cardColor, 
-    borderRadius: BorderRadius.circular(20)), 
-    child: const TextField(decoration: InputDecoration(prefixIcon: Icon(Icons.search), 
-    border: InputBorder.none, hintText: "ابحث عن مكان...")))]);
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        height: 50,
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(color: AppColors.borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: AppColors.textGrey),
+            SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                style: TextStyle(color: AppColors.textWhite),
+                decoration: InputDecoration(
+                  hintText: app.t('ابحث عن مكان، مطعم، فندق، معلم...',
+                      'Search for a place, restaurant, hotel...'),
+                  hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 13),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-  Widget _buildDynamicStatusBar() => Row(mainAxisAlignment: MainAxisAlignment.center,
-   children: [_buildDynamicChip(Icons.wb_sunny_rounded, 'نابلس $_temp°C'),
-    const SizedBox(width: 15), _buildDynamicChip(Icons.people_alt_rounded, '500+ زائر')]);
+// ==================== صف الإحصائيات (طقس / زوار / وقت) ====================
+class StatsRow extends StatelessWidget {
+  StatsRow({super.key});
 
-  Widget _buildDynamicChip(IconData icon, String label) => Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)), 
-  child: Row(children: [Icon(icon, color: primaryColor), 
-  const SizedBox(width: 8), 
-  Text(label, style: TextStyle(color: textColor))]));
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: StatCard(
+              icon: Icons.wb_sunny,
+              iconColor: AppColors.gold,
+              titleAr: 'الطقس في نابلس',
+              titleEn: 'Weather in Nablus',
+              value: '24°C',
+            ),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: StatCard(
+              icon: Icons.people,
+              iconColor: AppColors.purple,
+              titleAr: 'عدد الزوار اليوم',
+              titleEn: 'Visitors Today',
+              value: '1,245',
+            ),
+          ),
+          SizedBox(width: 14),
+          Expanded(
+            child: StatCard(
+              icon: Icons.access_time_filled,
+              iconColor: AppColors.blue,
+              titleAr: 'الوقت الآن',
+              titleEn: 'Current Time',
+              value: AppState.instance.currentTime,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-  Widget _buildCategoryCard(String title, IconData icon, Color iconColor) => Container(margin: const EdgeInsets.symmetric(horizontal: 10), 
-  padding: const EdgeInsets.all(20), 
-  decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)), 
-  child: Column(children: [Icon(icon, color: iconColor), 
-  const SizedBox(height: 10), 
-  Text(title, style: TextStyle(color: textColor))]));
+class StatCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String titleAr;
+  final String? titleEn;
+  final String value;
+  StatCard(
+      {super.key,
+      required this.icon,
+      required this.iconColor,
+      required this.titleAr,
+      this.titleEn,
+      required this.value});
 
-  Widget _buildLowerSections() => Row(children: [Expanded(child: _buildSectionBox('فعاليات', Icons.event, accentColor)), 
-  const SizedBox(width: 20),
-   Expanded(child: _buildSectionBox('خريطة', Icons.map, primaryColor))]);
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Row(
+        textDirection: TextDirection.rtl,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(app.t(titleAr, titleEn ?? titleAr),
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+              Text(value,
+                  style: TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-  Widget _buildSectionBox(String title, IconData icon, Color color) => Container(height: 150, decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(20)), 
-  child: Column(mainAxisAlignment: MainAxisAlignment.center,
-   children: [Icon(icon, color: color, size: 40),
-   Text(title, style: TextStyle(color: textColor))]));
+// ==================== التصنيفات ====================
+class CategoriesSection extends StatelessWidget {
+  CategoriesSection({super.key});
+
+  final List<Map<String, dynamic>> items = [
+    {
+      'labelAr': 'مطاعم',
+      'labelEn': 'Restaurants',
+      'icon': Icons.restaurant,
+      'color': AppColors.red,
+      'photoQuery': 'restaurant food table',
+    },
+    {
+      'labelAr': 'فنادق',
+      'labelEn': 'Hotels',
+      'icon': Icons.bed,
+      'color': AppColors.purple,
+      'photoQuery': 'hotel exterior building',
+    },
+    {
+      'labelAr': 'سياحة ومعالم',
+      'labelEn': 'Attractions',
+      'icon': Icons.mosque,
+      'color': AppColors.gold,
+      'photoQuery': 'historic landmark architecture',
+    },
+    {
+      'labelAr': 'تسوق',
+      'labelEn': 'Shopping',
+      'icon': Icons.shopping_bag,
+      'color': AppColors.blue,
+      'photoQuery': 'shopping mall storefront',
+    },
+    {
+      'labelAr': 'مواصلات',
+      'labelEn': 'Transport',
+      'icon': Icons.directions_bus,
+      'color': AppColors.teal,
+      'photoQuery': 'bus station street',
+    },
+    {
+      'labelAr': 'صحة',
+      'labelEn': 'Health',
+      'icon': Icons.favorite,
+      'color': AppColors.teal,
+      'photoQuery': 'hospital medical',
+    },
+    {
+      'labelAr': 'صيدليات',
+      'labelEn': 'Pharmacies',
+      'icon': Icons.local_pharmacy,
+      'color': AppColors.blue,
+      'photoQuery': 'pharmacy medicine shelves',
+    },
+    {'labelAr': 'المزيد', 'labelEn': 'More', 'icon': Icons.grid_view, 'color': AppColors.textGrey},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          SectionHeader(
+              titleAr: 'التصنيفات',
+              titleEn: 'Categories',
+              onViewAll: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => ExploreScreen()))),
+          SizedBox(height: 12),
+          Row(
+            children: items
+                .map((item) => Expanded(
+                      child: CategoryTile(
+                        labelAr: item['labelAr'],
+                        labelEn: item['labelEn'],
+                        icon: item['icon'],
+                        color: item['color'],
+                        photoQuery: item['photoQuery'],
+                        onTap: () {
+                          final label = item['labelAr'];
+                          if (label == 'مطاعم') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (context) => RestaurantsScreen()),
+                            );
+                          } else if (label == 'فنادق') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'فنادق',
+                                titleEn: 'Hotels',
+                                bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
+                                bannerSubtitleEn: 'The best places to stay in Nablus',
+                                icon: Icons.bed,
+                                boxName: 'hotels',
+                                seedData: hotelsData,
+                              ),
+                            ));
+                          } else if (label == 'سياحة ومعالم') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'سياحة ومعالم',
+                                titleEn: 'Attractions',
+                                bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
+                                bannerSubtitleEn: 'Discover the finest historic and natural landmarks of Nablus',
+                                icon: Icons.mosque,
+                                boxName: 'attractions',
+                                seedData: attractionsData,
+                              ),
+                            ));
+                          } else if (label == 'تسوق') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'تسوق',
+                                titleEn: 'Shopping',
+                                bannerSubtitleAr: 'أفضل أماكن التسوق في المدينة',
+                                bannerSubtitleEn: 'The best shopping spots in the city',
+                                icon: Icons.shopping_bag,
+                                boxName: 'shopping',
+                                seedData: shoppingData,
+                              ),
+                            ));
+                          } else if (label == 'مواصلات') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'مواصلات',
+                                titleEn: 'Transport',
+                                bannerSubtitleAr: 'كل خيارات التنقل داخل نابلس',
+                                bannerSubtitleEn: 'All transportation options within Nablus',
+                                icon: Icons.directions_bus,
+                                boxName: 'transport',
+                                seedData: transportData,
+                              ),
+                            ));
+                          } else if (label == 'صحة') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'صحة',
+                                titleEn: 'Health',
+                                bannerSubtitleAr: 'المستشفيات والعيادات في نابلس',
+                                bannerSubtitleEn: 'Hospitals and clinics in Nablus',
+                                icon: Icons.favorite,
+                                boxName: 'health',
+                                seedData: healthData,
+                              ),
+                            ));
+                          } else if (label == 'صيدليات') {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (context) => CategoryListScreen(
+                                titleAr: 'صيدليات',
+                                titleEn: 'Pharmacies',
+                                bannerSubtitleAr: 'أقرب الصيدليات وأوقات عملها',
+                                bannerSubtitleEn: 'Nearest pharmacies and their working hours',
+                                icon: Icons.local_pharmacy,
+                                boxName: 'pharmacies',
+                                seedData: pharmaciesData,
+                              ),
+                            ));
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => MoreCategoriesScreen(),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CategoryTile extends StatelessWidget {
+  final String labelAr;
+  final String labelEn;
+  final IconData icon;
+  final Color color;
+  final String? photoQuery;
+  final VoidCallback? onTap;
+  CategoryTile(
+      {super.key,
+      required this.labelAr,
+      required this.labelEn,
+      required this.icon,
+      required this.color,
+      this.photoQuery,
+      this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.borderColor),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: Offset(0, 3)),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (photoQuery != null)
+                    ThemedImage(
+                      query: photoQuery!,
+                      fallbackSeed: labelEn,
+                      height: 60,
+                      fallbackIcon: icon,
+                      fallbackColor: color,
+                    )
+                  else
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [color, color.withOpacity(0.65)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                    ),
+                  if (photoQuery != null)
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black.withOpacity(0.35)],
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    right: 5,
+                    bottom: 5,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(app.t(labelAr, labelEn),
+                textDirection: app.dir,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== عنوان القسم مع "عرض الكل" ====================
+class SectionHeader extends StatelessWidget {
+  final String titleAr;
+  final String? titleEn;
+  final String? emoji;
+  final VoidCallback onViewAll;
+  SectionHeader(
+      {super.key,
+      required this.titleAr,
+      this.titleEn,
+      this.emoji,
+      required this.onViewAll});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final title = app.isArabic ? titleAr : (titleEn ?? titleAr);
+    return Row(
+      children: [
+        GestureDetector(
+      behavior: HitTestBehavior.opaque,
+          onTap: onViewAll,
+          child: Text(app.t('عرض الكل', 'View All'),
+              textDirection: app.dir,
+              style: TextStyle(color: AppColors.blue, fontSize: 12)),
+        ),
+        Spacer(),
+        Text('${emoji ?? ''} $title',
+            textDirection: app.dir,
+            style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 16,
+                fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+}
+
+// ==================== الأماكن المفضلة ====================
+class FavoritePlacesSection extends StatelessWidget {
+  FavoritePlacesSection({super.key});
+
+  final List<Map<String, String>> places = [
+    {'title': 'خان الوكالة', 'subtitle': 'معلم تاريخي', 'titleEn': 'Khan Al-Wakala', 'subtitleEn': 'Historic Landmark'},
+    {'title': 'مطعم الأندلس', 'subtitle': 'مطاعم', 'titleEn': 'Al-Andalus Restaurant', 'subtitleEn': 'Restaurants'},
+    {'title': 'فندق قصر نابلس', 'subtitle': 'فنادق', 'titleEn': 'Nablus Palace Hotel', 'subtitleEn': 'Hotels'},
+    {'title': 'جبل جرزيم', 'subtitle': 'معلم طبيعي', 'titleEn': 'Mount Gerizim', 'subtitleEn': 'Natural Landmark'},
+    {'title': 'حديقة التعاون', 'subtitle': 'حدائق', 'titleEn': 'Al-Taawon Park', 'subtitleEn': 'Parks'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          SectionHeader(
+              titleAr: 'الأماكن المفضلة',
+              titleEn: 'Favorite Places',
+              emoji: '❤️',
+              onViewAll: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => AllPlacesScreen(
+                      titleAr: 'الأماكن المفضلة',
+                      titleEn: 'Favorite Places',
+                      sortMode: PlacesSortMode.featured)))),
+          SizedBox(height: 12),
+          Row(
+            children: places
+                .map((p) => Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                          title: p['title']!,
+                          subtitle: p['subtitle']!,
+                          titleEn: p['titleEn'],
+                          subtitleEn: p['subtitleEn'],
+                          favorited: true,
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class PlaceCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String? titleEn;
+  final String? subtitleEn;
+  final bool favorited;
+  final double? rating;
+  final String imagePath;
+  PlaceCard(
+      {super.key,
+      required this.title,
+      required this.subtitle,
+      this.titleEn,
+      this.subtitleEn,
+      this.favorited = false,
+      this.rating,
+      this.imagePath = ''});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final shownTitle = app.isArabic ? title : (titleEn ?? title);
+    final shownSubtitle = app.isArabic ? subtitle : (subtitleEn ?? subtitle);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => DetailScreen(
+            titleAr: title,
+            titleEn: titleEn ?? title,
+            subtitleAr: subtitle,
+            subtitleEn: subtitleEn ?? subtitle,
+            rating: rating,
+            image: imagePath,
+          ),
+        ));
+      },
+      child: Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              ThemedImage(
+                query: guessPhotoQuery(subtitle, title),
+                fallbackSeed: title,
+                height: 100,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    favorited ? Icons.favorite : Icons.favorite_border,
+                    size: 14,
+                    color: favorited ? AppColors.red : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(shownTitle,
+                    textDirection: app.dir,
+                    style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+                SizedBox(height: 2),
+                Text(shownSubtitle,
+                    textDirection: app.dir,
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+                if (rating != null) ...[
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.star, size: 12, color: AppColors.gold),
+                      SizedBox(width: 3),
+                      Text('$rating',
+                          style: TextStyle(
+                              color: AppColors.textWhite, fontSize: 11)),
+                    ],
+                  ),
+                ],
+                SizedBox(height: 4),
+                Container(
+                  width: 30,
+                  height: 30,
+                  padding: EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: QrImageView(
+                    data: 'https://nablus-guide.com/place/$title',
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+// ==================== الأكثر زيارة + أحدث الأماكن ====================
+class MostVisitedAndNewestSection extends StatelessWidget {
+  MostVisitedAndNewestSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SectionHeader(
+                    titleAr: 'الأكثر زيارة',
+                    titleEn: 'Most Visited',
+                    emoji: '🔥',
+                    onViewAll: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => AllPlacesScreen(
+                            titleAr: 'الأكثر زيارة',
+                            titleEn: 'Most Visited',
+                            sortMode: PlacesSortMode.topRated)))),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'البلدة القديمة',
+                            subtitle: 'معلم تاريخي',
+                            titleEn: 'Old City',
+                            subtitleEn: 'Historic Landmark',
+                            rating: 4.8),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'ميدان الشهداء',
+                            subtitle: 'معلم / ميدان',
+                            titleEn: 'Martyrs Square',
+                            subtitleEn: 'Landmark / Square',
+                            rating: 4.6),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'جامع الساطون',
+                            subtitle: 'معلم ديني',
+                            titleEn: 'Al-Satoun Mosque',
+                            subtitleEn: 'Religious Landmark',
+                            rating: 4.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SectionHeader(
+                    titleAr: 'أحدث الأماكن',
+                    titleEn: 'Newest Places',
+                    onViewAll: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (context) => AllPlacesScreen(
+                            titleAr: 'أحدث الأماكن',
+                            titleEn: 'Newest Places',
+                            sortMode: PlacesSortMode.newest)))),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'كافيه المدينة',
+                            subtitle: 'مقهى',
+                            titleEn: 'City Cafe',
+                            subtitleEn: 'Cafe',
+                            rating: 4.3),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'مركز نابلس مول',
+                            subtitle: 'تسوق',
+                            titleEn: 'Nablus Mall',
+                            subtitleEn: 'Shopping',
+                            rating: 4.4),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: PlaceCard(
+                            title: 'مطعم البيت',
+                            subtitle: 'مطاعم',
+                            titleEn: 'Al-Bait Restaurant',
+                            subtitleEn: 'Restaurants',
+                            rating: 4.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== الفعاليات القادمة + الخريطة ====================
+class EventsAndMapSection extends StatelessWidget {
+  EventsAndMapSection({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SectionHeader(
+                    titleAr: 'الفعاليات القادمة',
+                    titleEn: 'Upcoming Events',
+                    emoji: '📅',
+                    onViewAll: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => EventsScreen()))),
+                SizedBox(height: 12),
+                EventRow(
+                    title: 'مهرجان التسوق السنوي',
+                    subtitle: 'مركز المدينة',
+                    titleEn: 'Annual Shopping Festival',
+                    subtitleEn: 'City Center',
+                    day: '15',
+                    month: 'يونيو',
+                    monthEn: 'Jun'),
+                SizedBox(height: 10),
+                EventRow(
+                    title: 'معرض نابلس للكتاب',
+                    subtitle: 'مركز المعارض',
+                    titleEn: 'Nablus Book Fair',
+                    subtitleEn: 'Exhibition Center',
+                    day: '22',
+                    month: 'يونيو',
+                    monthEn: 'Jun'),
+                SizedBox(height: 10),
+                EventRow(
+                    title: 'مهرجان الموسيقى التراثية',
+                    subtitle: 'المسرح الوطني',
+                    titleEn: 'Heritage Music Festival',
+                    subtitleEn: 'National Theater',
+                    day: '30',
+                    month: 'يونيو',
+                    monthEn: 'Jun'),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SectionHeader(
+                    titleAr: 'الخريطة',
+                    titleEn: 'Map',
+                    emoji: '🗺️',
+                    onViewAll: () => Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => MapScreen()))),
+                SizedBox(height: 12),
+                GestureDetector(
+      behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => MapScreen()));
+                  },
+                  child: Container(
+                  height: 190,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.borderColor),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      IgnorePointer(
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: nablusCenter,
+                            initialZoom: 13.5,
+                            interactionOptions:
+                                InteractionOptions(flags: InteractiveFlag.none),
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName:
+                                  'com.nablus.smart_city_guide',
+                            ),
+                            MarkerLayer(
+                              markers: mapPlaces
+                                  .map((p) => Marker(
+                                        point: p.point,
+                                        width: 26,
+                                        height: 26,
+                                        child: Icon(Icons.location_on,
+                                            color: p.color, size: 26),
+                                      ))
+                                  .toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(color: Colors.black.withOpacity(0.06)),
+                      Positioned(
+                        bottom: 10,
+                        right: 10,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                              AppState.instance
+                                  .t('فتح الخريطة الكاملة', 'Open Full Map'),
+                              textDirection: AppState.instance.dir,
+                              style: TextStyle(color: Colors.white, fontSize: 11)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EventRow extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String day;
+  final String month;
+  final String? titleEn;
+  final String? subtitleEn;
+  final String? monthEn;
+  EventRow(
+      {super.key,
+      required this.title,
+      required this.subtitle,
+      required this.day,
+      required this.month,
+      this.titleEn,
+      this.subtitleEn,
+      this.monthEn});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final shownTitle = app.isArabic ? title : (titleEn ?? title);
+    final shownSubtitle = app.isArabic ? subtitle : (subtitleEn ?? subtitle);
+    final shownMonth = app.isArabic ? month : (monthEn ?? month);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => DetailScreen(
+            titleAr: title,
+            titleEn: titleEn ?? title,
+            subtitleAr: subtitle,
+            subtitleEn: subtitleEn ?? subtitle,
+            extraInfo: '$day ${shownMonth}',
+          ),
+        ));
+      },
+      child: Container(
+      padding: EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Row(
+        textDirection: TextDirection.rtl,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.purple,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Text(day,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14)),
+                Text(shownMonth, style: TextStyle(color: Colors.white, fontSize: 9)),
+              ],
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(shownTitle,
+                    textDirection: app.dir,
+                    style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold)),
+                Text(shownSubtitle,
+                    textDirection: app.dir,
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+              ],
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+// ==================== آخر الأخبار ====================
+class LatestNewsSection extends StatelessWidget {
+  LatestNewsSection({super.key});
+
+  final List<Map<String, String>> news = [
+    {
+      'title': 'افتتاح مشروع تطوير البلدة القديمة',
+      'titleEn': 'Old City Development Project Launched',
+      'date': '10 مايو 2025',
+      'dateEn': 'May 10, 2025',
+    },
+    {
+      'title': 'نابلس تستضيف المؤتمر السياحي الدولي',
+      'titleEn': 'Nablus Hosts International Tourism Conference',
+      'date': '8 مايو 2025',
+      'dateEn': 'May 8, 2025',
+    },
+    {
+      'title': 'تحسن حركة السياحة في نابلس',
+      'titleEn': 'Tourism Activity Improves in Nablus',
+      'date': '5 مايو 2025',
+      'dateEn': 'May 5, 2025',
+    },
+    {
+      'title': 'فعاليات ثقافية جديدة في المدينة',
+      'titleEn': 'New Cultural Events in the City',
+      'date': '2 مايو 2025',
+      'dateEn': 'May 2, 2025',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          SectionHeader(
+              titleAr: 'آخر الأخبار',
+              titleEn: 'Latest News',
+              emoji: '📰',
+              onViewAll: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (context) => NewsScreen()))),
+          SizedBox(height: 12),
+          Row(
+            children: news
+                .map((n) => Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 4),
+                        child: NewsCard(
+                          title: n['title']!,
+                          date: n['date']!,
+                          titleEn: n['titleEn'],
+                          dateEn: n['dateEn'],
+                        ),
+                      ),
+                    ))
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class NewsCard extends StatelessWidget {
+  final String title;
+  final String date;
+  final String? titleEn;
+  final String? dateEn;
+  final String imagePath;
+  NewsCard(
+      {super.key,
+      required this.title,
+      required this.date,
+      this.titleEn,
+      this.dateEn,
+      this.imagePath = ''});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final shownTitle = app.isArabic ? title : (titleEn ?? title);
+    final shownDate = app.isArabic ? date : (dateEn ?? date);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (context) => DetailScreen(
+            titleAr: title,
+            titleEn: titleEn ?? title,
+            extraInfo: shownDate,
+            image: imagePath,
+          ),
+        ));
+      },
+      child: Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ThemedImage(
+            query: guessPhotoQuery(title, ''),
+            fallbackSeed: title,
+            height: 90,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+          ),
+          Padding(
+            padding: EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(shownTitle,
+                    textDirection: app.dir,
+                    textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text(shownDate,
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
+              ],
+            ),
+          ),
+        ],
+      ),
+      ),
+    );
+  }
+}
+
+// ==================== الفوتر ====================
+class FooterSection extends StatelessWidget {
+  final VoidCallback onScrollToTop;
+  FooterSection({super.key, required this.onScrollToTop});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Container(
+      margin: EdgeInsets.only(top: 30),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      color: AppColors.sidebarDark,
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                                colors: [AppColors.purple, AppColors.blue]),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.location_city,
+                              color: Colors.white, size: 16),
+                        ),
+                        SizedBox(width: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                    color: AppColors.textWhite,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold)),
+                            Text(
+                                app.t('دليلك السياحي الذكي', 'Your Smart City Guide'),
+                                style: TextStyle(
+                                    color: AppColors.textGrey, fontSize: 9)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: FooterColumn(
+                  titleAr: 'روابط سريعة',
+                  titleEn: 'Quick Links',
+                  itemsAr: ['الرئيسية', 'استكشف', 'الخريطة', 'الأخبار', 'المساعد الذكي'],
+                  itemsEn: ['Home', 'Explore', 'Map', 'News', 'AI Assistant'],
+                  onScrollToTop: onScrollToTop,
+                ),
+              ),
+              Expanded(
+                child: FooterColumn(
+                  titleAr: 'معلومات',
+                  titleEn: 'Information',
+                  itemsAr: ['من نحن', 'سياسة الخصوصية', 'الشروط والأحكام', 'الأسئلة الشائعة'],
+                  itemsEn: ['About Us', 'Privacy Policy', 'Terms & Conditions', 'FAQ'],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(app.t('تواصل معنا', 'Contact Us'),
+                        textDirection: app.dir,
+                        style: TextStyle(
+                            color: AppColors.textWhite,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold)),
+                    SizedBox(height: 10),
+                    ContactRow(icon: Icons.phone, text: '+970 59 123 4567'),
+                    SizedBox(height: 8),
+                    ContactRow(icon: Icons.email, text: 'info@nablus-guide.com'),
+                    SizedBox(height: 8),
+                    ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        SocialIcon(icon: Icons.facebook),
+                        SocialIcon(icon: Icons.camera_alt),
+                        SocialIcon(icon: Icons.alternate_email),
+                        SocialIcon(icon: Icons.play_circle_fill),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          Divider(color: AppColors.borderColor, height: 32),
+          Text(
+              app.t('© 2025 دليل نابلس الذكي - جميع الحقوق محفوظة',
+                  '© 2025 Nablus Smart Guide - All Rights Reserved'),
+              textDirection: app.dir,
+              style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class FooterColumn extends StatelessWidget {
+  final String titleAr;
+  final String? titleEn;
+  final List<String> itemsAr;
+  final List<String>? itemsEn;
+  final VoidCallback? onScrollToTop;
+  FooterColumn(
+      {super.key,
+      required this.titleAr,
+      this.titleEn,
+      required this.itemsAr,
+      this.itemsEn,
+      this.onScrollToTop});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final title = app.isArabic ? titleAr : (titleEn ?? titleAr);
+    final items = app.isArabic ? itemsAr : (itemsEn ?? itemsAr);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(title,
+            textDirection: app.dir,
+            style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 13,
+                fontWeight: FontWeight.bold)),
+        SizedBox(height: 10),
+        ...items.map((i) => Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (i == 'الرئيسية' || i == 'Home') {
+                    onScrollToTop?.call();
+                  } else if (i == 'استكشف' || i == 'Explore') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => ExploreScreen()));
+                  } else if (i == 'الأخبار' || i == 'News') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => NewsScreen()));
+                  } else if (i == 'الخريطة' || i == 'Map') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => MapScreen()));
+                  } else if (i == 'المساعد الذكي' || i == 'AI Assistant') {
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => AiAssistantScreen()));
+                  } else if (i == 'من نحن' || i == 'About Us') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => AboutUsScreen()));
+                  } else if (i == 'سياسة الخصوصية' || i == 'Privacy Policy') {
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => PrivacyPolicyScreen()));
+                  } else if (i == 'الشروط والأحكام' || i == 'Terms & Conditions') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => TermsScreen()));
+                  } else if (i == 'الأسئلة الشائعة' || i == 'FAQ') {
+                    Navigator.of(context)
+                        .push(MaterialPageRoute(builder: (context) => FaqScreen()));
+                  }
+                },
+                child: Text(i,
+                    textDirection: app.dir,
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+              ),
+            )),
+      ],
+    );
+  }
 }

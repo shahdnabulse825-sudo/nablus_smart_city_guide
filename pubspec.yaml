@@ -11,8 +11,16 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  http: ^1.2.0  # ✅ تم وضعه هنا في المكان الصحيح
+  http: ^1.2.0
   intl: ^0.19.0
+  carousel_slider: ^5.0.0
+  qr_flutter: ^4.1.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  crypto: ^3.0.3
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -28,4 +36,4 @@ flutter:
         - asset: assets/fonts/Tajawal-Regular.ttf
 
   assets:
-    - assets/images/nablus_bg.jpeg
+    - assets/images/
