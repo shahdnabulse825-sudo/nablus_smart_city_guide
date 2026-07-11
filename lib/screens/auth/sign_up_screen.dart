@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../services/auth_service.dart';
+import '../../theme/app_typography.dart';
 
 class SignUpScreen extends StatefulWidget {
-  SignUpScreen({super.key});
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -33,7 +34,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final app = AppState.instance;
     if (passwordController.text != confirmPasswordController.text) {
       setState(() {
-        errorMessage = app.t('كلمتا المرور غير متطابقتين', 'Passwords do not match');
+        errorMessage = app.t(
+          'كلمتا المرور غير متطابقتين',
+          'Passwords do not match',
+        );
       });
       return;
     }
@@ -53,9 +57,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => isLoading = false);
 
     if (error == null) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
     } else {
       setState(() => errorMessage = error);
     }
@@ -71,7 +75,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
-            body: SafeArea(
+            body: Stack(
+              children: [
+                Positioned(
+                  top: -110,
+                  left: -90,
+                  child: Container(
+                    width: 300,
+                    height: 300,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.16),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
               child: Center(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 30),
@@ -85,96 +108,147 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => Navigator.of(context).maybePop(),
-                              child: Icon(Icons.arrow_back, color: AppColors.textWhite),
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.cardDark,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppColors.borderColor),
+                                ),
+                                child: Icon(
+                                  Icons.arrow_back_rounded,
+                                  color: AppColors.textWhite,
+                                  size: 18,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 10),
+                        SizedBox(height: 14),
                         Center(
                           child: Container(
-                            width: 72,
-                            height: 72,
+                            width: 76,
+                            height: 76,
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppColors.purple, AppColors.blue],
+                                colors: AppColors.primaryGradient,
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(AppRadius.xl),
+                              boxShadow: AppColors.glowShadow,
                             ),
-                            child: Icon(Icons.person_add_alt_1, color: Colors.white, size: 34),
+                            child: Icon(
+                              Icons.person_add_alt_1_rounded,
+                              color: Colors.white,
+                              size: 34,
+                            ),
                           ),
                         ),
-                        SizedBox(height: 18),
-                        Text(app.t('إنشاء حساب جديد', 'Create New Account'),
-                            textAlign: TextAlign.center,
-                            textDirection: app.dir,
-                            style: TextStyle(
-                                color: AppColors.textWhite,
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold)),
+                        SizedBox(height: 20),
+                        Text(
+                          app.t('إنشاء حساب جديد', 'Create New Account'),
+                          textAlign: TextAlign.center,
+                          textDirection: app.dir,
+                          style: AppTypography.headline(AppColors.textWhite)
+                              .copyWith(fontSize: 22),
+                        ),
                         SizedBox(height: 6),
                         Text(
-                            app.t('عبّي بياناتك حتى تقدري تحفظي مفضلاتك',
-                                'Fill in your details to save your favorites'),
-                            textAlign: TextAlign.center,
-                            textDirection: app.dir,
-                            style: TextStyle(color: AppColors.textGrey, fontSize: 13)),
+                          app.t(
+                            'عبّي بياناتك حتى تقدري تحفظي مفضلاتك',
+                            'Fill in your details to save your favorites',
+                          ),
+                          textAlign: TextAlign.center,
+                          textDirection: app.dir,
+                          style: AppTypography.body(AppColors.textGrey),
+                        ),
                         SizedBox(height: 28),
                         Container(
                           padding: EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: AppColors.cardDark,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
                             border: Border.all(color: AppColors.borderColor),
+                            boxShadow: AppColors.cardShadow,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text(app.t('الاسم الكامل', 'Full Name'),
-                                  textDirection: app.dir,
-                                  style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                              Text(
+                                app.t('الاسم الكامل', 'Full Name'),
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                  color: AppColors.textGrey,
+                                  fontSize: 12,
+                                ),
+                              ),
                               SizedBox(height: 6),
                               _field(
-                                  controller: nameController,
-                                  hint: app.t('مثلاً: أحمد محمد', 'e.g. Ahmad Mohammad'),
-                                  icon: Icons.person_outline),
+                                controller: nameController,
+                                hint: app.t(
+                                  'مثلاً: أحمد محمد',
+                                  'e.g. Ahmad Mohammad',
+                                ),
+                                icon: Icons.person_outline,
+                              ),
                               SizedBox(height: 16),
-                              Text(app.t('البريد الإلكتروني', 'Email'),
-                                  textDirection: app.dir,
-                                  style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                              Text(
+                                app.t('البريد الإلكتروني', 'Email'),
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                  color: AppColors.textGrey,
+                                  fontSize: 12,
+                                ),
+                              ),
                               SizedBox(height: 6),
                               _field(
-                                  controller: emailController,
-                                  hint: 'example@email.com',
-                                  icon: Icons.email_outlined,
-                                  keyboardType: TextInputType.emailAddress),
+                                controller: emailController,
+                                hint: 'example@email.com',
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
                               SizedBox(height: 16),
-                              Text(app.t('كلمة المرور', 'Password'),
-                                  textDirection: app.dir,
-                                  style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                              Text(
+                                app.t('كلمة المرور', 'Password'),
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                  color: AppColors.textGrey,
+                                  fontSize: 12,
+                                ),
+                              ),
                               SizedBox(height: 6),
                               _field(
                                 controller: passwordController,
-                                hint: app.t('6 أحرف على الأقل', 'At least 6 characters'),
+                                hint: app.t(
+                                  '6 أحرف على الأقل',
+                                  'At least 6 characters',
+                                ),
                                 icon: Icons.lock_outline,
                                 obscure: obscurePassword,
                                 suffix: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      setState(() => obscurePassword = !obscurePassword),
+                                  onTap: () => setState(
+                                    () => obscurePassword = !obscurePassword,
+                                  ),
                                   child: Icon(
-                                      obscurePassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: AppColors.textGrey,
-                                      size: 18),
+                                    obscurePassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: AppColors.textGrey,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 16),
-                              Text(app.t('تأكيد كلمة المرور', 'Confirm Password'),
-                                  textDirection: app.dir,
-                                  style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                              Text(
+                                app.t('تأكيد كلمة المرور', 'Confirm Password'),
+                                textDirection: app.dir,
+                                style: TextStyle(
+                                  color: AppColors.textGrey,
+                                  fontSize: 12,
+                                ),
+                              ),
                               SizedBox(height: 6),
                               _field(
                                 controller: confirmPasswordController,
@@ -183,36 +257,57 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 obscure: obscureConfirm,
                                 suffix: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      setState(() => obscureConfirm = !obscureConfirm),
+                                  onTap: () => setState(
+                                    () => obscureConfirm = !obscureConfirm,
+                                  ),
                                   child: Icon(
-                                      obscureConfirm
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: AppColors.textGrey,
-                                      size: 18),
+                                    obscureConfirm
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: AppColors.textGrey,
+                                    size: 18,
+                                  ),
                                 ),
                               ),
                               SizedBox(height: 22),
                               SizedBox(
                                 width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: isLoading ? null : _submit,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.blue,
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10)),
+                                height: 50,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: AppColors.primaryGradient,
+                                    ),
+                                    borderRadius: BorderRadius.circular(AppRadius.md),
+                                    boxShadow: isLoading ? null : AppColors.glowShadow,
                                   ),
-                                  child: isLoading
-                                      ? SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                              strokeWidth: 2, color: Colors.white))
-                                      : Text(app.t('إنشاء الحساب', 'Create Account'),
-                                          style: TextStyle(
-                                              color: Colors.white, fontWeight: FontWeight.bold)),
+                                  child: ElevatedButton(
+                                    onPressed: isLoading ? null : _submit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      padding: EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(AppRadius.md),
+                                      ),
+                                    ),
+                                    child: isLoading
+                                        ? SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : Text(
+                                            app.t(
+                                              'إنشاء الحساب',
+                                              'Create Account',
+                                            ),
+                                            style: AppTypography.title(Colors.white),
+                                          ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -221,20 +316,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         if (errorMessage != null) ...[
                           SizedBox(height: 14),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.red.withOpacity(0.12),
+                              color: AppColors.red.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: AppColors.red.withOpacity(0.4)),
+                              border: Border.all(
+                                color: AppColors.red.withValues(alpha: 0.4),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.error_outline, color: AppColors.red, size: 16),
+                                Icon(
+                                  Icons.error_outline,
+                                  color: AppColors.red,
+                                  size: 16,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
-                                  child: Text(errorMessage!,
-                                      textDirection: app.dir,
-                                      style: TextStyle(color: AppColors.red, fontSize: 12)),
+                                  child: Text(
+                                    errorMessage!,
+                                    textDirection: app.dir,
+                                    style: TextStyle(
+                                      color: AppColors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -246,9 +355,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             behavior: HitTestBehavior.opaque,
                             onTap: () => Navigator.of(context).maybePop(),
                             child: Text(
-                                app.t('عندك حساب مسبقًا؟ سجّلي الدخول',
-                                    'Already have an account? Sign in'),
-                                style: TextStyle(color: AppColors.blue, fontSize: 12)),
+                              app.t(
+                                'عندك حساب مسبقًا؟ سجّلي الدخول',
+                                'Already have an account? Sign in',
+                              ),
+                              style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -256,6 +371,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
+                ),
+              ],
             ),
           ),
         );
@@ -274,21 +391,24 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardDark2,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.borderColor),
       ),
       child: TextField(
         controller: controller,
         obscureText: obscure,
         keyboardType: keyboardType,
-        style: TextStyle(color: AppColors.textWhite),
+        style: AppTypography.body(AppColors.textWhite),
+        cursorColor: AppColors.primary,
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: AppColors.textGrey, size: 18),
           suffixIcon: suffix,
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(vertical: 14),
           hintText: hint,
-          hintStyle: TextStyle(color: AppColors.textGrey.withOpacity(0.6)),
+          hintStyle: AppTypography.body(
+            AppColors.textGrey.withValues(alpha: 0.6),
+          ),
         ),
       ),
     );

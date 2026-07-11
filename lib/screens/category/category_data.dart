@@ -18,6 +18,8 @@ class ListingItem {
   final String photoQuery; // كلمة بحث إنجليزية لجلب صورة حقيقية مرتبطة بالموضوع
   final IconData placeholderIcon;
   final Color placeholderColor;
+  final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
+  final bool isFeatured; // مكان مميز/مروَّج له من الأدمن، يظهر أولًا وبشارة خاصة
 
   ListingItem({
     required this.nameAr,
@@ -36,6 +38,8 @@ class ListingItem {
     required this.photoQuery,
     required this.placeholderIcon,
     required this.placeholderColor,
+    this.customImageBase64,
+    this.isFeatured = false,
   });
 }
 
@@ -57,6 +61,7 @@ final List<ListingItem> hotelsData = [
     photoQuery: 'hotel exterior building',
     placeholderIcon: Icons.hotel,
     placeholderColor: Color(0xFF6C5CE7),
+    isFeatured: true,
   ),
   ListingItem(
     nameAr: 'فندق نابلس الدولي',
@@ -129,6 +134,7 @@ final List<ListingItem> attractionsData = [
     photoQuery: 'old town stone alley',
     placeholderIcon: Icons.account_balance,
     placeholderColor: Color(0xFFC9A227),
+    isFeatured: true,
   ),
   ListingItem(
     nameAr: 'جبل جرزيم',

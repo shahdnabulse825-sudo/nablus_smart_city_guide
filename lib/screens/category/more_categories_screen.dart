@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
+import '../../widgets/themed_image.dart';
 import 'category_list_screen.dart';
 import 'category_data.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/responsive.dart';
 
 /// شاشة "المزيد" تعرض بقية التصنيفات غير الظاهرة بالصف الرئيسي بالشاشة الرئيسية.
 class MoreCategoriesScreen extends StatelessWidget {
@@ -17,6 +20,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': educationData,
       'subtitleAr': 'الجامعات والمدارس في نابلس',
       'subtitleEn': 'Universities and schools in Nablus',
+      'photoQuery': 'An-Najah University campus',
     },
     {
       'labelAr': 'بنوك وصرافة',
@@ -27,6 +31,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': banksData,
       'subtitleAr': 'البنوك ومحلات الصرافة',
       'subtitleEn': 'Banks and currency exchange shops',
+      'photoQuery': 'Bank of Palestine',
     },
     {
       'labelAr': 'ترفيه',
@@ -37,6 +42,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': entertainmentData,
       'subtitleAr': 'أماكن الترفيه والتسلية في المدينة',
       'subtitleEn': 'Entertainment and fun spots in the city',
+      'photoQuery': 'Nablus panorama',
     },
     {
       'labelAr': 'خدمات حكومية',
@@ -47,6 +53,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': governmentData,
       'subtitleAr': 'الدوائر الرسمية والخدمات الحكومية',
       'subtitleEn': 'Official departments and government services',
+      'photoQuery': 'Nablus panorama',
     },
   ];
 
@@ -71,17 +78,28 @@ class MoreCategoriesScreen extends StatelessWidget {
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => Navigator.of(context).maybePop(),
-                          child: Icon(Icons.arrow_back, color: AppColors.textWhite),
+                          child: Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
+                            child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+                          ),
                         ),
                         SizedBox(width: 12),
-                        Icon(Icons.grid_view, color: AppColors.blue, size: 18),
-                        SizedBox(width: 8),
-                        Text(app.t('المزيد', 'More'),
-                            textDirection: app.dir,
-                            style: TextStyle(
-                                color: AppColors.textWhite,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: AppColors.primaryGradient),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(Icons.grid_view_rounded, color: Colors.white, size: 16),
+                        ),
+                        SizedBox(width: 10),
+                        Text(
+                          app.t('المزيد', 'More'),
+                          textDirection: app.dir,
+                          style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+                        ),
                       ],
                     ),
                   ),
@@ -90,57 +108,88 @@ class MoreCategoriesScreen extends StatelessWidget {
                       padding: EdgeInsets.all(20),
                       itemCount: _items.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
+                        crossAxisCount: responsiveGridColumns(context, wide: 3, narrow: 2),
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
                         childAspectRatio: 0.95,
                       ),
                       itemBuilder: (context, i) {
                         final item = _items[i];
-                        return GestureDetector(
-                          behavior: HitTestBehavior.opaque,
+                        return AppCard(
+                          padding: EdgeInsets.zero,
+                          radius: AppRadius.lg,
                           onTap: () {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (context) => CategoryListScreen(
-                                titleAr: item['labelAr'],
-                                titleEn: item['labelEn'],
-                                bannerSubtitleAr: item['subtitleAr'],
-                                bannerSubtitleEn: item['subtitleEn'],
-                                icon: item['icon'],
-                                boxName: item['boxName'],
-                                seedData: item['seedData'],
-                              ),
-                            ));
-                          },
-                          child: Container(
-                            padding: EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.borderColor),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: (item['color'] as Color).withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(item['icon'], color: item['color'], size: 24),
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => CategoryListScreen(
+                                  titleAr: item['labelAr'],
+                                  titleEn: item['labelEn'],
+                                  bannerSubtitleAr: item['subtitleAr'],
+                                  bannerSubtitleEn: item['subtitleEn'],
+                                  icon: item['icon'],
+                                  boxName: item['boxName'],
+                                  seedData: item['seedData'],
                                 ),
-                                SizedBox(height: 10),
-                                Text(app.t(item['labelAr'], item['labelEn']),
-                                    textDirection: app.dir,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                        color: AppColors.textWhite,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600)),
+                              ),
+                            );
+                          },
+                          child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ThemedImage(
+                                  query: item['photoQuery'] as String,
+                                  fallbackSeed: item['boxName'] as String,
+                                  height: double.infinity,
+                                  fallbackIcon: item['icon'],
+                                  fallbackColor: item['color'],
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Colors.black.withValues(alpha: 0.25),
+                                        Colors.black.withValues(alpha: 0.75),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.all(14),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              item['color'] as Color,
+                                              (item['color'] as Color).withValues(alpha: 0.7),
+                                            ],
+                                          ),
+                                          borderRadius: BorderRadius.circular(AppRadius.md),
+                                          boxShadow: AppColors.cardShadow,
+                                        ),
+                                        child: Icon(
+                                          item['icon'],
+                                          color: Colors.white,
+                                          size: 22,
+                                        ),
+                                      ),
+                                      SizedBox(height: 10),
+                                      Text(
+                                        app.t(item['labelAr'], item['labelEn']),
+                                        textDirection: app.dir,
+                                        textAlign: TextAlign.center,
+                                        style: AppTypography.label(Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
-                            ),
                           ),
                         );
                       },

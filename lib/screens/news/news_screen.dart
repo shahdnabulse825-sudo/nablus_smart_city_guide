@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../common/detail_screen.dart';
+import '../../widgets/themed_image.dart';
+import '../../services/local_db_service.dart';
+import '../../services/data_converters.dart';
+import '../../theme/app_typography.dart';
+import '../../widgets/responsive.dart';
+
+// كلمة بحث إنجليزية مناسبة لصورة كل خبر حسب تصنيفه
+final Map<String, String> _newsPhotoQueryByCategory = {
+  'development': 'urban development construction',
+  'tourism': 'tourists sightseeing',
+  'culture': 'cultural event celebration',
+  'events': 'street festival crowd',
+};
 
 class NewsArticle {
   final String titleAr;
@@ -14,7 +27,7 @@ class NewsArticle {
   final String summaryEn;
   final String bodyAr;
   final String bodyEn;
-  final String image;
+  final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا الخبر تحديدًا
 
   NewsArticle({
     required this.titleAr,
@@ -28,11 +41,11 @@ class NewsArticle {
     required this.summaryEn,
     required this.bodyAr,
     required this.bodyEn,
-    this.image = 'assets/images/nablus_bg.jpeg',
+    this.customImageBase64,
   });
 }
 
-final List<NewsArticle> _articles = [
+final List<NewsArticle> newsSeedData = [
   NewsArticle(
     titleAr: 'افتتاح مشروع تطوير البلدة القديمة',
     titleEn: 'Old City Development Project Launched',
@@ -41,8 +54,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'تطوير',
     categoryEn: 'Development',
     categoryKey: 'development',
-    summaryAr: 'مشروع جديد لترميم وتطوير أزقة البلدة القديمة والحفاظ على طابعها التراثي.',
-    summaryEn: 'A new project to restore and develop the Old City alleys while preserving its heritage character.',
+    summaryAr:
+        'مشروع جديد لترميم وتطوير أزقة البلدة القديمة والحفاظ على طابعها التراثي.',
+    summaryEn:
+        'A new project to restore and develop the Old City alleys while preserving its heritage character.',
     bodyAr:
         'أعلنت بلدية نابلس عن انطلاق مشروع شامل لتطوير البلدة القديمة يهدف إلى ترميم الأبنية التاريخية وتحسين البنية التحتية مع الحفاظ على الطابع المعماري الأصيل. يتضمن المشروع تحسين الإنارة، رصف الأزقة بالحجر الطبيعي، وإعادة تأهيل الأسواق القديمة لجذب مزيد من الزوار والسياح.',
     bodyEn:
@@ -56,8 +71,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'سياحة',
     categoryEn: 'Tourism',
     categoryKey: 'tourism',
-    summaryAr: 'استضافت المدينة مؤتمرًا دوليًا لبحث سبل تعزيز السياحة الداخلية والخارجية.',
-    summaryEn: 'The city hosted an international conference to discuss ways to promote domestic and international tourism.',
+    summaryAr:
+        'استضافت المدينة مؤتمرًا دوليًا لبحث سبل تعزيز السياحة الداخلية والخارجية.',
+    summaryEn:
+        'The city hosted an international conference to discuss ways to promote domestic and international tourism.',
     bodyAr:
         'شهدت نابلس هذا الأسبوع فعاليات المؤتمر السياحي الدولي بمشاركة خبراء ومختصين من عدة دول، حيث تم بحث استراتيجيات تطوير القطاع السياحي وجذب المزيد من الزوار عبر تحسين الخدمات والبنية التحتية السياحية بالمدينة.',
     bodyEn:
@@ -71,8 +88,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'سياحة',
     categoryEn: 'Tourism',
     categoryKey: 'tourism',
-    summaryAr: 'ارتفاع ملحوظ بعدد الزوار خلال الأشهر الأخيرة مقارنة بالعام الماضي.',
-    summaryEn: 'A noticeable increase in visitor numbers over recent months compared to last year.',
+    summaryAr:
+        'ارتفاع ملحوظ بعدد الزوار خلال الأشهر الأخيرة مقارنة بالعام الماضي.',
+    summaryEn:
+        'A noticeable increase in visitor numbers over recent months compared to last year.',
     bodyAr:
         'أظهرت إحصائيات حديثة ارتفاعًا ملحوظًا في أعداد الزوار القادمين إلى نابلس خلال الأشهر الأخيرة، ويعزو المختصون هذا التحسن إلى الحملات الترويجية الأخيرة وتحسين الخدمات السياحية في المدينة.',
     bodyEn:
@@ -86,8 +105,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'ثقافة',
     categoryEn: 'Culture',
     categoryKey: 'culture',
-    summaryAr: 'سلسلة فعاليات ثقافية وفنية تنطلق هذا الشهر في عدة مواقع بالمدينة.',
-    summaryEn: 'A series of cultural and artistic events kicks off this month at several locations in the city.',
+    summaryAr:
+        'سلسلة فعاليات ثقافية وفنية تنطلق هذا الشهر في عدة مواقع بالمدينة.',
+    summaryEn:
+        'A series of cultural and artistic events kicks off this month at several locations in the city.',
     bodyAr:
         'تنطلق هذا الشهر سلسلة من الفعاليات الثقافية والفنية في نابلس، تشمل معارض فنية وأمسيات شعرية وعروض موسيقية تراثية، بهدف إحياء التراث الثقافي المحلي وتشجيع السياحة الثقافية بالمدينة.',
     bodyEn:
@@ -101,8 +122,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'فعاليات',
     categoryEn: 'Events',
     categoryKey: 'events',
-    summaryAr: 'استعدادات مكثفة لانطلاق مهرجان التسوق السنوي بمشاركة عشرات المحال التجارية.',
-    summaryEn: 'Intensive preparations underway for the annual shopping festival with dozens of participating stores.',
+    summaryAr:
+        'استعدادات مكثفة لانطلاق مهرجان التسوق السنوي بمشاركة عشرات المحال التجارية.',
+    summaryEn:
+        'Intensive preparations underway for the annual shopping festival with dozens of participating stores.',
     bodyAr:
         'تجري الاستعدادات على قدم وساق لانطلاق مهرجان نابلس للتسوق السنوي الذي يشارك فيه عشرات المحال التجارية بعروض وتخفيضات خاصة، إلى جانب فعاليات ترفيهية للعائلات طوال أيام المهرجان.',
     bodyEn:
@@ -116,8 +139,10 @@ final List<NewsArticle> _articles = [
     categoryAr: 'تطوير',
     categoryEn: 'Development',
     categoryKey: 'development',
-    summaryAr: 'خطوط جديدة للمواصلات العامة لتسهيل الوصول لمختلف أحياء المدينة.',
-    summaryEn: 'New public transportation lines to facilitate access to different neighborhoods of the city.',
+    summaryAr:
+        'خطوط جديدة للمواصلات العامة لتسهيل الوصول لمختلف أحياء المدينة.',
+    summaryEn:
+        'New public transportation lines to facilitate access to different neighborhoods of the city.',
     bodyAr:
         'أعلنت الجهات المختصة عن توسعة شبكة المواصلات العامة داخل نابلس بإضافة خطوط جديدة تربط الأحياء السكنية بمركز المدينة والمعالم السياحية الرئيسية، بهدف تسهيل التنقل للسكان والزوار على حد سواء.',
     bodyEn:
@@ -126,7 +151,7 @@ final List<NewsArticle> _articles = [
 ];
 
 class NewsScreen extends StatefulWidget {
-  NewsScreen({super.key});
+  const NewsScreen({super.key});
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -136,10 +161,31 @@ class _NewsScreenState extends State<NewsScreen> {
   String categoryFilter = 'all';
   String searchQuery = '';
 
+  bool _loaded = false;
+  List<NewsArticle> _liveArticles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final db = LocalDbService.instance;
+    await db.seedIfEmpty('news', newsSeedData.map(newsToMap).toList());
+    final entries = db.getAll('news');
+    setState(() {
+      _liveArticles = entries.map((e) => mapToNews(e.value)).toList();
+      _loaded = true;
+    });
+  }
+
   List<NewsArticle> get _filtered {
-    return _articles.where((a) {
-      final matchesCategory = categoryFilter == 'all' || a.categoryKey == categoryFilter;
-      final matchesSearch = searchQuery.isEmpty ||
+    return _liveArticles.where((a) {
+      final matchesCategory =
+          categoryFilter == 'all' || a.categoryKey == categoryFilter;
+      final matchesSearch =
+          searchQuery.isEmpty ||
           a.titleAr.contains(searchQuery) ||
           a.titleEn.toLowerCase().contains(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
@@ -149,6 +195,15 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
+    if (!_loaded) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Scaffold(
+          backgroundColor: AppColors.bgDark,
+          body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+        ),
+      );
+    }
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
@@ -166,30 +221,50 @@ class _NewsScreenState extends State<NewsScreen> {
                     child: Row(
                       children: [
                         GestureDetector(
-      behavior: HitTestBehavior.opaque,
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => Navigator.of(context).maybePop(),
-                          child: Icon(Icons.arrow_back, color: AppColors.textWhite),
+                          child: Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
+                            child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: AppColors.primaryGradient),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(Icons.article_rounded, color: Colors.white, size: 16),
                         ),
                         SizedBox(width: 10),
-                        Icon(Icons.article, color: AppColors.blue, size: 18),
-                        SizedBox(width: 8),
-                        Text(app.t('آخر الأخبار', 'Latest News'),
+                        Expanded(
+                          child: Text(
+                            app.t('آخر الأخبار', 'Latest News'),
                             textDirection: app.dir,
-                            style: TextStyle(
-                                color: AppColors.textWhite,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
-                        Spacer(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+                          ),
+                        ),
                         GestureDetector(
-      behavior: HitTestBehavior.opaque,
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => app.toggleLanguage(),
                           child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 7,
+                            ),
                             decoration: BoxDecoration(
-                                color: AppColors.cardDark2,
-                                borderRadius: BorderRadius.circular(20)),
-                            child: Text(app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                                style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+                              color: AppColors.cardDark2,
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
+                            ),
+                            child: Text(
+                              app.isArabic ? 'عربي  EN' : 'EN  عربي',
+                              style: AppTypography.label(AppColors.textWhite),
+                            ),
                           ),
                         ),
                       ],
@@ -203,27 +278,35 @@ class _NewsScreenState extends State<NewsScreen> {
                         children: [
                           // شريط البحث
                           Container(
-                            height: 44,
+                            height: 48,
                             padding: EdgeInsets.symmetric(horizontal: 14),
                             decoration: BoxDecoration(
                               color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(22),
+                              borderRadius: BorderRadius.circular(AppRadius.pill),
                               border: Border.all(color: AppColors.borderColor),
+                              boxShadow: AppColors.cardShadow,
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.search, size: 18, color: AppColors.textGrey),
+                                Icon(
+                                  Icons.search_rounded,
+                                  size: 18,
+                                  color: AppColors.primary,
+                                ),
                                 SizedBox(width: 8),
                                 Expanded(
                                   child: TextField(
-                                    onChanged: (v) => setState(() => searchQuery = v),
-                                    style: TextStyle(color: AppColors.textWhite, fontSize: 13),
+                                    onChanged: (v) =>
+                                        setState(() => searchQuery = v),
+                                    style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 13),
                                     decoration: InputDecoration(
                                       isCollapsed: true,
                                       border: InputBorder.none,
-                                      hintText: app.t('ابحث في الأخبار...', 'Search news...'),
-                                      hintStyle:
-                                          TextStyle(color: AppColors.textGrey, fontSize: 12),
+                                      hintText: app.t(
+                                        'ابحث في الأخبار...',
+                                        'Search news...',
+                                      ),
+                                      hintStyle: AppTypography.caption(AppColors.textGrey),
                                     ),
                                   ),
                                 ),
@@ -232,18 +315,24 @@ class _NewsScreenState extends State<NewsScreen> {
                           ),
                           SizedBox(height: 16),
                           // فلاتر التصنيف
-                          Row(
-                            children: [
-                              _catChip('all', app.t('الكل', 'All')),
-                              SizedBox(width: 8),
-                              _catChip('tourism', app.t('سياحة', 'Tourism')),
-                              SizedBox(width: 8),
-                              _catChip('events', app.t('فعاليات', 'Events')),
-                              SizedBox(width: 8),
-                              _catChip('development', app.t('تطوير', 'Development')),
-                              SizedBox(width: 8),
-                              _catChip('culture', app.t('ثقافة', 'Culture')),
-                            ],
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _catChip('all', app.t('الكل', 'All')),
+                                SizedBox(width: 8),
+                                _catChip('tourism', app.t('سياحة', 'Tourism')),
+                                SizedBox(width: 8),
+                                _catChip('events', app.t('فعاليات', 'Events')),
+                                SizedBox(width: 8),
+                                _catChip(
+                                  'development',
+                                  app.t('تطوير', 'Development'),
+                                ),
+                                SizedBox(width: 8),
+                                _catChip('culture', app.t('ثقافة', 'Culture')),
+                              ],
+                            ),
                           ),
                           SizedBox(height: 20),
                           if (filtered.isEmpty)
@@ -251,8 +340,12 @@ class _NewsScreenState extends State<NewsScreen> {
                               padding: EdgeInsets.symmetric(vertical: 60),
                               child: Center(
                                 child: Text(
-                                    app.t('لا توجد أخبار مطابقة', 'No matching news found'),
-                                    style: TextStyle(color: AppColors.textGrey)),
+                                  app.t(
+                                    'لا توجد أخبار مطابقة',
+                                    'No matching news found',
+                                  ),
+                                  style: AppTypography.body(AppColors.textGrey),
+                                ),
                               ),
                             )
                           else
@@ -260,13 +353,15 @@ class _NewsScreenState extends State<NewsScreen> {
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
                               itemCount: filtered.length,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: 0.85,
-                              ),
-                              itemBuilder: (context, i) => _ArticleCard(article: filtered[i]),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: responsiveGridColumns(context, wide: 3, narrow: 2),
+                                    crossAxisSpacing: 16,
+                                    mainAxisSpacing: 16,
+                                    childAspectRatio: 0.85,
+                                  ),
+                              itemBuilder: (context, i) =>
+                                  _ArticleCard(article: filtered[i]),
                             ),
                         ],
                       ),
@@ -286,15 +381,21 @@ class _NewsScreenState extends State<NewsScreen> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => categoryFilter = key),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.blue : AppColors.cardDark,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.blue : AppColors.borderColor),
+          gradient: selected ? LinearGradient(colors: AppColors.primaryGradient) : null,
+          color: selected ? null : AppColors.cardDark,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: selected ? Colors.transparent : AppColors.borderColor,
+          ),
         ),
-        child: Text(label,
-            style: TextStyle(color: selected ? Colors.white : AppColors.textWhite, fontSize: 12)),
+        child: Text(
+          label,
+          style: AppTypography.label(selected ? Colors.white : AppColors.textWhite),
+        ),
       ),
     );
   }
@@ -313,83 +414,86 @@ class _ArticleCard extends StatelessWidget {
     final category = app.isArabic ? a.categoryAr : a.categoryEn;
     final summary = app.isArabic ? a.summaryAr : a.summaryEn;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return AppCard(
+      padding: EdgeInsets.zero,
       onTap: () {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (context) => DetailScreen(
-            titleAr: a.titleAr,
-            titleEn: a.titleEn,
-            extraInfo: date,
-            descriptionAr: a.bodyAr,
-            descriptionEn: a.bodyEn,
-            image: a.image,
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => DetailScreen(
+              titleAr: a.titleAr,
+              titleEn: a.titleEn,
+              subtitleAr: a.categoryAr,
+              subtitleEn: a.categoryEn,
+              extraInfo: date,
+              descriptionAr: a.bodyAr,
+              descriptionEn: a.bodyEn,
+              customImageBase64: a.customImageBase64,
+            ),
           ),
-        ));
+        );
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
-                  child: Image.asset(
-                    a.image,
-                    height: 110,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => Container(
-                      height: 110,
-                      color: AppColors.cardDark2,
-                      child: Icon(Icons.image, color: AppColors.textGrey, size: 30),
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Stack(
+            children: [
+              ThemedImage(
+                query:
+                    _newsPhotoQueryByCategory[a.categoryKey] ??
+                    'nablus palestine city',
+                fallbackSeed: a.titleEn,
+                height: 110,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+                customImageBase64: a.customImageBase64,
+              ),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: AppColors.primaryGradient),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    category,
+                    style: AppTypography.caption(Colors.white),
                   ),
                 ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration:
-                        BoxDecoration(color: AppColors.blue, borderRadius: BorderRadius.circular(6)),
-                    child: Text(category, style: TextStyle(color: Colors.white, fontSize: 9)),
-                  ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  title,
+                  textDirection: app.dir,
+                  textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 12),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  summary,
+                  textDirection: app.dir,
+                  textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  date,
+                  style: AppTypography.caption(AppColors.textGrey),
                 ),
               ],
             ),
-            Padding(
-              padding: EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(title,
-                      textDirection: app.dir,
-                      textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 4),
-                  Text(summary,
-                      textDirection: app.dir,
-                      textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
-                  SizedBox(height: 6),
-                  Text(date, style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

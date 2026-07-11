@@ -1,0 +1,94 @@
+// مخطط قاعدة البيانات الحقيقي لتطبيق دليل نابلس الذكي (PostgreSQL عبر Prisma)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== المستخدمون ====================
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("user") // "user" | "admin"
+  createdAt    DateTime @default(now())
+}
+
+// ==================== الأماكن العامة (فنادق، معالم، تسوق، مواصلات، صحة، صيدليات، تعليم، بنوك، ترفيه، حكومي) ====================
+model Listing {
+  id                String   @id @default(cuid())
+  category          String // hotels | attractions | shopping | transport | health | pharmacies | education | banks | entertainment | government
+  nameAr            String
+  nameEn            String
+  typeAr            String
+  typeEn            String
+  locationAr        String
+  locationEn        String
+  rating            Float    @default(4.0)
+  reviews           Int      @default(0)
+  infoLabelAr       String   @default("")
+  infoLabelEn       String   @default("")
+  aboutAr           String   @default("")
+  aboutEn           String   @default("")
+  phone             String   @default("+970 59 000 0000")
+  photoQuery        String   @default("nablus palestine city")
+  imageUrl          String? // رابط صورة حقيقية رفعها الأدمن (لو موجودة)
+  iconCodePoint     Int      @default(58719) // Icons.place (0xe55f)
+  colorValue        Int      @default(3946230) // لون RGB فقط بدون بايت الشفافية (0x3B82F6)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([category])
+}
+
+// ==================== المطاعم ====================
+model Restaurant {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  categoryAr    String
+  categoryEn    String
+  cuisineKey    String // traditional | eastern | cafe | fastfood | sweets | italian
+  locationAr    String
+  locationEn    String
+  rating        Float    @default(4.0)
+  reviews       Int      @default(0)
+  priceRange    String   @default("")
+  priceTier     String   @default("medium") // cheap | medium | high
+  time          String   @default("")
+  aboutAr       String   @default("")
+  aboutEn       String   @default("")
+  imageUrl      String?
+  iconCodePoint Int      @default(58732) // Icons.restaurant (0xe56c)
+  colorValue    Int      @default(7114727) // لون RGB فقط بدون بايت الشفافية (0x6C5CE7)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([cuisineKey])
+}
+
+// ==================== الأخبار ====================
+model NewsArticle {
+  id          String   @id @default(cuid())
+  titleAr     String
+  titleEn     String
+  dateAr      String
+  dateEn      String
+  categoryAr  String
+  categoryEn  String
+  categoryKey String // tourism | events | development | culture
+  summaryAr   String   @default("")
+  summaryEn   String   @default("")
+  bodyAr      String   @default("")
+  bodyEn      String   @default("")
+  imageUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([categoryKey])
+}

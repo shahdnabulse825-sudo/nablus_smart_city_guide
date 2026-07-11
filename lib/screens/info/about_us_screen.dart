@@ -3,7 +3,7 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import 'info_scaffold.dart';
 
 class AboutUsScreen extends StatelessWidget {
-  AboutUsScreen({super.key});
+  const AboutUsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,14 +16,15 @@ class AboutUsScreen extends StatelessWidget {
         children: [
           Center(
             child: Container(
-              width: 72,
-              height: 72,
-              margin: EdgeInsets.only(bottom: 20),
+              width: 80,
+              height: 80,
+              margin: EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [AppColors.purple, AppColors.blue]),
-                borderRadius: BorderRadius.circular(18),
+                gradient: LinearGradient(colors: AppColors.primaryGradient),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: AppColors.glowShadow,
               ),
-              child: Icon(Icons.location_city, color: Colors.white, size: 34),
+              child: Icon(Icons.location_city_rounded, color: Colors.white, size: 38),
             ),
           ),
           InfoSection(

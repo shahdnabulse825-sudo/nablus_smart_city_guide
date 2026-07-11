@@ -1,16 +1,20 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/unsplash_service.dart';
+import '../services/wikimedia_service.dart';
 
 /// ودجت يعرض صورة حقيقية مرتبطة بموضوع معيّن (query)، مثلاً "mosque" أو "burger".
-/// لو المفتاح مش مفعّل أو الطلب فشل، بيعرض تلقائيًا صورة بديلة من Picsum (عشوائية بس مستقرة)
-/// وإذا فشلت هاي كمان، بيعرض أيقونة ولون مميز.
+/// لو الأدمن رفع صورة مخصّصة لهذا العنصر (customImageBase64) فهذي تُعرض دائمًا أولاً.
+/// وإلا يجرّب صورة حقيقية من الإنترنت، وإذا فشلت كلها، بيعرض أيقونة ولون مميز.
 class ThemedImage extends StatefulWidget {
-  final String query; // الكلمة المفتاحية بالإنجليزي، مثلاً "mosque", "burger", "hotel exterior"
+  final String
+  query; // الكلمة المفتاحية بالإنجليزي، مثلاً "mosque", "burger", "hotel exterior"
   final String fallbackSeed; // اسم فريد يُستخدم كـ seed للصورة البديلة
   final double height;
   final BorderRadius? borderRadius;
   final IconData fallbackIcon;
   final Color fallbackColor;
+  final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
 
   const ThemedImage({
     super.key,
@@ -20,6 +24,7 @@ class ThemedImage extends StatefulWidget {
     this.borderRadius,
     this.fallbackIcon = Icons.image,
     this.fallbackColor = const Color(0xFF6C5CE7),
+    this.customImageBase64,
   });
 
   @override
@@ -33,11 +38,16 @@ class _ThemedImageState extends State<ThemedImage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.customImageBase64 == null || widget.customImageBase64!.isEmpty) {
+      _load();
+    } else {
+      _loading = false;
+    }
   }
 
   Future<void> _load() async {
-    final url = await UnsplashService.instance.getPhotoUrl(widget.query);
+    var url = await UnsplashService.instance.getPhotoUrl(widget.query);
+    url ??= await WikimediaService.instance.getPhotoUrl(widget.query);
     if (mounted) {
       setState(() {
         _url = url;
@@ -50,7 +60,15 @@ class _ThemedImageState extends State<ThemedImage> {
   Widget build(BuildContext context) {
     Widget content;
 
-    if (_loading) {
+    if (widget.customImageBase64 != null && widget.customImageBase64!.isNotEmpty) {
+      content = Image.memory(
+        base64Decode(widget.customImageBase64!),
+        height: widget.height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => _relatedPhotoFallback(),
+      );
+    } else if (_loading) {
       content = Container(
         height: widget.height,
         color: const Color(0xFF17233B),
@@ -80,20 +98,19 @@ class _ThemedImageState extends State<ThemedImage> {
     return content;
   }
 
-  /// صورة حقيقية مرتبطة بموضوع الـ query (بدون أي مفتاح API) عبر LoremFlickr،
-  /// والذي يرجع صورًا فعلية من Flickr مطابقة للكلمات المفتاحية. لو فشلت، نرجع لـ Picsum.
+  /// محاولة أخيرة قبل Picsum: LoremFlickr بكلمة وحيدة فقط (أكثر استقرارًا بكثير من
+  /// عدة كلمات معًا، اللي بيرجّع خطأ من خادمهم بمعظم الأحيان).
   Widget _relatedPhotoFallback() {
-    final tags = widget.query
+    final firstWord = widget.query
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9 ]'), '')
         .trim()
         .split(RegExp(r'\s+'))
-        .where((t) => t.isNotEmpty)
-        .take(3)
-        .join(',');
-    if (tags.isEmpty) return _picsumFallback();
+        .firstWhere((t) => t.isNotEmpty, orElse: () => '');
+    if (firstWord.isEmpty) return _picsumFallback();
     final lock = widget.fallbackSeed.hashCode.abs() % 100000;
-    final url = 'https://loremflickr.com/640/480/${Uri.encodeComponent(tags)}?lock=$lock';
+    final url =
+        'https://loremflickr.com/640/480/${Uri.encodeComponent(firstWord)}?lock=$lock';
     return Image.network(
       url,
       height: widget.height,
@@ -113,12 +130,17 @@ class _ThemedImageState extends State<ThemedImage> {
         height: widget.height,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [widget.fallbackColor, widget.fallbackColor.withOpacity(0.7)],
+            colors: [
+              widget.fallbackColor,
+              widget.fallbackColor.withValues(alpha: 0.7),
+            ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
-        child: Center(child: Icon(widget.fallbackIcon, color: Colors.white, size: 36)),
+        child: Center(
+          child: Icon(widget.fallbackIcon, color: Colors.white, size: 36),
+        ),
       ),
     );
   }

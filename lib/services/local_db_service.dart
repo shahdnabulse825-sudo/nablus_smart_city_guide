@@ -15,8 +15,15 @@ class LocalDbService {
     'transport',
     'health',
     'pharmacies',
+    'education',
+    'banks',
+    'entertainment',
+    'government',
     'news',
     'users',
+    'session',
+    'favorites',
+    'feedback',
   ];
 
   final Map<String, Box> _boxes = {};
@@ -63,6 +70,13 @@ class LocalDbService {
     await _box(boxName).put(key, item);
   }
 
+  /// يرجع عنصر واحد بمفتاحه مباشرة (أو null لو مش موجود)
+  Map<String, dynamic>? get(String boxName, dynamic key) {
+    final raw = _box(boxName).get(key);
+    if (raw == null) return null;
+    return Map<String, dynamic>.from(raw as Map);
+  }
+
   Future<void> delete(String boxName, dynamic key) async {
     await _box(boxName).delete(key);
   }
@@ -74,5 +88,20 @@ class LocalDbService {
     for (final item in seedData) {
       await box.add(Map<String, dynamic>.from(item));
     }
+  }
+
+  // ---------- جلسة الدخول الحالية (حتى ما يرجع المستخدم لشاشة تسجيل الدخول بعد تحديث الصفحة) ----------
+  Future<void> saveSession(Map<String, dynamic> data) async {
+    await _box('session').put('current', data);
+  }
+
+  Map<String, dynamic>? loadSession() {
+    final raw = _box('session').get('current');
+    if (raw == null) return null;
+    return Map<String, dynamic>.from(raw as Map);
+  }
+
+  Future<void> clearSession() async {
+    await _box('session').delete('current');
   }
 }

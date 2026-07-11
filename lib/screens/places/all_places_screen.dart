@@ -4,7 +4,11 @@ import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import '../category/category_data.dart';
 import '../restaurants/restaurants_screen.dart'
-    show restaurantsSeedData, restaurantPhotoQuery, RestaurantData;
+    show restaurantPhotoQuery, RestaurantData;
+import '../../services/local_db_service.dart';
+import '../../services/data_converters.dart';
+import '../../widgets/responsive.dart';
+import '../../theme/app_typography.dart';
 
 /// عنصر موحّد يمثل أي مكان (مطعم، فندق، معلم، محل تسوق...) لعرضه بشاشة واحدة.
 class UniversalPlace {
@@ -22,6 +26,8 @@ class UniversalPlace {
   final String photoQuery;
   final IconData icon;
   final Color color;
+  final String? customImageBase64;
+  final bool isFeatured;
 
   UniversalPlace({
     required this.nameAr,
@@ -38,10 +44,13 @@ class UniversalPlace {
     required this.photoQuery,
     required this.icon,
     required this.color,
+    this.customImageBase64,
+    this.isFeatured = false,
   });
 }
 
-UniversalPlace _fromListing(ListingItem it, String categoryKey) => UniversalPlace(
+UniversalPlace _fromListing(ListingItem it, String categoryKey) =>
+    UniversalPlace(
       nameAr: it.nameAr,
       nameEn: it.nameEn,
       typeAr: it.typeAr,
@@ -56,37 +65,51 @@ UniversalPlace _fromListing(ListingItem it, String categoryKey) => UniversalPlac
       photoQuery: it.photoQuery,
       icon: it.placeholderIcon,
       color: it.placeholderColor,
+      customImageBase64: it.customImageBase64,
+      isFeatured: it.isFeatured,
     );
 
 UniversalPlace _fromRestaurant(RestaurantData r) => UniversalPlace(
-      nameAr: r.nameAr,
-      nameEn: r.nameEn,
-      typeAr: r.categoryAr,
-      typeEn: r.categoryEn,
-      locationAr: r.locationAr,
-      locationEn: r.locationEn,
-      categoryKey: 'restaurant',
-      rating: r.rating,
-      reviews: r.reviews,
-      aboutAr: r.aboutAr,
-      aboutEn: r.aboutEn,
-      photoQuery: restaurantPhotoQuery(r),
-      icon: r.placeholderIcon,
-      color: r.placeholderColor,
-    );
+  nameAr: r.nameAr,
+  nameEn: r.nameEn,
+  typeAr: r.categoryAr,
+  typeEn: r.categoryEn,
+  locationAr: r.locationAr,
+  locationEn: r.locationEn,
+  categoryKey: 'restaurant',
+  rating: r.rating,
+  reviews: r.reviews,
+  aboutAr: r.aboutAr,
+  aboutEn: r.aboutEn,
+  photoQuery: restaurantPhotoQuery(r),
+  icon: r.placeholderIcon,
+  color: r.placeholderColor,
+  customImageBase64: r.customImageBase64,
+  isFeatured: r.isFeatured,
+);
 
-final List<UniversalPlace> allPlaces = [
-  ...attractionsData.map((it) => _fromListing(it, 'attraction')),
-  ...hotelsData.map((it) => _fromListing(it, 'hotel')),
-  ...shoppingData.map((it) => _fromListing(it, 'shopping')),
-  ...transportData.map((it) => _fromListing(it, 'transport')),
-  ...healthData.map((it) => _fromListing(it, 'health')),
-  ...pharmaciesData.map((it) => _fromListing(it, 'pharmacy')),
-  ...educationData.map((it) => _fromListing(it, 'education')),
-  ...banksData.map((it) => _fromListing(it, 'bank')),
-  ...entertainmentData.map((it) => _fromListing(it, 'entertainment')),
-  ...governmentData.map((it) => _fromListing(it, 'government')),
-  ...restaurantsSeedData.map(_fromRestaurant),
+List<ListingItem> _liveListings(String boxName) =>
+    LocalDbService.instance.getAll(boxName).map((e) => mapToListing(e.value)).toList();
+
+List<RestaurantData> _liveRestaurants() => LocalDbService.instance
+    .getAll('restaurants')
+    .map((e) => mapToRestaurant(e.value))
+    .toList();
+
+/// كل الأماكن بكل الأقسام، مقروءة حيًا من قاعدة البيانات المحلية (تعكس أي تعديل
+/// أو صورة يضيفها الأدمن فورًا) بدلًا من قائمة ثابتة.
+List<UniversalPlace> get allPlaces => [
+  ..._liveListings('attractions').map((it) => _fromListing(it, 'attraction')),
+  ..._liveListings('hotels').map((it) => _fromListing(it, 'hotel')),
+  ..._liveListings('shopping').map((it) => _fromListing(it, 'shopping')),
+  ..._liveListings('transport').map((it) => _fromListing(it, 'transport')),
+  ..._liveListings('health').map((it) => _fromListing(it, 'health')),
+  ..._liveListings('pharmacies').map((it) => _fromListing(it, 'pharmacy')),
+  ..._liveListings('education').map((it) => _fromListing(it, 'education')),
+  ..._liveListings('banks').map((it) => _fromListing(it, 'bank')),
+  ..._liveListings('entertainment').map((it) => _fromListing(it, 'entertainment')),
+  ..._liveListings('government').map((it) => _fromListing(it, 'government')),
+  ..._liveRestaurants().map(_fromRestaurant),
 ];
 
 final Map<String, IconData> _categoryChipIcons = {
@@ -143,7 +166,7 @@ class AllPlacesScreen extends StatefulWidget {
   final String titleEn;
   final PlacesSortMode sortMode;
 
-  AllPlacesScreen({
+  const AllPlacesScreen({
     super.key,
     required this.titleAr,
     required this.titleEn,
@@ -165,14 +188,21 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
       case PlacesSortMode.newest:
         return allPlaces.reversed.toList();
       case PlacesSortMode.featured:
-        return allPlaces;
+        return List.of(allPlaces)..sort((a, b) {
+          if (a.isFeatured != b.isFeatured) {
+            return a.isFeatured ? -1 : 1;
+          }
+          return b.rating.compareTo(a.rating);
+        });
     }
   }
 
   List<UniversalPlace> get _filtered {
     return _baseList.where((p) {
-      final matchesCategory = categoryFilter == 'all' || p.categoryKey == categoryFilter;
-      final matchesSearch = searchQuery.isEmpty ||
+      final matchesCategory =
+          categoryFilter == 'all' || p.categoryKey == categoryFilter;
+      final matchesSearch =
+          searchQuery.isEmpty ||
           p.nameAr.contains(searchQuery) ||
           p.nameEn.toLowerCase().contains(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
@@ -201,43 +231,66 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: () => Navigator.of(context).maybePop(),
-                          child: Icon(Icons.arrow_back, color: AppColors.textWhite),
+                          child: Container(
+                            padding: EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
+                            child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+                          ),
                         ),
                         SizedBox(width: 12),
-                        Icon(Icons.place, color: AppColors.blue, size: 18),
-                        SizedBox(width: 8),
-                        Text(app.t(widget.titleAr, widget.titleEn),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(colors: AppColors.primaryGradient),
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Icon(Icons.place_rounded, color: Colors.white, size: 16),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            app.t(widget.titleAr, widget.titleEn),
                             textDirection: app.dir,
-                            style: TextStyle(
-                                color: AppColors.textWhite,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
                     child: Container(
-                      height: 42,
-                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      height: 46,
+                      padding: EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: AppColors.cardDark,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         border: Border.all(color: AppColors.borderColor),
+                        boxShadow: AppColors.cardShadow,
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.search, size: 18, color: AppColors.textGrey),
+                          Icon(
+                            Icons.search_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                           SizedBox(width: 8),
                           Expanded(
                             child: TextField(
                               onChanged: (v) => setState(() => searchQuery = v),
-                              style: TextStyle(color: AppColors.textWhite, fontSize: 13),
+                              style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 13),
                               decoration: InputDecoration(
                                 isCollapsed: true,
                                 border: InputBorder.none,
-                                hintText: app.t('ابحث عن مكان...', 'Search a place...'),
-                                hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                                hintText: app.t(
+                                  'ابحث عن مكان...',
+                                  'Search a place...',
+                                ),
+                                hintStyle: AppTypography.caption(AppColors.textGrey),
                               ),
                             ),
                           ),
@@ -258,27 +311,43 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                             child: GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () => setState(() => categoryFilter = key),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: selected ? AppColors.blue : AppColors.cardDark2,
-                                  borderRadius: BorderRadius.circular(20),
+                                  gradient: selected
+                                      ? LinearGradient(colors: AppColors.primaryGradient)
+                                      : null,
+                                  color: selected ? null : AppColors.cardDark2,
+                                  borderRadius: BorderRadius.circular(AppRadius.pill),
                                   border: Border.all(
-                                      color: selected ? AppColors.blue : AppColors.borderColor),
+                                    color: selected
+                                        ? Colors.transparent
+                                        : AppColors.borderColor,
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(_categoryChipIcons[key],
-                                        size: 13, color: selected ? Colors.white : AppColors.textGrey),
+                                    Icon(
+                                      _categoryChipIcons[key],
+                                      size: 13,
+                                      color: selected
+                                          ? Colors.white
+                                          : AppColors.textGrey,
+                                    ),
                                     SizedBox(width: 5),
                                     Text(
-                                        app.isArabic
-                                            ? _categoryLabelsAr[key]!
-                                            : _categoryLabelsEn[key]!,
-                                        style: TextStyle(
-                                            color: selected ? Colors.white : AppColors.textWhite,
-                                            fontSize: 11)),
+                                      app.isArabic
+                                          ? _categoryLabelsAr[key]!
+                                          : _categoryLabelsEn[key]!,
+                                      style: AppTypography.caption(
+                                        selected ? Colors.white : AppColors.textWhite,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -291,49 +360,54 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                   Expanded(
                     child: filtered.isEmpty
                         ? Center(
-                            child: Text(app.t('لا توجد نتائج مطابقة', 'No matching results'),
-                                style: TextStyle(color: AppColors.textGrey)),
+                            child: Text(
+                              app.t(
+                                'لا توجد نتائج مطابقة',
+                                'No matching results',
+                              ),
+                              style: TextStyle(color: AppColors.textGrey),
+                            ),
                           )
                         : GridView.builder(
                             padding: EdgeInsets.all(16),
                             itemCount: filtered.length,
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 4,
-                              crossAxisSpacing: 14,
-                              mainAxisSpacing: 14,
-                              childAspectRatio: 0.75,
-                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: responsiveGridColumns(context, wide: 4, narrow: 2),
+                                  crossAxisSpacing: 14,
+                                  mainAxisSpacing: 14,
+                                  childAspectRatio: 0.75,
+                                ),
                             itemBuilder: (context, i) {
                               final p = filtered[i];
                               final name = app.isArabic ? p.nameAr : p.nameEn;
                               final type = app.isArabic ? p.typeAr : p.typeEn;
-                              final location = app.isArabic ? p.locationAr : p.locationEn;
-                              return GestureDetector(
-                                behavior: HitTestBehavior.opaque,
+                              final location = app.isArabic
+                                  ? p.locationAr
+                                  : p.locationEn;
+                              return AppCard(
+                                padding: EdgeInsets.zero,
                                 onTap: () {
-                                  Navigator.of(context).push(MaterialPageRoute(
-                                    builder: (context) => DetailScreen(
-                                      titleAr: p.nameAr,
-                                      titleEn: p.nameEn,
-                                      subtitleAr: p.typeAr,
-                                      subtitleEn: p.typeEn,
-                                      descriptionAr: p.aboutAr,
-                                      descriptionEn: p.aboutEn,
-                                      rating: p.rating,
-                                      locationAr: p.locationAr,
-                                      locationEn: p.locationEn,
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => DetailScreen(
+                                        titleAr: p.nameAr,
+                                        titleEn: p.nameEn,
+                                        subtitleAr: p.typeAr,
+                                        subtitleEn: p.typeEn,
+                                        descriptionAr: p.aboutAr,
+                                        descriptionEn: p.aboutEn,
+                                        rating: p.rating,
+                                        locationAr: p.locationAr,
+                                        locationEn: p.locationEn,
+                                        customImageBase64: p.customImageBase64,
+                                      ),
                                     ),
-                                  ));
+                                  );
                                 },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.cardDark,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: AppColors.borderColor),
-                                  ),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       Stack(
                                         children: [
@@ -341,27 +415,80 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                             query: p.photoQuery,
                                             fallbackSeed: p.nameEn,
                                             height: 100,
+                                            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
                                             fallbackIcon: p.icon,
                                             fallbackColor: p.color,
+                                            customImageBase64: p.customImageBase64,
                                           ),
+                                          if (p.isFeatured)
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 7,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: AppColors.primaryGradient,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.bolt,
+                                                      size: 10,
+                                                      color: Colors.white,
+                                                    ),
+                                                    SizedBox(width: 2),
+                                                    Text(
+                                                      app.t('مميز', 'Featured'),
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 9,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
                                           Positioned(
                                             bottom: 8,
                                             left: 8,
                                             child: Container(
                                               padding: EdgeInsets.symmetric(
-                                                  horizontal: 8, vertical: 4),
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
                                               decoration: BoxDecoration(
-                                                  color: AppColors.blue,
-                                                  borderRadius: BorderRadius.circular(6)),
+                                                color: AppColors.primary,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
                                               child: Row(
                                                 children: [
-                                                  Icon(Icons.star, size: 11, color: Colors.white),
+                                                  Icon(
+                                                    Icons.star,
+                                                    size: 11,
+                                                    color: Colors.white,
+                                                  ),
                                                   SizedBox(width: 3),
-                                                  Text('${p.rating}',
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 10,
-                                                          fontWeight: FontWeight.bold)),
+                                                  Text(
+                                                    '${p.rating}',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 10,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
                                             ),
@@ -371,37 +498,46 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                       Padding(
                                         padding: EdgeInsets.all(8),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
-                                            Text(name,
-                                                textDirection: app.dir,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    color: AppColors.textWhite,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold)),
+                                            Text(
+                                              name,
+                                              textDirection: app.dir,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.label(AppColors.textWhite),
+                                            ),
                                             SizedBox(height: 2),
-                                            Text(type,
-                                                textDirection: app.dir,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    color: AppColors.textGrey, fontSize: 10)),
+                                            Text(
+                                              type,
+                                              textDirection: app.dir,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: AppTypography.caption(AppColors.textGrey),
+                                            ),
                                             SizedBox(height: 4),
                                             Row(
                                               textDirection: TextDirection.rtl,
                                               children: [
-                                                Icon(Icons.location_on,
-                                                    size: 11, color: AppColors.textGrey),
+                                                Icon(
+                                                  Icons.location_on,
+                                                  size: 11,
+                                                  color: AppColors.textGrey,
+                                                ),
                                                 SizedBox(width: 3),
                                                 Expanded(
-                                                  child: Text(location,
-                                                      textDirection: app.dir,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: TextStyle(
-                                                          color: AppColors.textGrey, fontSize: 9)),
+                                                  child: Text(
+                                                    location,
+                                                    textDirection: app.dir,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      color: AppColors.textGrey,
+                                                      fontSize: 9,
+                                                    ),
+                                                  ),
                                                 ),
                                               ],
                                             ),
@@ -410,7 +546,6 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                       ),
                                     ],
                                   ),
-                                ),
                               );
                             },
                           ),

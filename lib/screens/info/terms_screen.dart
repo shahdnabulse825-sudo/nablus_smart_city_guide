@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'info_scaffold.dart';
 
 class TermsScreen extends StatelessWidget {
-  TermsScreen({super.key});
+  const TermsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

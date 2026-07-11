@@ -3,11 +3,15 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../../widgets/themed_image.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
+import '../../services/favorites_service.dart';
 import '../map/map_screen.dart';
 import '../news/news_screen.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 import '../category/category_list_screen.dart';
 import '../category/category_data.dart';
+import '../../widgets/responsive.dart';
+import '../common/detail_screen.dart';
+import '../../theme/app_typography.dart';
 
 // ==================== بيانات المطعم ====================
 class RestaurantData {
@@ -15,7 +19,8 @@ class RestaurantData {
   final String nameEn;
   final String categoryAr;
   final String categoryEn;
-  final String cuisineKey; // للفلترة: traditional / eastern / fastfood / cafe / sweets / italian
+  final String
+  cuisineKey; // للفلترة: traditional / eastern / fastfood / cafe / sweets / italian
   final String locationAr;
   final String locationEn;
   final double rating;
@@ -28,6 +33,9 @@ class RestaurantData {
   final String image; // مسار صورة حقيقية (تقدر تستبدلها بصورتك الخاصة)
   final IconData placeholderIcon; // أيقونة بديلة إذا الصورة غير موجودة
   final Color placeholderColor; // لون بديل مميز لكل مطعم
+  final String?
+  customImageBase64; // صورة رفعها الأدمن يدويًا لهذا المطعم تحديدًا
+  final bool isFeatured; // مطعم مميز/مروَّج له، يظهر أولًا وبشارة خاصة
 
   RestaurantData({
     required this.nameAr,
@@ -47,6 +55,8 @@ class RestaurantData {
     required this.image,
     required this.placeholderIcon,
     required this.placeholderColor,
+    this.customImageBase64,
+    this.isFeatured = false,
   });
 }
 
@@ -71,6 +81,7 @@ final List<RestaurantData> restaurantsSeedData = [
     image: 'assets/images/restaurants/r1.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFB5651D),
+    isFeatured: true,
   ),
   RestaurantData(
     nameAr: 'مطعم الأندلس',
@@ -86,7 +97,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '25 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r2.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFF8E5B3F),
@@ -105,7 +117,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '25 دقيقة',
     aboutAr: 'أشهى البرغر الطازج مع بطاطا مقرمشة وصوصات مميزة.',
-    aboutEn: 'The tastiest fresh burgers with crispy fries and signature sauces.',
+    aboutEn:
+        'The tastiest fresh burgers with crispy fries and signature sauces.',
     image: 'assets/images/restaurants/r3.jpg',
     placeholderIcon: Icons.lunch_dining,
     placeholderColor: Color(0xFFD4A017),
@@ -218,8 +231,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '25-35 ₪',
     priceTier: 'medium',
     time: '20 دقيقة',
-    aboutAr: 'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn: 'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
+    aboutAr:
+        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
+    aboutEn:
+        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
     image: 'assets/images/restaurants/r9.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFB5651D),
@@ -237,8 +252,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '25-35 ₪',
     priceTier: 'medium',
     time: '10 دقيقة',
-    aboutAr: 'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn: 'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
+    aboutAr:
+        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
+    aboutEn:
+        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
     image: 'assets/images/restaurants/r10.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFF8E5B3F),
@@ -256,8 +273,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '25-35 ₪',
     priceTier: 'medium',
     time: '30 دقيقة',
-    aboutAr: 'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn: 'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
+    aboutAr:
+        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
+    aboutEn:
+        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
     image: 'assets/images/restaurants/r11.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFD4A017),
@@ -275,8 +294,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '25-35 ₪',
     priceTier: 'medium',
     time: '10 دقيقة',
-    aboutAr: 'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn: 'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
+    aboutAr:
+        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
+    aboutEn:
+        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
     image: 'assets/images/restaurants/r12.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFF6F4E37),
@@ -295,7 +316,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '15 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r13.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFC9A227),
@@ -314,7 +336,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '30 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r14.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFB33A2E),
@@ -333,7 +356,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '30 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r15.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFF7A4B2A),
@@ -352,7 +376,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '30 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r16.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFE8A33D),
@@ -371,7 +396,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '10 دقيقة',
     aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn: 'A variety of eastern dishes with elegant presentation and rich flavors.',
+    aboutEn:
+        'A variety of eastern dishes with elegant presentation and rich flavors.',
     image: 'assets/images/restaurants/r17.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFF9C6B30),
@@ -637,7 +663,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '20 دقيقة',
     aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza and dishes with soft dough and unique toppings.',
+    aboutEn:
+        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
     image: 'assets/images/restaurants/r31.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFD4A017),
@@ -656,7 +683,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '15 دقيقة',
     aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza and dishes with soft dough and unique toppings.',
+    aboutEn:
+        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
     image: 'assets/images/restaurants/r32.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFF6F4E37),
@@ -675,7 +703,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '10 دقيقة',
     aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza and dishes with soft dough and unique toppings.',
+    aboutEn:
+        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
     image: 'assets/images/restaurants/r33.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFC9A227),
@@ -694,7 +723,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '30 دقيقة',
     aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza and dishes with soft dough and unique toppings.',
+    aboutEn:
+        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
     image: 'assets/images/restaurants/r34.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFB33A2E),
@@ -713,7 +743,8 @@ final List<RestaurantData> restaurantsSeedData = [
     priceTier: 'medium',
     time: '25 دقيقة',
     aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza and dishes with soft dough and unique toppings.',
+    aboutEn:
+        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
     image: 'assets/images/restaurants/r35.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFF7A4B2A),
@@ -725,11 +756,19 @@ final List<RestaurantData> restaurantsSeedData = [
 // لتصنيف نوع المطبخ العام. مشتركة حتى تُستخدم من أي شاشة تعرض مطاعم.
 String restaurantPhotoQuery(RestaurantData data) {
   final text = '${data.nameAr} ${data.nameEn}'.toLowerCase();
-  if (text.contains('شاورما') || text.contains('shawarma')) return 'shawarma wrap';
-  if (text.contains('برغر') || text.contains('burger')) return 'burger and fries';
+  if (text.contains('شاورما') || text.contains('shawarma')) {
+    return 'shawarma wrap';
+  }
+  if (text.contains('برغر') || text.contains('burger')) {
+    return 'burger and fries';
+  }
   if (text.contains('بيتزا') || text.contains('pizza')) return 'pizza';
-  if (text.contains('جيلاتو') || text.contains('gelato')) return 'gelato ice cream';
-  if (text.contains('كنافة') || text.contains('kunafa')) return 'kunafa dessert';
+  if (text.contains('جيلاتو') || text.contains('gelato')) {
+    return 'gelato ice cream';
+  }
+  if (text.contains('كنافة') || text.contains('kunafa')) {
+    return 'kunafa dessert';
+  }
   if (text.contains('حلويات') ||
       text.contains('sweets') ||
       text.contains('بكداش') ||
@@ -768,7 +807,11 @@ class _RestaurantImage extends StatelessWidget {
   final RestaurantData data;
   final double height;
   final BorderRadius? borderRadius;
-  const _RestaurantImage({required this.data, required this.height, this.borderRadius});
+  const _RestaurantImage({
+    required this.data,
+    required this.height,
+    this.borderRadius,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -779,14 +822,14 @@ class _RestaurantImage extends StatelessWidget {
       borderRadius: borderRadius,
       fallbackIcon: data.placeholderIcon,
       fallbackColor: data.placeholderColor,
+      customImageBase64: data.customImageBase64,
     );
   }
 }
 
-
 // ==================== الشاشة الرئيسية لصفحة المطاعم ====================
 class RestaurantsScreen extends StatefulWidget {
-  RestaurantsScreen({super.key});
+  const RestaurantsScreen({super.key});
 
   @override
   State<RestaurantsScreen> createState() => _RestaurantsScreenState();
@@ -794,7 +837,6 @@ class RestaurantsScreen extends StatefulWidget {
 
 class _RestaurantsScreenState extends State<RestaurantsScreen> {
   int selectedIndex = 0;
-  Set<int> favorites = {};
   bool isGridView = true;
   int currentPage = 0;
   static const int perPage = 4;
@@ -812,7 +854,9 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   Future<void> _loadData() async {
     final db = LocalDbService.instance;
     await db.seedIfEmpty(
-        'restaurants', restaurantsSeedData.map(restaurantToMap).toList());
+      'restaurants',
+      restaurantsSeedData.map(restaurantToMap).toList(),
+    );
     final entries = db.getAll('restaurants');
     setState(() {
       _keys = entries.map((e) => e.key).toList();
@@ -839,21 +883,23 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
   List<RestaurantData> get _filtered {
     var list = _liveRestaurants.where((r) {
-      final matchesSearch = searchQuery.isEmpty ||
+      final matchesSearch =
+          searchQuery.isEmpty ||
           r.nameAr.contains(searchQuery) ||
           r.nameEn.toLowerCase().contains(searchQuery.toLowerCase());
       final matchesCuisine =
-          selectedCuisines.contains('all') || selectedCuisines.contains(r.cuisineKey);
+          selectedCuisines.contains('all') ||
+          selectedCuisines.contains(r.cuisineKey);
       final matchesRating = r.rating >= minRating;
       final matchesPrice = priceTier == 'all' || r.priceTier == priceTier;
       return matchesSearch && matchesCuisine && matchesRating && matchesPrice;
     }).toList();
 
-    if (sortByPriceAsc) {
-      list.sort((a, b) => a.priceTier.compareTo(b.priceTier));
-    } else {
-      list.sort((a, b) => b.rating.compareTo(a.rating));
-    }
+    list.sort((a, b) {
+      if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
+      if (sortByPriceAsc) return a.priceTier.compareTo(b.priceTier);
+      return b.rating.compareTo(a.rating);
+    });
     return list;
   }
 
@@ -887,10 +933,35 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     });
   }
 
+  void _openRestaurantDetail(BuildContext context, RestaurantData r) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          titleAr: r.nameAr,
+          titleEn: r.nameEn,
+          subtitleAr: r.categoryAr,
+          subtitleEn: r.categoryEn,
+          descriptionAr: r.aboutAr,
+          descriptionEn: r.aboutEn,
+          rating: r.rating,
+          extraInfo: r.priceRange,
+          locationAr: r.locationAr,
+          locationEn: r.locationEn,
+          customImageBase64: r.customImageBase64,
+        ),
+      ),
+    );
+  }
+
   void _showComingSoon(BuildContext context, String label) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AppState.instance.t('$label قيد التطوير قريبًا', '$label coming soon')),
+        content: Text(
+          AppState.instance.t(
+            '$label قيد التطوير قريبًا',
+            '$label coming soon',
+          ),
+        ),
         duration: Duration(seconds: 2),
       ),
     );
@@ -904,7 +975,9 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(child: CircularProgressIndicator(color: AppColors.blue)),
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
         ),
       );
     }
@@ -927,84 +1000,134 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                   _TopNav(onComingSoon: _showComingSoon),
                   _Banner(),
                   Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 240,
-                          child: _FiltersSidebar(
-                            searchController: searchController,
-                            onSearchChanged: (v) => setState(() {
-                              searchQuery = v;
-                              currentPage = 0;
-                            }),
-                            selectedCuisines: selectedCuisines,
-                            onCuisineTap: _toggleCuisine,
-                            minRating: minRating,
-                            onRatingTap: (v) => setState(() {
-                              minRating = v;
-                              currentPage = 0;
-                            }),
-                            priceTier: priceTier,
-                            onPriceTap: (v) => setState(() {
-                              priceTier = v;
-                              currentPage = 0;
-                            }),
-                            onApply: () => setState(() {}),
-                          ),
-                        ),
-                        SizedBox(width: 20),
-                        Expanded(
-                          child: _ResultsArea(
-                            items: pageItems,
-                            masterList: _liveRestaurants,
-                            allFilteredCount: filteredList.length,
-                            selectedData: selected,
-                            favorites: favorites,
-                            isGridView: isGridView,
-                            onToggleView: (grid) => setState(() => isGridView = grid),
-                            onSortToggle: () => setState(() => sortByPriceAsc = !sortByPriceAsc),
-                            sortByPriceAsc: sortByPriceAsc,
-                            onSelect: (data) => setState(() {
-                              selectedIndex = filteredList.indexOf(data);
-                            }),
-                            onFavorite: (data) => setState(() {
-                              final idx = _liveRestaurants.indexOf(data);
-                              if (favorites.contains(idx)) {
-                                favorites.remove(idx);
-                              } else {
-                                favorites.add(idx);
-                              }
-                            }),
-                            currentPage: currentPage,
-                            pageCount: _pageCount,
-                            onPageChange: (p) => setState(() => currentPage = p),
-                          ),
-                        ),
-                        SizedBox(width: 20),
-                        SizedBox(
-                          width: 320,
-                          child: selected == null
-                              ? _EmptyDetailPanel()
-                              : _DetailPanel(
-                                  restaurant: selected,
-                                  isFavorite:
-                                      favorites.contains(_liveRestaurants.indexOf(selected)),
-                                  onBack: () => Navigator.of(context).maybePop(),
-                                  onFavorite: () => setState(() {
-                                    final idx = _liveRestaurants.indexOf(selected);
-                                    if (favorites.contains(idx)) {
-                                      favorites.remove(idx);
-                                    } else {
-                                      favorites.add(idx);
-                                    }
-                                  }),
-                                  onShowSnack: (label) => _showComingSoon(context, label),
+                    padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
+                    child: isMobile(context)
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _FiltersSidebar(
+                                searchController: searchController,
+                                onSearchChanged: (v) => setState(() {
+                                  searchQuery = v;
+                                  currentPage = 0;
+                                }),
+                                selectedCuisines: selectedCuisines,
+                                onCuisineTap: _toggleCuisine,
+                                minRating: minRating,
+                                onRatingTap: (v) => setState(() {
+                                  minRating = v;
+                                  currentPage = 0;
+                                }),
+                                priceTier: priceTier,
+                                onPriceTap: (v) => setState(() {
+                                  priceTier = v;
+                                  currentPage = 0;
+                                }),
+                                onApply: () => setState(() {}),
+                              ),
+                              SizedBox(height: 16),
+                              _ResultsArea(
+                                items: pageItems,
+                                masterList: _liveRestaurants,
+                                allFilteredCount: filteredList.length,
+                                selectedData: null,
+                                isGridView: isGridView,
+                                onToggleView: (grid) =>
+                                    setState(() => isGridView = grid),
+                                onSortToggle: () => setState(
+                                  () => sortByPriceAsc = !sortByPriceAsc,
                                 ),
-                        ),
-                      ],
-                    ),
+                                sortByPriceAsc: sortByPriceAsc,
+                                onSelect: (data) =>
+                                    _openRestaurantDetail(context, data),
+                                onFavorite: (data) async {
+                                  await FavoritesService.instance
+                                      .toggleFavorite(data.nameEn);
+                                  setState(() {});
+                                },
+                                currentPage: currentPage,
+                                pageCount: _pageCount,
+                                onPageChange: (p) =>
+                                    setState(() => currentPage = p),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                width: 240,
+                                child: _FiltersSidebar(
+                                  searchController: searchController,
+                                  onSearchChanged: (v) => setState(() {
+                                    searchQuery = v;
+                                    currentPage = 0;
+                                  }),
+                                  selectedCuisines: selectedCuisines,
+                                  onCuisineTap: _toggleCuisine,
+                                  minRating: minRating,
+                                  onRatingTap: (v) => setState(() {
+                                    minRating = v;
+                                    currentPage = 0;
+                                  }),
+                                  priceTier: priceTier,
+                                  onPriceTap: (v) => setState(() {
+                                    priceTier = v;
+                                    currentPage = 0;
+                                  }),
+                                  onApply: () => setState(() {}),
+                                ),
+                              ),
+                              SizedBox(width: 20),
+                              Expanded(
+                                child: _ResultsArea(
+                                  items: pageItems,
+                                  masterList: _liveRestaurants,
+                                  allFilteredCount: filteredList.length,
+                                  selectedData: selected,
+                                  isGridView: isGridView,
+                                  onToggleView: (grid) =>
+                                      setState(() => isGridView = grid),
+                                  onSortToggle: () => setState(
+                                    () => sortByPriceAsc = !sortByPriceAsc,
+                                  ),
+                                  sortByPriceAsc: sortByPriceAsc,
+                                  onSelect: (data) => setState(() {
+                                    selectedIndex = filteredList.indexOf(data);
+                                  }),
+                                  onFavorite: (data) async {
+                                    await FavoritesService.instance
+                                        .toggleFavorite(data.nameEn);
+                                    setState(() {});
+                                  },
+                                  currentPage: currentPage,
+                                  pageCount: _pageCount,
+                                  onPageChange: (p) =>
+                                      setState(() => currentPage = p),
+                                ),
+                              ),
+                              SizedBox(width: 20),
+                              SizedBox(
+                                width: 320,
+                                child: selected == null
+                                    ? _EmptyDetailPanel()
+                                    : _DetailPanel(
+                                        restaurant: selected,
+                                        isFavorite: FavoritesService.instance
+                                            .isFavorite(selected.nameEn),
+                                        onBack: () =>
+                                            Navigator.of(context).maybePop(),
+                                        onFavorite: () async {
+                                          await FavoritesService.instance
+                                              .toggleFavorite(selected.nameEn);
+                                          setState(() {});
+                                        },
+                                        onShowSnack: (label) =>
+                                            _showComingSoon(context, label),
+                                      ),
+                              ),
+                            ],
+                          ),
                   ),
                   _FeaturesFooter(),
                 ],
@@ -1025,108 +1148,187 @@ class _TopNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
+    final mobile = isMobile(context);
+    final navItems = [
+      _navItem(
+        context,
+        app.t('الرئيسية', 'Home'),
+        false,
+        () => Navigator.of(context).maybePop(),
+      ),
+      _navItem(
+        context,
+        app.t('الخريطة', 'Map'),
+        false,
+        () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => MapScreen())),
+      ),
+      _navItem(context, app.t('المطاعم', 'Restaurants'), true, null),
+      _navItem(context, app.t('الفنادق', 'Hotels'), false, () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CategoryListScreen(
+              titleAr: 'فنادق',
+              titleEn: 'Hotels',
+              bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
+              bannerSubtitleEn: 'The best places to stay in Nablus',
+              icon: Icons.bed,
+              boxName: 'hotels',
+              seedData: hotelsData,
+            ),
+          ),
+        );
+      }),
+      _navItem(context, app.t('الأماكن السياحية', 'Attractions'), false, () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => CategoryListScreen(
+              titleAr: 'سياحة ومعالم',
+              titleEn: 'Attractions',
+              bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
+              bannerSubtitleEn:
+                  'Discover the finest historic and natural landmarks of Nablus',
+              icon: Icons.mosque,
+              boxName: 'attractions',
+              seedData: attractionsData,
+            ),
+          ),
+        );
+      }),
+      _navItem(
+        context,
+        app.t('الأخبار', 'News'),
+        false,
+        () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => NewsScreen())),
+      ),
+      _navItem(
+        context,
+        app.t('الفعاليات', 'Events'),
+        false,
+        () => onComingSoon(context, app.t('الفعاليات', 'Events')),
+      ),
+      _navItem(
+        context,
+        app.t('مساعد الذكاء الاصطناعي', 'AI Assistant'),
+        false,
+        () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => AiAssistantScreen())),
+      ),
+    ];
     return Container(
       color: AppColors.sidebarDark,
-      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: mobile ? 12 : 24, vertical: 14),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [AppColors.purple, AppColors.blue]),
-              borderRadius: BorderRadius.circular(10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => Navigator.of(context).maybePop(),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: AppColors.primaryGradient),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.location_city, color: Colors.white, size: 20),
             ),
-            child: Icon(Icons.location_city, color: Colors.white, size: 20),
           ),
-          SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
+          if (!mobile) ...[
+            SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
                   textDirection: app.dir,
                   style: TextStyle(
-                      color: AppColors.textWhite, fontSize: 13, fontWeight: FontWeight.bold)),
-              Text('Nablus Smart City Guide',
-                  style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
-            ],
-          ),
-          Spacer(),
-          _navItem(context, app.t('الرئيسية', 'Home'), false,
-              () => Navigator.of(context).maybePop()),
-          _navItem(context, app.t('الخريطة', 'Map'), false,
-              () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => MapScreen()))),
-          _navItem(context, app.t('المطاعم', 'Restaurants'), true, null),
-          _navItem(context, app.t('الفنادق', 'Hotels'), false, () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => CategoryListScreen(
-                titleAr: 'فنادق',
-                titleEn: 'Hotels',
-                bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
-                bannerSubtitleEn: 'The best places to stay in Nablus',
-                icon: Icons.bed,
-                boxName: 'hotels',
-                                seedData: hotelsData,
+                    color: AppColors.textWhite,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Nablus Smart City Guide',
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 9),
+                ),
+              ],
+            ),
+            Spacer(),
+            ...navItems,
+            Spacer(),
+          ] else
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: navItems),
               ),
-            ));
-          }),
-          _navItem(context, app.t('الأماكن السياحية', 'Attractions'), false, () {
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (context) => CategoryListScreen(
-                titleAr: 'سياحة ومعالم',
-                titleEn: 'Attractions',
-                bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
-                bannerSubtitleEn: 'Discover the finest historic and natural landmarks of Nablus',
-                icon: Icons.mosque,
-                boxName: 'attractions',
-                                seedData: attractionsData,
-              ),
-            ));
-          }),
-          _navItem(context, app.t('الأخبار', 'News'), false,
-              () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => NewsScreen()))),
-          _navItem(context, app.t('الفعاليات', 'Events'), false,
-              () => onComingSoon(context, app.t('الفعاليات', 'Events'))),
-          _navItem(
-              context,
-              app.t('مساعد الذكاء الاصطناعي', 'AI Assistant'),
-              false,
-              () => Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (context) => AiAssistantScreen()))),
-          Spacer(),
+            ),
+          SizedBox(width: mobile ? 8 : 0),
           GestureDetector(
-      behavior: HitTestBehavior.opaque,
+            behavior: HitTestBehavior.opaque,
             onTap: () => app.toggleTheme(),
-            child: Icon(app.isDark ? Icons.dark_mode : Icons.light_mode,
-                color: AppColors.textWhite, size: 20),
-          ),
-          SizedBox(width: 14),
-          GestureDetector(
-      behavior: HitTestBehavior.opaque,
-            onTap: () => app.toggleLanguage(),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark2,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                  style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+            child: Icon(
+              app.isDark ? Icons.dark_mode : Icons.light_mode,
+              color: AppColors.textWhite,
+              size: 20,
             ),
           ),
-          SizedBox(width: 14),
+          SizedBox(width: mobile ? 10 : 14),
+          if (!mobile)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => app.toggleLanguage(),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark2,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  app.isArabic ? 'عربي  EN' : 'EN  عربي',
+                  style: TextStyle(color: AppColors.textWhite, fontSize: 11),
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => app.toggleLanguage(),
+              child: Text(
+                app.isArabic ? 'EN' : 'AR',
+                style: TextStyle(
+                  color: AppColors.textWhite,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          SizedBox(width: mobile ? 10 : 14),
           CircleAvatar(
-            radius: 18,
+            radius: mobile ? 15 : 18,
             backgroundColor: AppColors.cardDark2,
-            child: Icon(Icons.notifications_none, color: AppColors.textWhite, size: 18),
+            child: Icon(
+              Icons.notifications_none,
+              color: AppColors.textWhite,
+              size: mobile ? 15 : 18,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _navItem(BuildContext context, String label, bool active, VoidCallback? onTap) {
-    final color = active ? AppColors.blue : AppColors.textGrey;
+  Widget _navItem(
+    BuildContext context,
+    String label,
+    bool active,
+    VoidCallback? onTap,
+  ) {
+    final color = active ? AppColors.primary : AppColors.textGrey;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -1135,17 +1337,20 @@ class _TopNav extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
             if (active)
               Container(
                 margin: EdgeInsets.only(top: 4),
                 height: 2,
                 width: 18,
-                color: AppColors.blue,
+                color: AppColors.primary,
               ),
           ],
         ),
@@ -1160,46 +1365,63 @@ class _Banner extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppState.instance;
     return Container(
-      height: 190,
+      height: 200,
       margin: EdgeInsets.fromLTRB(24, 20, 24, 0),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppColors.cardShadow,
+      ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/nablus_bg.jpeg',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stack) => Image.network(
-                    'https://picsum.photos/seed/nablus-restaurants-banner/1200/400',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stack) => Container(color: AppColors.cardDark2),
-                  )),
-          Container(color: Colors.black.withOpacity(0.5)),
+          ThemedImage(
+            query: 'Nablus restaurant',
+            fallbackSeed: 'nablus-restaurants-banner',
+            height: 200,
+          ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.2),
+                  Colors.black.withValues(alpha: 0.6),
+                  AppColors.primaryDark.withValues(alpha: 0.5),
+                ],
+              ),
+            ),
+          ),
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(app.t('المطاعم في نابلس', 'Restaurants in Nablus'),
-                    textDirection: app.dir,
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)),
-                SizedBox(height: 8),
+                Text(
+                  app.t('المطاعم في نابلس', 'Restaurants in Nablus'),
+                  textDirection: app.dir,
+                  style: AppTypography.display(Colors.white).copyWith(fontSize: 28),
+                ),
+                SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(width: 40, height: 1, color: AppColors.gold),
                     SizedBox(width: 8),
-                    Icon(Icons.emoji_events, color: AppColors.gold, size: 16),
+                    Icon(Icons.emoji_events_rounded, color: AppColors.gold, size: 16),
                     SizedBox(width: 8),
                     Container(width: 40, height: 1, color: AppColors.gold),
                   ],
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 10),
                 Text(
-                    app.t('اكتشف أطيب المأكولات في قلب المدينة',
-                        'Discover the finest food in the heart of the city'),
-                    textDirection: app.dir,
-                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  app.t(
+                    'اكتشف أطيب المأكولات في قلب المدينة',
+                    'Discover the finest food in the heart of the city',
+                  ),
+                  textDirection: app.dir,
+                  style: AppTypography.body(Colors.white70),
+                ),
               ],
             ),
           ),
@@ -1236,30 +1458,28 @@ class _FiltersSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    return Container(
+    return AppCard(
       padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderColor),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              Icon(Icons.tune, size: 16, color: AppColors.blue),
+              Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
               SizedBox(width: 6),
-              Text(app.t('تصفية النتائج', 'Filter Results'),
-                  textDirection: app.dir,
-                  style: TextStyle(
-                      color: AppColors.textWhite, fontSize: 14, fontWeight: FontWeight.bold)),
+              Text(
+                app.t('تصفية النتائج', 'Filter Results'),
+                textDirection: app.dir,
+                style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+              ),
             ],
           ),
           SizedBox(height: 16),
-          Text(app.t('بحث', 'Search'),
-              textDirection: app.dir,
-              style: TextStyle(color: AppColors.textWhite, fontSize: 12)),
+          Text(
+            app.t('بحث', 'Search'),
+            textDirection: app.dir,
+            style: TextStyle(color: AppColors.textWhite, fontSize: 12),
+          ),
           SizedBox(height: 6),
           Container(
             height: 38,
@@ -1281,8 +1501,14 @@ class _FiltersSidebar extends StatelessWidget {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
-                      hintText: app.t('ابحث عن مطعم...', 'Search a restaurant...'),
-                      hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                      hintText: app.t(
+                        'ابحث عن مطعم...',
+                        'Search a restaurant...',
+                      ),
+                      hintStyle: TextStyle(
+                        color: AppColors.textGrey,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ),
@@ -1290,49 +1516,117 @@ class _FiltersSidebar extends StatelessWidget {
             ),
           ),
           SizedBox(height: 18),
-          Text(app.t('نوع الطعام', 'Cuisine Type'),
-              textDirection: app.dir,
-              style: TextStyle(
-                  color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            app.t('نوع الطعام', 'Cuisine Type'),
+            textDirection: app.dir,
+            style: TextStyle(
+              color: AppColors.textWhite,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           SizedBox(height: 8),
           _checkRow(
-              app.t('الكل', 'All'), selectedCuisines.contains('all'), () => onCuisineTap('all')),
-          _checkRow(app.t('مأكولات شعبية', 'Traditional'), selectedCuisines.contains('traditional'),
-              () => onCuisineTap('traditional')),
-          _checkRow(app.t('شرقي', 'Eastern'), selectedCuisines.contains('eastern'),
-              () => onCuisineTap('eastern')),
+            app.t('الكل', 'All'),
+            selectedCuisines.contains('all'),
+            () => onCuisineTap('all'),
+          ),
           _checkRow(
-              app.t('كافيهات', 'Cafes'), selectedCuisines.contains('cafe'), () => onCuisineTap('cafe')),
-          _checkRow(app.t('وجبات سريعة', 'Fast Food'), selectedCuisines.contains('fastfood'),
-              () => onCuisineTap('fastfood')),
-          _checkRow(app.t('حلويات', 'Sweets'), selectedCuisines.contains('sweets'),
-              () => onCuisineTap('sweets')),
-          _checkRow(app.t('إيطالي', 'Italian'), selectedCuisines.contains('italian'),
-              () => onCuisineTap('italian')),
+            app.t('مأكولات شعبية', 'Traditional'),
+            selectedCuisines.contains('traditional'),
+            () => onCuisineTap('traditional'),
+          ),
+          _checkRow(
+            app.t('شرقي', 'Eastern'),
+            selectedCuisines.contains('eastern'),
+            () => onCuisineTap('eastern'),
+          ),
+          _checkRow(
+            app.t('كافيهات', 'Cafes'),
+            selectedCuisines.contains('cafe'),
+            () => onCuisineTap('cafe'),
+          ),
+          _checkRow(
+            app.t('وجبات سريعة', 'Fast Food'),
+            selectedCuisines.contains('fastfood'),
+            () => onCuisineTap('fastfood'),
+          ),
+          _checkRow(
+            app.t('حلويات', 'Sweets'),
+            selectedCuisines.contains('sweets'),
+            () => onCuisineTap('sweets'),
+          ),
+          _checkRow(
+            app.t('إيطالي', 'Italian'),
+            selectedCuisines.contains('italian'),
+            () => onCuisineTap('italian'),
+          ),
           SizedBox(height: 18),
-          Text(app.t('التقييم', 'Rating'),
-              textDirection: app.dir,
-              style: TextStyle(
-                  color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            app.t('التقييم', 'Rating'),
+            textDirection: app.dir,
+            style: TextStyle(
+              color: AppColors.textWhite,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           SizedBox(height: 8),
-          _ratingRow(4.5, minRating == 4.5, () => onRatingTap(minRating == 4.5 ? 0 : 4.5)),
-          _ratingRow(4.0, minRating == 4.0, () => onRatingTap(minRating == 4.0 ? 0 : 4.0)),
-          _ratingRow(3.5, minRating == 3.5, () => onRatingTap(minRating == 3.5 ? 0 : 3.5)),
-          _ratingRow(3.0, minRating == 3.0, () => onRatingTap(minRating == 3.0 ? 0 : 3.0)),
+          _ratingRow(
+            4.5,
+            minRating == 4.5,
+            () => onRatingTap(minRating == 4.5 ? 0 : 4.5),
+          ),
+          _ratingRow(
+            4.0,
+            minRating == 4.0,
+            () => onRatingTap(minRating == 4.0 ? 0 : 4.0),
+          ),
+          _ratingRow(
+            3.5,
+            minRating == 3.5,
+            () => onRatingTap(minRating == 3.5 ? 0 : 3.5),
+          ),
+          _ratingRow(
+            3.0,
+            minRating == 3.0,
+            () => onRatingTap(minRating == 3.0 ? 0 : 3.0),
+          ),
           SizedBox(height: 18),
-          Text(app.t('السعر', 'Price'),
-              textDirection: app.dir,
-              style: TextStyle(
-                  color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(
+            app.t('السعر', 'Price'),
+            textDirection: app.dir,
+            style: TextStyle(
+              color: AppColors.textWhite,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _priceChip(app.t('الكل', 'All'), priceTier == 'all', () => onPriceTap('all')),
-              _priceChip(app.t('رخيص', 'Cheap'), priceTier == 'cheap', () => onPriceTap('cheap')),
-              _priceChip(app.t('متوسط', 'Medium'), priceTier == 'medium', () => onPriceTap('medium')),
-              _priceChip(app.t('مرتفع', 'High'), priceTier == 'high', () => onPriceTap('high')),
+              _priceChip(
+                app.t('الكل', 'All'),
+                priceTier == 'all',
+                () => onPriceTap('all'),
+              ),
+              _priceChip(
+                app.t('رخيص', 'Cheap'),
+                priceTier == 'cheap',
+                () => onPriceTap('cheap'),
+              ),
+              _priceChip(
+                app.t('متوسط', 'Medium'),
+                priceTier == 'medium',
+                () => onPriceTap('medium'),
+              ),
+              _priceChip(
+                app.t('مرتفع', 'High'),
+                priceTier == 'high',
+                () => onPriceTap('high'),
+              ),
             ],
           ),
           SizedBox(height: 20),
@@ -1341,13 +1635,17 @@ class _FiltersSidebar extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: onApply,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.blue,
+                backgroundColor: AppColors.primary,
                 padding: EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               icon: Icon(Icons.filter_alt, size: 16, color: Colors.white),
-              label:
-                  Text(app.t('تطبيق الفلاتر', 'Apply Filters'), style: TextStyle(color: Colors.white)),
+              label: Text(
+                app.t('تطبيق الفلاتر', 'Apply Filters'),
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ),
         ],
@@ -1366,10 +1664,13 @@ class _FiltersSidebar extends StatelessWidget {
             Icon(
               checked ? Icons.check_box : Icons.check_box_outline_blank,
               size: 18,
-              color: checked ? AppColors.blue : AppColors.textGrey,
+              color: checked ? AppColors.primary : AppColors.textGrey,
             ),
             SizedBox(width: 8),
-            Text(label, style: TextStyle(color: AppColors.textWhite, fontSize: 12)),
+            Text(
+              label,
+              style: TextStyle(color: AppColors.textWhite, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -1387,18 +1688,26 @@ class _FiltersSidebar extends StatelessWidget {
             Icon(
               selected ? Icons.radio_button_checked : Icons.radio_button_off,
               size: 16,
-              color: selected ? AppColors.blue : AppColors.textGrey,
+              color: selected ? AppColors.primary : AppColors.textGrey,
             ),
             SizedBox(width: 8),
             Row(
               children: List.generate(
-                  5,
-                  (i) => Icon(Icons.star,
-                      size: 12,
-                      color: i < value.floor() ? AppColors.gold : AppColors.borderColor)),
+                5,
+                (i) => Icon(
+                  Icons.star,
+                  size: 12,
+                  color: i < value.floor()
+                      ? AppColors.gold
+                      : AppColors.borderColor,
+                ),
+              ),
             ),
             SizedBox(width: 6),
-            Text('$value فأكثر', style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+            Text(
+              '$value فأكثر',
+              style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+            ),
           ],
         ),
       ),
@@ -1412,12 +1721,19 @@ class _FiltersSidebar extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.blue : AppColors.cardDark2,
+          color: selected ? AppColors.primary : AppColors.cardDark2,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: selected ? AppColors.blue : AppColors.borderColor),
+          border: Border.all(
+            color: selected ? AppColors.primary : AppColors.borderColor,
+          ),
         ),
-        child: Text(label,
-            style: TextStyle(color: selected ? Colors.white : AppColors.textWhite, fontSize: 11)),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textWhite,
+            fontSize: 11,
+          ),
+        ),
       ),
     );
   }
@@ -1429,7 +1745,6 @@ class _ResultsArea extends StatelessWidget {
   final List<RestaurantData> masterList;
   final int allFilteredCount;
   final RestaurantData? selectedData;
-  final Set<int> favorites;
   final bool isGridView;
   final void Function(bool) onToggleView;
   final VoidCallback onSortToggle;
@@ -1445,7 +1760,6 @@ class _ResultsArea extends StatelessWidget {
     required this.masterList,
     required this.allFilteredCount,
     required this.selectedData,
-    required this.favorites,
     required this.isGridView,
     required this.onToggleView,
     required this.onSortToggle,
@@ -1466,7 +1780,7 @@ class _ResultsArea extends StatelessWidget {
         Row(
           children: [
             GestureDetector(
-      behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.opaque,
               onTap: onSortToggle,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1477,10 +1791,14 @@ class _ResultsArea extends StatelessWidget {
                 child: Row(
                   children: [
                     Text(
-                        sortByPriceAsc
-                            ? app.t('ترتيب: الأقل سعراً', 'Sort: Lowest Price')
-                            : app.t('ترتيب: الأعلى تقييماً', 'Sort: Top Rated'),
-                        style: TextStyle(color: AppColors.textWhite, fontSize: 12)),
+                      sortByPriceAsc
+                          ? app.t('ترتيب: الأقل سعراً', 'Sort: Lowest Price')
+                          : app.t('ترتيب: الأعلى تقييماً', 'Sort: Top Rated'),
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 12,
+                      ),
+                    ),
                     SizedBox(width: 6),
                     Icon(Icons.swap_vert, size: 16, color: AppColors.textGrey),
                   ],
@@ -1489,28 +1807,37 @@ class _ResultsArea extends StatelessWidget {
             ),
             SizedBox(width: 14),
             Text(
-                app.t('عرض ${items.length} من أصل $allFilteredCount',
-                    'Showing ${items.length} of $allFilteredCount'),
-                style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+              app.t(
+                'عرض ${items.length} من أصل $allFilteredCount',
+                'Showing ${items.length} of $allFilteredCount',
+              ),
+              style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+            ),
             Spacer(),
             GestureDetector(
-      behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.opaque,
               onTap: () => onToggleView(false),
-              child: Icon(Icons.view_list,
-                  size: 20, color: isGridView ? AppColors.textGrey : AppColors.blue),
+              child: Icon(
+                Icons.view_list,
+                size: 20,
+                color: isGridView ? AppColors.textGrey : AppColors.primary,
+              ),
             ),
             SizedBox(width: 8),
             GestureDetector(
-      behavior: HitTestBehavior.opaque,
+              behavior: HitTestBehavior.opaque,
               onTap: () => onToggleView(true),
               child: Container(
                 padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: isGridView ? AppColors.blue : Colors.transparent,
+                  color: isGridView ? AppColors.primary : Colors.transparent,
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(Icons.grid_view,
-                    size: 16, color: isGridView ? Colors.white : AppColors.textGrey),
+                child: Icon(
+                  Icons.grid_view,
+                  size: 16,
+                  color: isGridView ? Colors.white : AppColors.textGrey,
+                ),
               ),
             ),
           ],
@@ -1520,8 +1847,13 @@ class _ResultsArea extends StatelessWidget {
           Padding(
             padding: EdgeInsets.symmetric(vertical: 60),
             child: Center(
-              child: Text(app.t('لا توجد نتائج مطابقة للفلاتر', 'No results match the filters'),
-                  style: TextStyle(color: AppColors.textGrey)),
+              child: Text(
+                app.t(
+                  'لا توجد نتائج مطابقة للفلاتر',
+                  'No results match the filters',
+                ),
+                style: TextStyle(color: AppColors.textGrey),
+              ),
             ),
           )
         else if (isGridView)
@@ -1530,7 +1862,11 @@ class _ResultsArea extends StatelessWidget {
             physics: NeverScrollableScrollPhysics(),
             itemCount: items.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+              crossAxisCount: responsiveGridColumns(
+                context,
+                wide: 4,
+                narrow: 2,
+              ),
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
               childAspectRatio: 0.72,
@@ -1538,11 +1874,11 @@ class _ResultsArea extends StatelessWidget {
             itemBuilder: (context, i) {
               final r = items[i];
               return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+                behavior: HitTestBehavior.opaque,
                 onTap: () => onSelect(r),
                 child: _RestaurantCard(
                   data: r,
-                  isFavorite: favorites.contains(masterList.indexOf(r)),
+                  isFavorite: FavoritesService.instance.isFavorite(r.nameEn),
                   isSelected: r == selectedData,
                   onFavorite: () => onFavorite(r),
                 ),
@@ -1552,23 +1888,31 @@ class _ResultsArea extends StatelessWidget {
         else
           Column(
             children: items
-                .map((r) => Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-                        onTap: () => onSelect(r),
-                        child: _RestaurantListTile(
-                          data: r,
-                          isFavorite: favorites.contains(masterList.indexOf(r)),
-                          isSelected: r == selectedData,
-                          onFavorite: () => onFavorite(r),
+                .map(
+                  (r) => Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onSelect(r),
+                      child: _RestaurantListTile(
+                        data: r,
+                        isFavorite: FavoritesService.instance.isFavorite(
+                          r.nameEn,
                         ),
+                        isSelected: r == selectedData,
+                        onFavorite: () => onFavorite(r),
                       ),
-                    ))
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         SizedBox(height: 20),
-        _Pagination(currentPage: currentPage, pageCount: pageCount, onPageChange: onPageChange),
+        _Pagination(
+          currentPage: currentPage,
+          pageCount: pageCount,
+          onPageChange: onPageChange,
+        ),
       ],
     );
   }
@@ -1579,11 +1923,12 @@ class _RestaurantCard extends StatelessWidget {
   final bool isFavorite;
   final bool isSelected;
   final VoidCallback onFavorite;
-  const _RestaurantCard(
-      {required this.data,
-      required this.isFavorite,
-      required this.isSelected,
-      required this.onFavorite});
+  const _RestaurantCard({
+    required this.data,
+    required this.isFavorite,
+    required this.isSelected,
+    required this.onFavorite,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1591,13 +1936,11 @@ class _RestaurantCard extends StatelessWidget {
     final name = app.isArabic ? data.nameAr : data.nameEn;
     final category = app.isArabic ? data.categoryAr : data.categoryEn;
     final location = app.isArabic ? data.locationAr : data.locationEn;
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: isSelected ? AppColors.blue : AppColors.borderColor,
-            width: isSelected ? 2 : 1),
+    return AppCard(
+      padding: EdgeInsets.zero,
+      border: Border.all(
+        color: isSelected ? AppColors.primary : AppColors.borderColor,
+        width: isSelected ? 2 : 1,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1607,7 +1950,7 @@ class _RestaurantCard extends StatelessWidget {
               _RestaurantImage(
                 data: data,
                 height: 110,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
               ),
               Positioned(
                 bottom: 8,
@@ -1615,16 +1958,21 @@ class _RestaurantCard extends StatelessWidget {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.blue,
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
                       Icon(Icons.star, size: 12, color: Colors.white),
                       SizedBox(width: 3),
-                      Text('${data.rating}',
-                          style: TextStyle(
-                              color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${data.rating}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1633,16 +1981,49 @@ class _RestaurantCard extends StatelessWidget {
                 top: 8,
                 right: 8,
                 child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
+                  behavior: HitTestBehavior.opaque,
                   onTap: onFavorite,
                   child: Container(
                     padding: EdgeInsets.all(6),
-                    decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border,
-                        size: 14, color: isFavorite ? AppColors.red : AppColors.textGrey),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      size: 14,
+                      color: isFavorite ? AppColors.red : AppColors.textGrey,
+                    ),
                   ),
                 ),
               ),
+              if (data.isFeatured)
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt, size: 10, color: Colors.white),
+                        SizedBox(width: 2),
+                        Text(
+                          app.t('مميز', 'Featured'),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
           Padding(
@@ -1650,27 +2031,44 @@ class _RestaurantCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(name,
-                    textDirection: app.dir,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: AppColors.textWhite, fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(
+                  name,
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: AppColors.textWhite,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 SizedBox(height: 2),
-                Text(category,
-                    textDirection: app.dir, style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+                Text(
+                  category,
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 10),
+                ),
                 SizedBox(height: 6),
                 Row(
                   textDirection: TextDirection.rtl,
                   children: [
-                    Icon(Icons.location_on, size: 12, color: AppColors.textGrey),
+                    Icon(
+                      Icons.location_on,
+                      size: 12,
+                      color: AppColors.textGrey,
+                    ),
                     SizedBox(width: 3),
                     Expanded(
-                      child: Text(location,
-                          textDirection: app.dir,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
+                      child: Text(
+                        location,
+                        textDirection: app.dir,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.textGrey,
+                          fontSize: 9,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1678,14 +2076,29 @@ class _RestaurantCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(data.priceRange,
-                        style:
-                            TextStyle(color: AppColors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
+                    Text(
+                      data.priceRange,
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     Row(
                       children: [
-                        Icon(Icons.access_time, size: 11, color: AppColors.textGrey),
+                        Icon(
+                          Icons.access_time,
+                          size: 11,
+                          color: AppColors.textGrey,
+                        ),
                         SizedBox(width: 3),
-                        Text(data.time, style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+                        Text(
+                          data.time,
+                          style: TextStyle(
+                            color: AppColors.textGrey,
+                            fontSize: 10,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -1705,11 +2118,12 @@ class _RestaurantListTile extends StatelessWidget {
   final bool isFavorite;
   final bool isSelected;
   final VoidCallback onFavorite;
-  const _RestaurantListTile(
-      {required this.data,
-      required this.isFavorite,
-      required this.isSelected,
-      required this.onFavorite});
+  const _RestaurantListTile({
+    required this.data,
+    required this.isFavorite,
+    required this.isSelected,
+    required this.onFavorite,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1717,32 +2131,80 @@ class _RestaurantListTile extends StatelessWidget {
     final name = app.isArabic ? data.nameAr : data.nameEn;
     final category = app.isArabic ? data.categoryAr : data.categoryEn;
     final location = app.isArabic ? data.locationAr : data.locationEn;
-    return Container(
+    return AppCard(
       padding: EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-            color: isSelected ? AppColors.blue : AppColors.borderColor, width: isSelected ? 2 : 1),
+      border: Border.all(
+        color: isSelected ? AppColors.primary : AppColors.borderColor,
+        width: isSelected ? 2 : 1,
       ),
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
-          _RestaurantImage(data: data, height: 70, borderRadius: BorderRadius.circular(10)),
+          _RestaurantImage(
+            data: data,
+            height: 70,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
           SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(name,
-                    textDirection: app.dir,
-                    style: TextStyle(
-                        color: AppColors.textWhite, fontSize: 13, fontWeight: FontWeight.bold)),
-                Text(category,
-                    textDirection: app.dir, style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Text(
+                      name,
+                      textDirection: app.dir,
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (data.isFeatured) ...[
+                      SizedBox(width: 6),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFF5A623), Color(0xFFE85D5D)],
+                          ),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.bolt, size: 9, color: Colors.white),
+                            SizedBox(width: 2),
+                            Text(
+                              app.t('مميز', 'Featured'),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  category,
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 10),
+                ),
                 SizedBox(height: 4),
-                Text(location,
-                    textDirection: app.dir, style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
+                Text(
+                  location,
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 9),
+                ),
               ],
             ),
           ),
@@ -1752,15 +2214,21 @@ class _RestaurantListTile extends StatelessWidget {
                 children: [
                   Icon(Icons.star, size: 12, color: AppColors.gold),
                   SizedBox(width: 3),
-                  Text('${data.rating}', style: TextStyle(color: AppColors.textWhite, fontSize: 12)),
+                  Text(
+                    '${data.rating}',
+                    style: TextStyle(color: AppColors.textWhite, fontSize: 12),
+                  ),
                 ],
               ),
               SizedBox(height: 6),
               GestureDetector(
-      behavior: HitTestBehavior.opaque,
+                behavior: HitTestBehavior.opaque,
                 onTap: onFavorite,
-                child: Icon(isFavorite ? Icons.favorite : Icons.favorite_border,
-                    size: 16, color: isFavorite ? AppColors.red : AppColors.textGrey),
+                child: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  size: 16,
+                  color: isFavorite ? AppColors.red : AppColors.textGrey,
+                ),
               ),
             ],
           ),
@@ -1774,24 +2242,31 @@ class _Pagination extends StatelessWidget {
   final int currentPage;
   final int pageCount;
   final void Function(int) onPageChange;
-  const _Pagination(
-      {required this.currentPage, required this.pageCount, required this.onPageChange});
+  const _Pagination({
+    required this.currentPage,
+    required this.pageCount,
+    required this.onPageChange,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    final pageRow = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-      behavior: HitTestBehavior.opaque,
+          behavior: HitTestBehavior.opaque,
           onTap: currentPage > 0 ? () => onPageChange(currentPage - 1) : null,
-          child: Icon(Icons.chevron_right,
-              color: currentPage > 0 ? AppColors.textWhite : AppColors.borderColor),
+          child: Icon(
+            Icons.chevron_right,
+            color: currentPage > 0
+                ? AppColors.textWhite
+                : AppColors.borderColor,
+          ),
         ),
         SizedBox(width: 8),
         for (int p = 0; p < pageCount; p++)
           GestureDetector(
-      behavior: HitTestBehavior.opaque,
+            behavior: HitTestBehavior.opaque,
             onTap: () => onPageChange(p),
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 4),
@@ -1799,22 +2274,41 @@ class _Pagination extends StatelessWidget {
               height: 30,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: p == currentPage ? AppColors.blue : Colors.transparent,
+                color: p == currentPage
+                    ? AppColors.primary
+                    : Colors.transparent,
                 shape: BoxShape.circle,
               ),
-              child: Text('${p + 1}',
-                  style: TextStyle(
-                      color: p == currentPage ? Colors.white : AppColors.textWhite, fontSize: 12)),
+              child: Text(
+                '${p + 1}',
+                style: TextStyle(
+                  color: p == currentPage ? Colors.white : AppColors.textWhite,
+                  fontSize: 12,
+                ),
+              ),
             ),
           ),
         SizedBox(width: 8),
         GestureDetector(
-      behavior: HitTestBehavior.opaque,
-          onTap: currentPage < pageCount - 1 ? () => onPageChange(currentPage + 1) : null,
-          child: Icon(Icons.chevron_left,
-              color: currentPage < pageCount - 1 ? AppColors.textWhite : AppColors.borderColor),
+          behavior: HitTestBehavior.opaque,
+          onTap: currentPage < pageCount - 1
+              ? () => onPageChange(currentPage + 1)
+              : null,
+          child: Icon(
+            Icons.chevron_left,
+            color: currentPage < pageCount - 1
+                ? AppColors.textWhite
+                : AppColors.borderColor,
+          ),
         ),
       ],
+    );
+    if (!isMobile(context)) {
+      return Center(child: pageRow);
+    }
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: pageRow,
     );
   }
 }
@@ -1843,29 +2337,34 @@ class _DetailPanel extends StatelessWidget {
     final location = app.isArabic ? r.locationAr : r.locationEn;
     final about = app.isArabic ? r.aboutAr : r.aboutEn;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      clipBehavior: Clip.antiAlias,
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Stack(
             children: [
               _RestaurantImage(data: r, height: 170),
-              Positioned(top: 10, left: 10, child: _roundIconBtn(Icons.arrow_back, onBack)),
+              Positioned(
+                top: 10,
+                left: 10,
+                child: _roundIconBtn(Icons.arrow_back_rounded, onBack),
+              ),
               Positioned(
                 top: 10,
                 right: 10,
                 child: Row(
                   children: [
-                    _roundIconBtn(Icons.ios_share, () => onShowSnack(app.t('المشاركة', 'Share'))),
+                    _roundIconBtn(
+                      Icons.ios_share,
+                      () => onShowSnack(app.t('المشاركة', 'Share')),
+                    ),
                     SizedBox(width: 8),
-                    _roundIconBtn(isFavorite ? Icons.favorite : Icons.favorite_border, onFavorite,
-                        color: isFavorite ? AppColors.red : null),
+                    _roundIconBtn(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      onFavorite,
+                      color: isFavorite ? AppColors.red : null,
+                    ),
                   ],
                 ),
               ),
@@ -1880,37 +2379,59 @@ class _DetailPanel extends StatelessWidget {
                   children: [
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration:
-                          BoxDecoration(color: AppColors.blue, borderRadius: BorderRadius.circular(6)),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
                       child: Row(
                         children: [
                           Icon(Icons.star, size: 12, color: Colors.white),
                           SizedBox(width: 3),
-                          Text('${r.rating}', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          Text(
+                            '${r.rating}',
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
                         ],
                       ),
                     ),
                     SizedBox(width: 8),
-                    Text('(${r.reviews} ${app.t('تقييم', 'reviews')})',
-                        style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+                    Text(
+                      '(${r.reviews} ${app.t('تقييم', 'reviews')})',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                    ),
                   ],
                 ),
                 SizedBox(height: 8),
-                Text(name,
-                    textDirection: app.dir,
-                    style:
-                        TextStyle(color: AppColors.textWhite, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  name,
+                  textDirection: app.dir,
+                  style: TextStyle(
+                    color: AppColors.textWhite,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 SizedBox(height: 4),
-                Text(category,
-                    textDirection: app.dir, style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                Text(
+                  category,
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                ),
                 SizedBox(height: 4),
                 Row(
                   textDirection: TextDirection.rtl,
                   children: [
-                    Icon(Icons.location_on, size: 13, color: AppColors.textGrey),
+                    Icon(
+                      Icons.location_on,
+                      size: 13,
+                      color: AppColors.textGrey,
+                    ),
                     SizedBox(width: 4),
-                    Text(location,
-                        textDirection: app.dir, style: TextStyle(color: AppColors.textGrey, fontSize: 11)),
+                    Text(
+                      location,
+                      textDirection: app.dir,
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                    ),
                   ],
                 ),
                 SizedBox(height: 16),
@@ -1918,29 +2439,44 @@ class _DetailPanel extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _actionIcon(
-                        Icons.call, app.t('اتصال', 'Call'), () => onShowSnack(app.t('الاتصال', 'Call'))),
-                    _actionIcon(Icons.location_on, app.t('الموقع', 'Location'), () {
-                      final point = resolveMapPoint(
-                        nameAr: r.nameAr,
-                        nameEn: r.nameEn,
-                        locationAr: r.locationAr,
-                        locationEn: r.locationEn,
-                      );
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => MapScreen(
-                          focusPoint: point,
-                          focusNameAr: r.nameAr,
-                          focusNameEn: r.nameEn,
-                          focusCategoryAr: r.categoryAr,
-                          focusCategoryEn: r.categoryEn,
-                          focusRating: r.rating,
-                        ),
-                      ));
-                    }),
-                    _actionIcon(Icons.share, app.t('المشاركة', 'Share'),
-                        () => onShowSnack(app.t('المشاركة', 'Share'))),
-                    _actionIcon(isFavorite ? Icons.favorite : Icons.favorite_border,
-                        app.t('المفضلة', 'Favorite'), onFavorite),
+                      Icons.call,
+                      app.t('اتصال', 'Call'),
+                      () => onShowSnack(app.t('الاتصال', 'Call')),
+                    ),
+                    _actionIcon(
+                      Icons.location_on,
+                      app.t('الموقع', 'Location'),
+                      () {
+                        final point = resolveMapPoint(
+                          nameAr: r.nameAr,
+                          nameEn: r.nameEn,
+                          locationAr: r.locationAr,
+                          locationEn: r.locationEn,
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => MapScreen(
+                              focusPoint: point,
+                              focusNameAr: r.nameAr,
+                              focusNameEn: r.nameEn,
+                              focusCategoryAr: r.categoryAr,
+                              focusCategoryEn: r.categoryEn,
+                              focusRating: r.rating,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _actionIcon(
+                      Icons.share,
+                      app.t('المشاركة', 'Share'),
+                      () => onShowSnack(app.t('المشاركة', 'Share')),
+                    ),
+                    _actionIcon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      app.t('المفضلة', 'Favorite'),
+                      onFavorite,
+                    ),
                   ],
                 ),
                 SizedBox(height: 18),
@@ -1948,47 +2484,73 @@ class _DetailPanel extends StatelessWidget {
                   children: [
                     Icon(Icons.emoji_events, size: 14, color: AppColors.gold),
                     SizedBox(width: 6),
-                    Text(app.t('نبذة عن المطعم', 'About the Restaurant'),
-                        textDirection: app.dir,
-                        style: TextStyle(
-                            color: AppColors.textWhite, fontSize: 13, fontWeight: FontWeight.bold)),
+                    Text(
+                      app.t('نبذة عن المطعم', 'About the Restaurant'),
+                      textDirection: app.dir,
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
                 SizedBox(height: 8),
-                Text(about,
-                    textDirection: app.dir,
-                    textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
-                    style: TextStyle(color: AppColors.textGrey, fontSize: 12, height: 1.6)),
+                Text(
+                  about,
+                  textDirection: app.dir,
+                  textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                  style: TextStyle(
+                    color: AppColors.textGrey,
+                    fontSize: 12,
+                    height: 1.6,
+                  ),
+                ),
                 SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final point = resolveMapPoint(
-                        nameAr: r.nameAr,
-                        nameEn: r.nameEn,
-                        locationAr: r.locationAr,
-                        locationEn: r.locationEn,
-                      );
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (context) => MapScreen(
-                          focusPoint: point,
-                          focusNameAr: r.nameAr,
-                          focusNameEn: r.nameEn,
-                          focusCategoryAr: r.categoryAr,
-                          focusCategoryEn: r.categoryEn,
-                          focusRating: r.rating,
-                        ),
-                      ));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.blue,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  height: 46,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      boxShadow: AppColors.glowShadow,
                     ),
-                    icon: Icon(Icons.map, size: 16, color: Colors.white),
-                    label: Text(app.t('عرض على الخريطة', 'Show on Map'),
-                        style: TextStyle(color: Colors.white)),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final point = resolveMapPoint(
+                          nameAr: r.nameAr,
+                          nameEn: r.nameEn,
+                          locationAr: r.locationAr,
+                          locationEn: r.locationEn,
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => MapScreen(
+                              focusPoint: point,
+                              focusNameAr: r.nameAr,
+                              focusNameEn: r.nameEn,
+                              focusCategoryAr: r.categoryAr,
+                              focusCategoryEn: r.categoryEn,
+                              focusRating: r.rating,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                      ),
+                      icon: Icon(Icons.map_rounded, size: 16, color: Colors.white),
+                      label: Text(
+                        app.t('عرض على الخريطة', 'Show on Map'),
+                        style: AppTypography.title(Colors.white).copyWith(fontSize: 13),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -2021,8 +2583,11 @@ class _DetailPanel extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(color: AppColors.cardDark2, shape: BoxShape.circle),
-            child: Icon(icon, size: 16, color: AppColors.blue),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark2,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 16, color: AppColors.primary),
           ),
           SizedBox(height: 4),
           Text(label, style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
@@ -2036,18 +2601,25 @@ class _EmptyDetailPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    return Container(
+    return AppCard(
       padding: EdgeInsets.all(30),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderColor),
-      ),
       child: Center(
-        child: Text(app.t('اختر مطعمًا لعرض تفاصيله', 'Select a restaurant to see details'),
-            textAlign: TextAlign.center,
-            textDirection: app.dir,
-            style: TextStyle(color: AppColors.textGrey)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.restaurant_menu_rounded, color: AppColors.textGrey, size: 28),
+            SizedBox(height: 10),
+            Text(
+              app.t(
+                'اختر مطعمًا لعرض تفاصيله',
+                'Select a restaurant to see details',
+              ),
+              textAlign: TextAlign.center,
+              textDirection: app.dir,
+              style: AppTypography.body(AppColors.textGrey),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2059,30 +2631,51 @@ class _FeaturesFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppState.instance;
     final items = [
-      [Icons.restaurant_menu, app.t('تجربة محلية أصيلة', 'Authentic Local Experience')],
-      [Icons.explore, app.t('سهولة الوصول', 'Easy Access')],
-      [Icons.reviews, app.t('تقييمات موثوقة', 'Trusted Reviews')],
-      [Icons.volunteer_activism, app.t('دعم المحلي', 'Support Local')],
+      [
+        Icons.restaurant_menu_rounded,
+        app.t('تجربة محلية أصيلة', 'Authentic Local Experience'),
+      ],
+      [Icons.explore_rounded, app.t('سهولة الوصول', 'Easy Access')],
+      [Icons.reviews_rounded, app.t('تقييمات موثوقة', 'Trusted Reviews')],
+      [Icons.volunteer_activism_rounded, app.t('دعم المحلي', 'Support Local')],
     ];
     return Container(
       padding: EdgeInsets.symmetric(vertical: 30, horizontal: 24),
       color: AppColors.sidebarDark,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Wrap(
+        alignment: WrapAlignment.spaceEvenly,
+        runSpacing: 20,
         children: items
-            .map((item) => Column(
+            .map(
+              (item) => SizedBox(
+                width: 130,
+                child: Column(
                   children: [
                     Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(color: AppColors.cardDark2, shape: BoxShape.circle),
-                      child: Icon(item[0] as IconData, color: AppColors.blue, size: 22),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: AppColors.primaryGradient),
+                        shape: BoxShape.circle,
+                        boxShadow: AppColors.glowShadow,
+                      ),
+                      child: Icon(
+                        item[0] as IconData,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                     SizedBox(height: 8),
-                    Text(item[1] as String,
-                        textDirection: app.dir, style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+                    Text(
+                      item[1] as String,
+                      textAlign: TextAlign.center,
+                      textDirection: app.dir,
+                      style: AppTypography.label(AppColors.textWhite),
+                    ),
                   ],
-                ))
+                ),
+              ),
+            )
             .toList(),
       ),
     );

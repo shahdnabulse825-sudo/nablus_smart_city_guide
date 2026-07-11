@@ -6,6 +6,8 @@ import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import '../places/all_places_screen.dart';
 import '../events/events_data.dart';
+import '../../services/weather_service.dart';
+import '../../theme/app_typography.dart';
 
 class ChatMessage {
   final String textAr;
@@ -25,7 +27,7 @@ class ChatMessage {
 }
 
 class AiAssistantScreen extends StatefulWidget {
-  AiAssistantScreen({super.key});
+  const AiAssistantScreen({super.key});
 
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
@@ -40,13 +42,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   bool _showScrollToBottom = false;
 
   void _addGreeting() {
-    _messages.add(ChatMessage(
-      textAr:
-          'مرحباً! أنا المساعد الذكي لدليل نابلس 🤖 اسألني عن أي مطعم، فندق، معلم سياحي، فعالية، أو خدمة بالمدينة، وبقترحلك أفضل الخيارات مباشرة.',
-      textEn:
-          "Hi! I'm the Nablus Guide AI Assistant 🤖 Ask me about any restaurant, hotel, landmark, event, or service in the city, and I'll suggest the best options right away.",
-      isUser: false,
-    ));
+    _messages.add(
+      ChatMessage(
+        textAr:
+            'مرحباً! أنا المساعد الذكي لدليل نابلس 🤖 اسألني عن أي مطعم، فندق، معلم سياحي، فعالية، أو خدمة بالمدينة، وبقترحلك أفضل الخيارات مباشرة.',
+        textEn:
+            "Hi! I'm the Nablus Guide AI Assistant 🤖 Ask me about any restaurant, hotel, landmark, event, or service in the city, and I'll suggest the best options right away.",
+        isUser: false,
+      ),
+    );
   }
 
   @override
@@ -86,12 +90,13 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   UniversalPlace? _topRated(String categoryKey, {String? mustContainAr}) {
     final candidates = allPlaces.where((p) {
       if (p.categoryKey != categoryKey) return false;
-      if (mustContainAr != null && !p.typeAr.contains(mustContainAr) && !p.nameAr.contains(mustContainAr)) {
+      if (mustContainAr != null &&
+          !p.typeAr.contains(mustContainAr) &&
+          !p.nameAr.contains(mustContainAr)) {
         return false;
       }
       return true;
-    }).toList()
-      ..sort((a, b) => b.rating.compareTo(a.rating));
+    }).toList()..sort((a, b) => b.rating.compareTo(a.rating));
     return candidates.isEmpty ? null : candidates.first;
   }
 
@@ -122,35 +127,51 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     String namesListEn(List<UniversalPlace> items) =>
         items.map((p) => '${p.nameEn} (${p.rating}⭐)').join(', ');
 
-    if (has(['مرحبا', 'أهلا', 'اهلا', 'السلام عليكم', 'هاي'], ['hello', 'hi ', 'hey'])) {
+    if (has(
+      ['مرحبا', 'أهلا', 'اهلا', 'السلام عليكم', 'هاي'],
+      ['hello', 'hi ', 'hey'],
+    )) {
       return ChatMessage(
-        textAr: 'أهلاً فيك! 👋 كيف بقدر أساعدك اليوم؟ اسألني عن مطاعم، فنادق، معالم، تسوق، صحة، أو فعاليات نابلس.',
-        textEn: 'Welcome! 👋 How can I help you today? Ask me about restaurants, hotels, landmarks, shopping, health, or events in Nablus.',
+        textAr:
+            'أهلاً فيك! 👋 كيف بقدر أساعدك اليوم؟ اسألني عن مطاعم، فنادق، معالم، تسوق، صحة، أو فعاليات نابلس.',
+        textEn:
+            'Welcome! 👋 How can I help you today? Ask me about restaurants, hotels, landmarks, shopping, health, or events in Nablus.',
         isUser: false,
       );
     }
 
     if (has(['كنافة', 'حلويات', 'حلو'], ['kunafa', 'sweets', 'dessert'])) {
-      final top = _topRated('restaurant', mustContainAr: 'حلويات') ?? _topRated('restaurant');
+      final top =
+          _topRated('restaurant', mustContainAr: 'حلويات') ??
+          _topRated('restaurant');
       return ChatMessage(
         textAr: 'لازم تجرب الكنافة النابلسية الأصلية! أفضل مكان مقترح حاليًا:',
-        textEn: 'You must try authentic Nabulsi kunafa! The best recommended spot right now:',
+        textEn:
+            'You must try authentic Nabulsi kunafa! The best recommended spot right now:',
         isUser: false,
         place: top,
       );
     }
 
-    if (has(['مطعم', 'مطاعم', 'أكل', 'طعام', 'جوعان'], ['restaurant', 'food', 'eat', 'hungry'])) {
+    if (has(
+      ['مطعم', 'مطاعم', 'أكل', 'طعام', 'جوعان'],
+      ['restaurant', 'food', 'eat', 'hungry'],
+    )) {
       final list = _topRatedList('restaurant');
       return ChatMessage(
-        textAr: 'أفضل المطاعم المقترحة بنابلس حاليًا: ${namesList(list)}. اضغط على الاقتراح بالأسفل لمزيد من التفاصيل.',
-        textEn: 'Top recommended restaurants in Nablus right now: ${namesListEn(list)}. Tap the suggestion below for full details.',
+        textAr:
+            'أفضل المطاعم المقترحة بنابلس حاليًا: ${namesList(list)}. اضغط على الاقتراح بالأسفل لمزيد من التفاصيل.',
+        textEn:
+            'Top recommended restaurants in Nablus right now: ${namesListEn(list)}. Tap the suggestion below for full details.',
         isUser: false,
         place: list.isEmpty ? null : list.first,
       );
     }
 
-    if (has(['فندق', 'فنادق', 'حجز', 'إقامة', 'مبيت'], ['hotel', 'stay', 'book'])) {
+    if (has(
+      ['فندق', 'فنادق', 'حجز', 'إقامة', 'مبيت'],
+      ['hotel', 'stay', 'book'],
+    )) {
       final list = _topRatedList('hotel');
       return ChatMessage(
         textAr: 'أفضل الفنادق تقييمًا بنابلس: ${namesList(list)}.',
@@ -160,7 +181,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     }
 
-    if (has(['تسوق', 'مول', 'شراء', 'سوق'], ['shopping', 'mall', 'buy', 'market'])) {
+    if (has(
+      ['تسوق', 'مول', 'شراء', 'سوق'],
+      ['shopping', 'mall', 'buy', 'market'],
+    )) {
       final list = _topRatedList('shopping');
       return ChatMessage(
         textAr: 'أفضل أماكن التسوق: ${namesList(list)}.',
@@ -180,7 +204,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     }
 
-    if (has(['مستشفى', 'عيادة', 'صحة', 'طبيب'], ['hospital', 'clinic', 'health', 'doctor'])) {
+    if (has(
+      ['مستشفى', 'عيادة', 'صحة', 'طبيب'],
+      ['hospital', 'clinic', 'health', 'doctor'],
+    )) {
       final top = _topRated('health');
       return ChatMessage(
         textAr: 'أفضل مركز صحي مقترح:',
@@ -190,7 +217,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     }
 
-    if (has(['مواصلات', 'باص', 'تاكسي', 'سرفيس'], ['transport', 'bus', 'taxi'])) {
+    if (has(
+      ['مواصلات', 'باص', 'تاكسي', 'سرفيس'],
+      ['transport', 'bus', 'taxi'],
+    )) {
       final top = _topRated('transport');
       return ChatMessage(
         textAr: 'من أفضل خيارات المواصلات بالمدينة:',
@@ -200,11 +230,16 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     }
 
-    if (has(['معلم', 'سياحة', 'زيارة', 'اماكن', 'أماكن', 'تاريخ'], ['landmark', 'visit', 'place', 'tourist', 'history'])) {
+    if (has(
+      ['معلم', 'سياحة', 'زيارة', 'اماكن', 'أماكن', 'تاريخ'],
+      ['landmark', 'visit', 'place', 'tourist', 'history'],
+    )) {
       final list = _topRatedList('attraction');
       return ChatMessage(
-        textAr: 'أشهر المعالم السياحية بنابلس: ${namesList(list)}. كلها موجودة على الخريطة التفاعلية.',
-        textEn: 'The most famous landmarks in Nablus: ${namesListEn(list)}. All available on the interactive map.',
+        textAr:
+            'أشهر المعالم السياحية بنابلس: ${namesList(list)}. كلها موجودة على الخريطة التفاعلية.',
+        textEn:
+            'The most famous landmarks in Nablus: ${namesListEn(list)}. All available on the interactive map.',
         isUser: false,
         place: list.isEmpty ? null : list.first,
       );
@@ -221,14 +256,28 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     }
 
     if (has(['طقس', 'حرارة', 'جو'], ['weather', 'temperature'])) {
+      final weather = AppState.instance.weather;
+      if (weather != null) {
+        final cond = weatherConditionFor(weather.weatherCode);
+        return ChatMessage(
+          textAr:
+              'الطقس الحالي في نابلس: ${weather.temperature.round()}° مئوية، ${cond.descriptionAr}. اضغط على خانة "الطقس" بالصفحة الرئيسية لتفاصيل أكثر.',
+          textEn:
+              'Current weather in Nablus: ${weather.temperature.round()}°C, ${cond.descriptionEn}. Tap the "Weather" card on the home page for more details.',
+          isUser: false,
+        );
+      }
       return ChatMessage(
-        textAr: 'الطقس الحالي في نابلس معتدل، حوالي 24° مئوية. تقدر تشوف آخر تحديث حي بأعلى الصفحة الرئيسية.',
-        textEn: 'Current weather in Nablus is mild, around 24°C. Check the live update at the top of the home page.',
+        textAr: 'ما قدرت أجيب بيانات الطقس الحية حاليًا. جرّبي تفتحي خانة "الطقس" بالصفحة الرئيسية.',
+        textEn: "I couldn't fetch live weather data right now. Try opening the \"Weather\" card on the home page.",
         isUser: false,
       );
     }
 
-    if (has(['مساعدة', 'ماذا تفعل', 'شو تقدر', 'قدراتك'], ['help', 'what can you do', 'capabilities'])) {
+    if (has(
+      ['مساعدة', 'ماذا تفعل', 'شو تقدر', 'قدراتك'],
+      ['help', 'what can you do', 'capabilities'],
+    )) {
       return ChatMessage(
         textAr:
             'بقدر أساعدك بـ: اقتراح مطاعم وفنادق ومعالم سياحية، إيجاد أقرب صيدلية أو مركز صحي، إخبارك بالفعاليات القادمة، وإرشادك لأفضل أماكن التسوق والمواصلات — كل هذا مبني على بيانات حقيقية داخل التطبيق.',
@@ -238,7 +287,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       );
     }
 
-    if (has(['شكرا', 'شكراً', 'يعطيك العافية', 'تسلم'], ['thanks', 'thank you'])) {
+    if (has(
+      ['شكرا', 'شكراً', 'يعطيك العافية', 'تسلم'],
+      ['thanks', 'thank you'],
+    )) {
       return ChatMessage(
         textAr: 'العفو! تحت أمرك في أي وقت 🌿',
         textEn: "You're welcome! Always here to help 🌿",
@@ -338,16 +390,24 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                                   decoration: BoxDecoration(
                                     color: AppColors.cardDark,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: AppColors.borderColor),
+                                    border: Border.all(
+                                      color: AppColors.borderColor,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
-                                          color: Colors.black.withOpacity(0.25),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 3)),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.25,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 3),
+                                      ),
                                     ],
                                   ),
-                                  child: Icon(Icons.arrow_downward,
-                                      size: 16, color: AppColors.textWhite),
+                                  child: Icon(
+                                    Icons.arrow_downward,
+                                    size: 16,
+                                    color: AppColors.textWhite,
+                                  ),
                                 ),
                               ),
                             ),
@@ -366,35 +426,40 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
 
   void _openPlace(UniversalPlace p) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => DetailScreen(
-        titleAr: p.nameAr,
-        titleEn: p.nameEn,
-        subtitleAr: p.typeAr,
-        subtitleEn: p.typeEn,
-        descriptionAr: p.aboutAr,
-        descriptionEn: p.aboutEn,
-        rating: p.rating,
-        locationAr: p.locationAr,
-        locationEn: p.locationEn,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          titleAr: p.nameAr,
+          titleEn: p.nameEn,
+          subtitleAr: p.typeAr,
+          subtitleEn: p.typeEn,
+          descriptionAr: p.aboutAr,
+          descriptionEn: p.aboutEn,
+          rating: p.rating,
+          locationAr: p.locationAr,
+          locationEn: p.locationEn,
+          customImageBase64: p.customImageBase64,
+        ),
       ),
-    ));
+    );
   }
 
   void _openEvent(EventItem e) {
     final month = AppState.instance.isArabic ? e.monthAr : e.monthEn;
     final time = AppState.instance.isArabic ? e.timeAr : e.timeEn;
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => DetailScreen(
-        titleAr: e.titleAr,
-        titleEn: e.titleEn,
-        subtitleAr: e.venueAr,
-        subtitleEn: e.venueEn,
-        descriptionAr: e.aboutAr,
-        descriptionEn: e.aboutEn,
-        extraInfo: '${e.day} $month • $time',
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DetailScreen(
+          titleAr: e.titleAr,
+          titleEn: e.titleEn,
+          subtitleAr: e.venueAr,
+          subtitleEn: e.venueEn,
+          descriptionAr: e.aboutAr,
+          descriptionEn: e.aboutEn,
+          extraInfo: '${e.day} $month • $time',
+        ),
       ),
-    ));
+    );
   }
 
   Widget _buildHeader(AppState app) {
@@ -405,6 +470,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: Offset(0, 2)),
+        ],
       ),
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
@@ -412,22 +480,24 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
-            child: Icon(Icons.arrow_back, color: AppColors.textWhite),
+            child: Container(
+              padding: EdgeInsets.all(6),
+              decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
+              child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+            ),
           ),
-          SizedBox(width: 10),
+          SizedBox(width: 12),
           Stack(
             children: [
               Container(
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [AppColors.purple, AppColors.blue]),
+                  gradient: LinearGradient(colors: AppColors.primaryGradient),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: AppColors.blue.withOpacity(0.4), blurRadius: 10),
-                  ],
+                  boxShadow: AppColors.glowShadow,
                 ),
-                child: Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+                child: Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 18),
               ),
               Positioned(
                 right: 0,
@@ -449,13 +519,23 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(app.t('المساعد الذكي', 'AI Assistant'),
-                    textDirection: app.dir,
-                    style: TextStyle(
-                        color: AppColors.textWhite, fontSize: 15, fontWeight: FontWeight.bold)),
-                Text(app.t('متصل الآن • يرد فورًا', 'Online now • Replies instantly'),
-                    textDirection: app.dir,
-                    style: TextStyle(color: AppColors.green, fontSize: 10)),
+                Text(
+                  app.t('المساعد الذكي', 'AI Assistant'),
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 15),
+                ),
+                Text(
+                  app.t(
+                    'متصل الآن • يرد فورًا',
+                    'Online now • Replies instantly',
+                  ),
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption(AppColors.green),
+                ),
               ],
             ),
           ),
@@ -465,15 +545,21 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                  color: AppColors.cardDark2, borderRadius: BorderRadius.circular(20)),
-              child: Text(app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                  style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+                color: AppColors.cardDark2,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(color: AppColors.borderColor),
+              ),
+              child: Text(
+                app.isArabic ? 'عربي  EN' : 'EN  عربي',
+                style: AppTypography.caption(AppColors.textWhite),
+              ),
             ),
           ),
           SizedBox(width: 10),
           PopupMenuButton<String>(
             color: AppColors.cardDark,
-            icon: Icon(Icons.more_vert, color: AppColors.textWhite, size: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+            icon: Icon(Icons.more_vert_rounded, color: AppColors.textWhite, size: 20),
             onSelected: (v) {
               if (v == 'clear') _clearChat();
             },
@@ -482,10 +568,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
                 value: 'clear',
                 child: Row(
                   children: [
-                    Icon(Icons.delete_outline, size: 16, color: AppColors.red),
+                    Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.red),
                     SizedBox(width: 8),
-                    Text(app.t('مسح المحادثة', 'Clear chat'),
-                        style: TextStyle(color: AppColors.textWhite)),
+                    Text(
+                      app.t('مسح المحادثة', 'Clear chat'),
+                      style: AppTypography.body(AppColors.textWhite),
+                    ),
                   ],
                 ),
               ),
@@ -505,17 +593,32 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         padding: EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            _suggestionChip(Icons.restaurant, app.t('أفضل المطاعم', 'Best restaurants')),
+            _suggestionChip(
+              Icons.restaurant,
+              app.t('أفضل المطاعم', 'Best restaurants'),
+            ),
             SizedBox(width: 8),
             _suggestionChip(Icons.bed, app.t('أفضل الفنادق', 'Best hotels')),
             SizedBox(width: 8),
-            _suggestionChip(Icons.mosque, app.t('أشهر المعالم', 'Top landmarks')),
+            _suggestionChip(
+              Icons.mosque,
+              app.t('أشهر المعالم', 'Top landmarks'),
+            ),
             SizedBox(width: 8),
-            _suggestionChip(Icons.shopping_bag, app.t('أماكن التسوق', 'Shopping spots')),
+            _suggestionChip(
+              Icons.shopping_bag,
+              app.t('أماكن التسوق', 'Shopping spots'),
+            ),
             SizedBox(width: 8),
-            _suggestionChip(Icons.local_pharmacy, app.t('أقرب صيدلية', 'Nearest pharmacy')),
+            _suggestionChip(
+              Icons.local_pharmacy,
+              app.t('أقرب صيدلية', 'Nearest pharmacy'),
+            ),
             SizedBox(width: 8),
-            _suggestionChip(Icons.event, app.t('الفعاليات القادمة', 'Upcoming events')),
+            _suggestionChip(
+              Icons.event,
+              app.t('الفعاليات القادمة', 'Upcoming events'),
+            ),
           ],
         ),
       ),
@@ -525,28 +628,34 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   Widget _buildInputBar(AppState app) {
     return Container(
       padding: EdgeInsets.all(12),
-      color: AppColors.sidebarDark,
+      decoration: BoxDecoration(
+        color: AppColors.sidebarDark,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 8, offset: Offset(0, -2)),
+        ],
+      ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 14),
+              padding: EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: Border.all(color: AppColors.borderColor),
               ),
               child: TextField(
                 controller: _controller,
                 textDirection: app.dir,
-                onChanged: (v) => setState(() => _hasText = v.trim().isNotEmpty),
+                onChanged: (v) =>
+                    setState(() => _hasText = v.trim().isNotEmpty),
                 onSubmitted: (_) => _send(),
-                style: TextStyle(color: AppColors.textWhite, fontSize: 13),
+                style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 13),
                 decoration: InputDecoration(
                   isCollapsed: true,
                   border: InputBorder.none,
                   hintText: app.t('اكتب سؤالك هنا...', 'Type your question...'),
-                  hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                  hintStyle: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 12),
                 ),
               ),
             ),
@@ -557,14 +666,21 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             onTap: _hasText ? () => _send() : null,
             child: AnimatedContainer(
               duration: Duration(milliseconds: 200),
-              width: 44,
-              height: 44,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                color: _hasText ? AppColors.blue : AppColors.cardDark2,
+                gradient: _hasText
+                    ? LinearGradient(colors: AppColors.primaryGradient)
+                    : null,
+                color: _hasText ? null : AppColors.cardDark2,
                 shape: BoxShape.circle,
+                boxShadow: _hasText ? AppColors.glowShadow : null,
               ),
-              child: Icon(Icons.send,
-                  color: _hasText ? Colors.white : AppColors.textGrey, size: 18),
+              child: Icon(
+                Icons.send_rounded,
+                color: _hasText ? Colors.white : AppColors.textGrey,
+                size: 18,
+              ),
             ),
           ),
         ],
@@ -580,15 +696,18 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.cardDark2,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(color: AppColors.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: AppColors.blue),
+            Icon(icon, size: 13, color: AppColors.primary),
             SizedBox(width: 6),
-            Text(label, style: TextStyle(color: AppColors.textWhite, fontSize: 11)),
+            Text(
+              label,
+              style: AppTypography.caption(AppColors.textWhite),
+            ),
           ],
         ),
       ),
@@ -615,7 +734,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: isUser ? MainAxisAlignment.start : MainAxisAlignment.end,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.start
+            : MainAxisAlignment.end,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser)
@@ -624,19 +745,24 @@ class _MessageBubble extends StatelessWidget {
               height: 28,
               margin: EdgeInsets.only(left: 8, top: 2),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [AppColors.purple, AppColors.blue]),
+                gradient: LinearGradient(colors: AppColors.primaryGradient),
                 shape: BoxShape.circle,
               ),
               child: Icon(Icons.auto_awesome, color: Colors.white, size: 13),
             ),
           Flexible(
             child: Column(
-              crossAxisAlignment: isUser ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              crossAxisAlignment: isUser
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.end,
               children: [
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: isUser ? AppColors.cardDark2 : AppColors.blue,
+                    gradient: isUser
+                        ? null
+                        : LinearGradient(colors: AppColors.primaryGradient),
+                    color: isUser ? AppColors.cardDark2 : null,
                     borderRadius: BorderRadius.only(
                       topLeft: Radius.circular(16),
                       topRight: Radius.circular(16),
@@ -644,27 +770,40 @@ class _MessageBubble extends StatelessWidget {
                       bottomRight: Radius.circular(isUser ? 16 : 4),
                     ),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 6, offset: Offset(0, 2)),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.12),
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
                     ],
                   ),
-                  child: Text(text,
-                      textDirection: app.dir,
-                      style: TextStyle(
-                          color: isUser ? AppColors.textWhite : Colors.white,
-                          fontSize: 13,
-                          height: 1.5)),
+                  child: Text(
+                    text,
+                    textDirection: app.dir,
+                    style: AppTypography.body(isUser ? AppColors.textWhite : Colors.white)
+                        .copyWith(fontSize: 13, height: 1.5),
+                  ),
                 ),
                 if (message.place != null) ...[
                   SizedBox(height: 6),
-                  _PlaceSuggestionCard(place: message.place!, onTap: () => onOpenPlace(message.place!)),
+                  _PlaceSuggestionCard(
+                    place: message.place!,
+                    onTap: () => onOpenPlace(message.place!),
+                  ),
                 ],
                 if (message.event != null) ...[
                   SizedBox(height: 6),
-                  _EventSuggestionCard(event: message.event!, onTap: () => onOpenEvent(message.event!)),
+                  _EventSuggestionCard(
+                    event: message.event!,
+                    onTap: () => onOpenEvent(message.event!),
+                  ),
                 ],
                 Padding(
                   padding: EdgeInsets.only(top: 4, left: 4, right: 4),
-                  child: Text(timeStr, style: TextStyle(color: AppColors.textGrey, fontSize: 9)),
+                  child: Text(
+                    timeStr,
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 9),
+                  ),
                 ),
               ],
             ),
@@ -686,59 +825,65 @@ class _PlaceSuggestionCard extends StatelessWidget {
     final p = place;
     final name = app.isArabic ? p.nameAr : p.nameEn;
     final type = app.isArabic ? p.typeAr : p.typeEn;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 230,
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderColor),
-        ),
-        clipBehavior: Clip.antiAlias,
+    return SizedBox(
+      width: 230,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        radius: AppRadius.lg,
+        onTap: onTap,
         child: Row(
-          children: [
-            ThemedImage(
-              query: p.photoQuery,
-              fallbackSeed: p.nameEn,
-              height: 64,
-              fallbackIcon: p.icon,
-              fallbackColor: p.color,
-            ),
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(name,
-                        textDirection: app.dir,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
-                    Text(type,
-                        textDirection: app.dir,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
-                    SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Icon(Icons.star, size: 11, color: AppColors.gold),
-                        SizedBox(width: 2),
-                        Text('${p.rating}', style: TextStyle(color: AppColors.textWhite, fontSize: 10)),
-                        Spacer(),
-                        Icon(Icons.chevron_right, size: 14, color: AppColors.blue),
-                      ],
-                    ),
-                  ],
-                ),
+        children: [
+          ThemedImage(
+            query: p.photoQuery,
+            fallbackSeed: p.nameEn,
+            height: 64,
+            fallbackIcon: p.icon,
+            fallbackColor: p.color,
+            customImageBase64: p.customImageBase64,
+          ),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    name,
+                    textDirection: app.dir,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 12),
+                  ),
+                  Text(
+                    type,
+                    textDirection: app.dir,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption(AppColors.textGrey),
+                  ),
+                  SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.star_rounded, size: 11, color: AppColors.gold),
+                      SizedBox(width: 2),
+                      Text(
+                        '${p.rating}',
+                        style: AppTypography.caption(AppColors.textWhite),
+                      ),
+                      Spacer(),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
@@ -757,27 +902,30 @@ class _EventSuggestionCard extends StatelessWidget {
     final title = app.isArabic ? e.titleAr : e.titleEn;
     final venue = app.isArabic ? e.venueAr : e.venueEn;
     final month = app.isArabic ? e.monthAr : e.monthEn;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        width: 230,
+    return SizedBox(
+      width: 230,
+      child: AppCard(
         padding: EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderColor),
-        ),
+        radius: AppRadius.lg,
+        onTap: onTap,
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-              decoration: BoxDecoration(color: e.color, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [e.color, e.color.withValues(alpha: 0.7)]),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
               child: Column(
                 children: [
-                  Text(e.day,
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                  Text(month, style: TextStyle(color: Colors.white, fontSize: 9)),
+                  Text(
+                    e.day,
+                    style: AppTypography.label(Colors.white).copyWith(fontSize: 13),
+                  ),
+                  Text(
+                    month,
+                    style: AppTypography.caption(Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -787,21 +935,24 @@ class _EventSuggestionCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title,
-                      textDirection: app.dir,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text(venue,
-                      textDirection: app.dir,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textGrey, fontSize: 10)),
+                  Text(
+                    title,
+                    textDirection: app.dir,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 12),
+                  ),
+                  Text(
+                    venue,
+                    textDirection: app.dir,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption(AppColors.textGrey),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 14, color: AppColors.blue),
+            Icon(Icons.chevron_right_rounded, size: 14, color: AppColors.primary),
           ],
         ),
       ),
@@ -814,13 +965,17 @@ class _TypingBubble extends StatefulWidget {
   State<_TypingBubble> createState() => _TypingBubbleState();
 }
 
-class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderStateMixin {
+class _TypingBubbleState extends State<_TypingBubble>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 900))..repeat();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 900),
+    )..repeat();
   }
 
   @override
@@ -840,7 +995,7 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.blue,
+              gradient: LinearGradient(colors: AppColors.primaryGradient),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -855,7 +1010,9 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
                   mainAxisSize: MainAxisSize.min,
                   children: List.generate(3, (i) {
                     final phase = (_controller.value + i * 0.2) % 1.0;
-                    final scale = 0.5 + 0.5 * (1 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0);
+                    final scale =
+                        0.5 +
+                        0.5 * (1 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0);
                     return Padding(
                       padding: EdgeInsets.symmetric(horizontal: 2),
                       child: Opacity(
@@ -863,7 +1020,10 @@ class _TypingBubbleState extends State<_TypingBubble> with SingleTickerProviderS
                         child: Container(
                           width: 6,
                           height: 6,
-                          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
                     );
