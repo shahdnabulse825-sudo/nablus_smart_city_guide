@@ -8,12 +8,8 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 const VALID_CATEGORIES = [
-  'hotels',
-  'attractions',
-  'shopping',
   'transport',
   'health',
-  'pharmacies',
   'education',
   'banks',
   'entertainment',
@@ -66,7 +62,7 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       infoLabelEn: b.infoLabelEn || '',
       aboutAr: b.aboutAr || '',
       aboutEn: b.aboutEn || '',
-      phone: b.phone || '+970 59 000 0000',
+      phone: b.phone || '',
       photoQuery: b.photoQuery || 'nablus palestine city',
       imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
       iconCodePoint: numField(b.iconCodePoint, 0xe55f),

@@ -11,6 +11,8 @@ class FeedbackMessage {
   final String? relatedPlace;
   final DateTime createdAt;
   final bool read;
+  final String? reply;
+  final DateTime? repliedAt;
 
   FeedbackMessage({
     required this.key,
@@ -21,6 +23,8 @@ class FeedbackMessage {
     this.relatedPlace,
     required this.createdAt,
     required this.read,
+    this.reply,
+    this.repliedAt,
   });
 }
 
@@ -61,11 +65,20 @@ class FeedbackService {
             relatedPlace: e.value['relatedPlace'],
             createdAt: DateTime.tryParse(e.value['createdAt'] ?? '') ?? DateTime.now(),
             read: e.value['read'] ?? false,
+            reply: e.value['reply'],
+            repliedAt: DateTime.tryParse(e.value['repliedAt'] ?? ''),
           ),
         )
         .toList();
     list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return list;
+  }
+
+  /// رسائل زائر معيّن (حسب بريده الإلكتروني) — تُستخدم لعرض ردود الأدمن للزائر نفسه
+  List<FeedbackMessage> getForEmail(String email) {
+    final clean = email.trim().toLowerCase();
+    if (clean.isEmpty) return [];
+    return getAll().where((f) => f.email.trim().toLowerCase() == clean).toList();
   }
 
   int get unreadCount => getAll().where((f) => !f.read).length;
@@ -74,6 +87,17 @@ class FeedbackService {
     final item = LocalDbService.instance.get(_box, key);
     if (item == null) return;
     await LocalDbService.instance.update(_box, key, {...item, 'read': true});
+  }
+
+  /// يحفظ رد الأدمن على رسالة زائر
+  Future<void> reply(dynamic key, String text) async {
+    final item = LocalDbService.instance.get(_box, key);
+    if (item == null) return;
+    await LocalDbService.instance.update(_box, key, {
+      ...item,
+      'reply': text,
+      'repliedAt': DateTime.now().toIso8601String(),
+    });
   }
 
   Future<void> markAllRead() async {

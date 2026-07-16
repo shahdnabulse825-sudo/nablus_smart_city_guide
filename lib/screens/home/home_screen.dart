@@ -7,6 +7,10 @@ import 'package:url_launcher/url_launcher.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../restaurants/restaurants_screen.dart';
+import '../hotels/hotels_screen.dart';
+import '../pharmacies/pharmacies_screen.dart';
+import '../attractions/attractions_screen.dart';
+import '../shopping/shopping_screen.dart';
 import '../common/detail_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import '../map/map_screen.dart';
@@ -32,6 +36,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/keyboard_scrollable.dart';
 export '../../theme/app_colors.dart' show AppColors;
 export '../../theme/app_spacing.dart' show AppSpacing, AppRadius;
 export '../../widgets/app_card.dart' show AppCard;
@@ -239,28 +245,35 @@ class _HomeScreenState extends State<HomeScreen> {
       listenable: AppState.instance,
       builder: (context, _) {
         final mobile = isMobile(context);
-        final content = SingleChildScrollView(
+        final content = KeyboardScrollable(
           controller: _scrollController,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TopBar(onMenuTap: mobile ? () => _scaffoldKey.currentState?.openDrawer() : null),
-              BannerSlider(),
-              SearchBar_(),
-              StatsRow(),
-              CategoriesSection(),
-              FavoritePlacesSection(),
-              MostVisitedAndNewestSection(),
-              EventsAndMapSection(),
-              LatestNewsSection(),
-              FooterSection(
-                onScrollToTop: () => _scrollController.animateTo(
-                  0,
-                  duration: Duration(milliseconds: 500),
-                  curve: Curves.easeOut,
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TopBar(
+                  onMenuTap: mobile
+                      ? () => _scaffoldKey.currentState?.openDrawer()
+                      : null,
                 ),
-              ),
-            ],
+                BannerSlider(),
+                SearchBar_(),
+                StatsRow(),
+                CategoriesSection(),
+                FavoritePlacesSection(),
+                MostVisitedAndNewestSection(),
+                EventsAndMapSection(),
+                LatestNewsSection(),
+                FooterSection(
+                  onScrollToTop: () => _scrollController.animateTo(
+                    0,
+                    duration: Duration(milliseconds: 500),
+                    curve: Curves.easeOut,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
         return Directionality(
@@ -464,7 +477,9 @@ class SideBar extends StatelessWidget {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => ContactUsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => ContactUsScreen(),
+                      ),
                     ),
                     child: Container(
                       width: double.infinity,
@@ -478,9 +493,14 @@ class SideBar extends StatelessWidget {
                         children: [
                           Icon(Icons.send, size: 14, color: Colors.white),
                           SizedBox(width: 6),
-                          Text(AppState.instance.t('أرسلي رسالة', 'Send a Message'),
-                              textDirection: AppState.instance.dir,
-                              style: TextStyle(color: Colors.white, fontSize: 11)),
+                          Text(
+                            AppState.instance.t(
+                              'أرسلي رسالة',
+                              'Send a Message',
+                            ),
+                            textDirection: AppState.instance.dir,
+                            style: TextStyle(color: Colors.white, fontSize: 11),
+                          ),
                         ],
                       ),
                     ),
@@ -789,9 +809,9 @@ class TopBar extends StatelessWidget {
         iconAr: 'المساعد الذكي',
         iconEn: 'AI Assistant',
         icon: Icons.smart_toy,
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => AiAssistantScreen()),
-        ),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => AiAssistantScreen())),
       ),
     ];
     return Container(
@@ -830,45 +850,7 @@ class TopBar extends StatelessWidget {
           SizedBox(width: mobile ? 10 : 16),
           _NotificationBell(),
           SizedBox(width: mobile ? 10 : 16),
-          // زر تبديل الثيم (فعّال الآن)
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => app.toggleTheme(),
-            child: Icon(
-              app.isDark ? Icons.dark_mode : Icons.light_mode,
-              color: AppColors.textWhite,
-              size: 20,
-            ),
-          ),
-          if (!mobile) ...[
-            SizedBox(width: 16),
-            // زر تبديل اللغة (فعّال الآن)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => app.toggleLanguage(),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark2,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                  style: TextStyle(color: AppColors.textWhite, fontSize: 12),
-                ),
-              ),
-            ),
-          ] else ...[
-            SizedBox(width: 10),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => app.toggleLanguage(),
-              child: Text(
-                app.isArabic ? 'EN' : 'AR',
-                style: TextStyle(color: AppColors.textWhite, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
+          AppToggleBar(),
           SizedBox(width: mobile ? 10 : 16),
           // زر تسجيل الخروج
           GestureDetector(
@@ -955,9 +937,9 @@ class _NotificationBellState extends State<_NotificationBell> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
-        await Navigator.of(context).push(
-          MaterialPageRoute(builder: (context) => NotificationsScreen()),
-        );
+        await Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => NotificationsScreen()));
         if (mounted) setState(() {});
       },
       child: Stack(
@@ -1166,8 +1148,9 @@ class _BannerSliderState extends State<BannerSlider> {
                               shownTitle,
                               textDirection: app.dir,
                               textAlign: TextAlign.center,
-                              style: AppTypography.display(Colors.white)
-                                  .copyWith(fontSize: 26, height: 1.2),
+                              style: AppTypography.display(
+                                Colors.white,
+                              ).copyWith(fontSize: 26, height: 1.2),
                             ),
                             SizedBox(height: 6),
                             Text(
@@ -1301,7 +1284,11 @@ class SearchBar_ extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.14),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.search_rounded, color: AppColors.primary, size: 19),
+              child: Icon(
+                Icons.search_rounded,
+                color: AppColors.primary,
+                size: 19,
+              ),
             ),
             SizedBox(width: 10),
             Expanded(
@@ -1313,7 +1300,9 @@ class SearchBar_ extends StatelessWidget {
                     'ابحث عن مكان، مطعم، فندق، معلم...',
                     'Search for a place, restaurant, hotel...',
                   ),
-                  hintStyle: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 13),
+                  hintStyle: AppTypography.body(
+                    AppColors.textGrey,
+                  ).copyWith(fontSize: 13),
                   border: InputBorder.none,
                 ),
               ),
@@ -1336,26 +1325,29 @@ class StatsRow extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Builder(builder: (context) {
-              final app = AppState.instance;
-              final weather = app.weather;
-              final value = app.weatherLoading
-                  ? app.t('جارِ التحميل...', 'Loading...')
-                  : weather == null
-                      ? app.t('غير متاح', 'Unavailable')
-                      : app.isArabic
-                          ? weatherConditionFor(weather.weatherCode).descriptionAr
-                          : weatherConditionFor(weather.weatherCode).descriptionEn;
-              return StatCard(
-                icon: Icons.wb_sunny,
-                iconColor: AppColors.gold,
-                titleAr: 'الطقس',
-                titleEn: 'Weather',
-                value: value,
-                onTap: () => Navigator.of(context)
-                    .push(MaterialPageRoute(builder: (context) => WeatherScreen())),
-              );
-            }),
+            child: Builder(
+              builder: (context) {
+                final app = AppState.instance;
+                final weather = app.weather;
+                final value = app.weatherLoading
+                    ? app.t('جارِ التحميل...', 'Loading...')
+                    : weather == null
+                    ? app.t('غير متاح', 'Unavailable')
+                    : app.isArabic
+                    ? weatherConditionFor(weather.weatherCode).descriptionAr
+                    : weatherConditionFor(weather.weatherCode).descriptionEn;
+                return StatCard(
+                  icon: Icons.wb_sunny,
+                  iconColor: AppColors.gold,
+                  titleAr: 'الطقس',
+                  titleEn: 'Weather',
+                  value: value,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => WeatherScreen()),
+                  ),
+                );
+              },
+            ),
           ),
           SizedBox(width: 14),
           Expanded(
@@ -1428,17 +1420,17 @@ class StatCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textDirection: app.dir,
-                  style: AppTypography.label(AppColors.textGrey).copyWith(
-                    fontWeight: FontWeight.w400,
-                  ),
+                  style: AppTypography.label(
+                    AppColors.textGrey,
+                  ).copyWith(fontWeight: FontWeight.w400),
                 ),
                 Text(
                   value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.title(AppColors.textWhite).copyWith(
-                    fontSize: 18,
-                  ),
+                  style: AppTypography.title(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 18),
                 ),
               ],
             ),
@@ -1540,7 +1532,10 @@ class CategoriesSection extends StatelessWidget {
                               icon: item['icon'],
                               color: item['color'],
                               photoQuery: item['photoQuery'],
-                              onTap: () => _onCategoryTap(context, item['labelAr'] as String),
+                              onTap: () => _onCategoryTap(
+                                context,
+                                item['labelAr'] as String,
+                              ),
                             ),
                           ),
                         )
@@ -1548,21 +1543,24 @@ class CategoriesSection extends StatelessWidget {
                   ),
                 )
               : Row(
-            children: items
-                .map(
-                  (item) => Expanded(
-                    child: CategoryTile(
-                      labelAr: item['labelAr'],
-                      labelEn: item['labelEn'],
-                      icon: item['icon'],
-                      color: item['color'],
-                      photoQuery: item['photoQuery'],
-                      onTap: () => _onCategoryTap(context, item['labelAr'] as String),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
+                  children: items
+                      .map(
+                        (item) => Expanded(
+                          child: CategoryTile(
+                            labelAr: item['labelAr'],
+                            labelEn: item['labelEn'],
+                            icon: item['icon'],
+                            color: item['color'],
+                            photoQuery: item['photoQuery'],
+                            onTap: () => _onCategoryTap(
+                              context,
+                              item['labelAr'] as String,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
         ],
       ),
     );
@@ -1571,50 +1569,19 @@ class CategoriesSection extends StatelessWidget {
   void _onCategoryTap(BuildContext context, String label) {
     if (label == 'مطاعم') {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => RestaurantsScreen()),
+        MaterialPageRoute(builder: (context) => RestaurantCategoriesScreen()),
       );
     } else if (label == 'فنادق') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'فنادق',
-            titleEn: 'Hotels',
-            bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
-            bannerSubtitleEn: 'The best places to stay in Nablus',
-            icon: Icons.bed,
-            boxName: 'hotels',
-            seedData: hotelsData,
-          ),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => HotelsScreen()));
     } else if (label == 'سياحة ومعالم') {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'سياحة ومعالم',
-            titleEn: 'Attractions',
-            bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
-            bannerSubtitleEn:
-                'Discover the finest historic and natural landmarks of Nablus',
-            icon: Icons.mosque,
-            boxName: 'attractions',
-            seedData: attractionsData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => AttractionCategoriesScreen()),
       );
     } else if (label == 'تسوق') {
       Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'تسوق',
-            titleEn: 'Shopping',
-            bannerSubtitleAr: 'أفضل أماكن التسوق في المدينة',
-            bannerSubtitleEn: 'The best shopping spots in the city',
-            icon: Icons.shopping_bag,
-            boxName: 'shopping',
-            seedData: shoppingData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => ShoppingCategoriesScreen()),
       );
     } else if (label == 'مواصلات') {
       Navigator.of(context).push(
@@ -1645,23 +1612,13 @@ class CategoriesSection extends StatelessWidget {
         ),
       );
     } else if (label == 'صيدليات') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'صيدليات',
-            titleEn: 'Pharmacies',
-            bannerSubtitleAr: 'أقرب الصيدليات وأوقات عملها',
-            bannerSubtitleEn: 'Nearest pharmacies and their working hours',
-            icon: Icons.local_pharmacy,
-            boxName: 'pharmacies',
-            seedData: pharmaciesData,
-          ),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => PharmaciesScreen()));
     } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => MoreCategoriesScreen()),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => MoreCategoriesScreen()));
     }
   }
 }
@@ -1782,9 +1739,9 @@ class _CategoryTileState extends State<CategoryTile> {
                 app.t(widget.labelAr, widget.labelEn),
                 textDirection: app.dir,
                 textAlign: TextAlign.center,
-                style: AppTypography.label(AppColors.textWhite).copyWith(
-                  fontWeight: FontWeight.w500,
-                ),
+                style: AppTypography.label(
+                  AppColors.textWhite,
+                ).copyWith(fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -1855,9 +1812,9 @@ class SectionHeader extends StatelessWidget {
             Text(
               title,
               textDirection: app.dir,
-              style: AppTypography.headline(AppColors.textWhite).copyWith(
-                fontSize: 18,
-              ),
+              style: AppTypography.headline(
+                AppColors.textWhite,
+              ).copyWith(fontSize: 18),
             ),
           ],
         ),
@@ -1911,18 +1868,26 @@ class FavoritePlacesSection extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Icon(Icons.favorite_border, color: AppColors.textGrey, size: 32),
+                  Icon(
+                    Icons.favorite_border,
+                    color: AppColors.textGrey,
+                    size: 32,
+                  ),
                   SizedBox(height: 8),
                   Text(
-                    app.t('لسا ما أضفتِ أي مكان للمفضلة',
-                        "You haven't added any favorites yet"),
+                    app.t(
+                      'لسا ما أضفتِ أي مكان للمفضلة',
+                      "You haven't added any favorites yet",
+                    ),
                     textDirection: app.dir,
                     style: TextStyle(color: AppColors.textGrey, fontSize: 12),
                   ),
                   SizedBox(height: 2),
                   Text(
-                    app.t('اضغطي على أيقونة القلب بأي مكان لإضافته هنا',
-                        'Tap the heart icon on any place to add it here'),
+                    app.t(
+                      'اضغطي على أيقونة القلب بأي مكان لإضافته هنا',
+                      'Tap the heart icon on any place to add it here',
+                    ),
                     textDirection: app.dir,
                     style: TextStyle(color: AppColors.textGrey, fontSize: 11),
                   ),
@@ -1946,6 +1911,8 @@ class FavoritePlacesSection extends StatelessWidget {
                             subtitleEn: p.typeEn,
                             rating: p.rating,
                             favorited: true,
+                            image: p.image,
+                            customImageBase64: p.customImageBase64,
                           ),
                         ),
                       ),
@@ -1967,6 +1934,8 @@ class FavoritePlacesSection extends StatelessWidget {
                           subtitleEn: p.typeEn,
                           rating: p.rating,
                           favorited: true,
+                          image: p.image,
+                          customImageBase64: p.customImageBase64,
                         ),
                       ),
                     ),
@@ -1986,6 +1955,8 @@ class PlaceCard extends StatelessWidget {
   final String? subtitleEn;
   final bool favorited;
   final double? rating;
+  final String? image;
+  final String? customImageBase64;
   const PlaceCard({
     super.key,
     required this.title,
@@ -1994,6 +1965,8 @@ class PlaceCard extends StatelessWidget {
     this.subtitleEn,
     this.favorited = false,
     this.rating,
+    this.image,
+    this.customImageBase64,
   });
 
   @override
@@ -2012,6 +1985,8 @@ class PlaceCard extends StatelessWidget {
               subtitleAr: subtitle,
               subtitleEn: subtitleEn ?? subtitle,
               rating: rating,
+              localAsset: image,
+              customImageBase64: customImageBase64,
             ),
           ),
         );
@@ -2028,6 +2003,8 @@ class PlaceCard extends StatelessWidget {
                 borderRadius: BorderRadius.vertical(
                   top: Radius.circular(AppRadius.lg),
                 ),
+                localAsset: image,
+                customImageBase64: customImageBase64,
               ),
               Positioned(
                 top: 8,
@@ -2058,7 +2035,11 @@ class PlaceCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.star_rounded, size: 12, color: AppColors.gold),
+                        Icon(
+                          Icons.star_rounded,
+                          size: 12,
+                          color: AppColors.gold,
+                        ),
                         SizedBox(width: 3),
                         Text(
                           '$rating',
@@ -2080,10 +2061,9 @@ class PlaceCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textDirection: app.dir,
-                  style: AppTypography.label(AppColors.textWhite).copyWith(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppTypography.label(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 12.5, fontWeight: FontWeight.w700),
                 ),
                 SizedBox(height: 2),
                 Text(
@@ -2200,29 +2180,31 @@ class MostVisitedAndNewestSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 12),
-        _PlaceCardRow(cards: const [
-          PlaceCard(
-            title: 'البلدة القديمة',
-            subtitle: 'معلم تاريخي',
-            titleEn: 'Old City',
-            subtitleEn: 'Historic Landmark',
-            rating: 4.8,
-          ),
-          PlaceCard(
-            title: 'ميدان الشهداء',
-            subtitle: 'معلم / ميدان',
-            titleEn: 'Martyrs Square',
-            subtitleEn: 'Landmark / Square',
-            rating: 4.6,
-          ),
-          PlaceCard(
-            title: 'جامع الساطون',
-            subtitle: 'معلم ديني',
-            titleEn: 'Al-Satoun Mosque',
-            subtitleEn: 'Religious Landmark',
-            rating: 4.7,
-          ),
-        ]),
+        _PlaceCardRow(
+          cards: const [
+            PlaceCard(
+              title: 'البلدة القديمة',
+              subtitle: 'معلم تاريخي',
+              titleEn: 'Old City',
+              subtitleEn: 'Historic Landmark',
+              rating: 4.8,
+            ),
+            PlaceCard(
+              title: 'ميدان الشهداء',
+              subtitle: 'معلم / ميدان',
+              titleEn: 'Martyrs Square',
+              subtitleEn: 'Landmark / Square',
+              rating: 4.6,
+            ),
+            PlaceCard(
+              title: 'جامع الساطون',
+              subtitle: 'معلم ديني',
+              titleEn: 'Al-Satoun Mosque',
+              subtitleEn: 'Religious Landmark',
+              rating: 4.7,
+            ),
+          ],
+        ),
       ],
     );
     final newest = Column(
@@ -2242,29 +2224,31 @@ class MostVisitedAndNewestSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 12),
-        _PlaceCardRow(cards: const [
-          PlaceCard(
-            title: 'كافيه المدينة',
-            subtitle: 'مقهى',
-            titleEn: 'City Cafe',
-            subtitleEn: 'Cafe',
-            rating: 4.3,
-          ),
-          PlaceCard(
-            title: 'مركز نابلس مول',
-            subtitle: 'تسوق',
-            titleEn: 'Nablus Mall',
-            subtitleEn: 'Shopping',
-            rating: 4.4,
-          ),
-          PlaceCard(
-            title: 'مطعم البيت',
-            subtitle: 'مطاعم',
-            titleEn: 'Al-Bait Restaurant',
-            subtitleEn: 'Restaurants',
-            rating: 4.5,
-          ),
-        ]),
+        _PlaceCardRow(
+          cards: const [
+            PlaceCard(
+              title: 'كافيه المدينة',
+              subtitle: 'مقهى',
+              titleEn: 'City Cafe',
+              subtitleEn: 'Cafe',
+              rating: 4.3,
+            ),
+            PlaceCard(
+              title: 'مركز نابلس مول',
+              subtitle: 'تسوق',
+              titleEn: 'Nablus Mall',
+              subtitleEn: 'Shopping',
+              rating: 4.4,
+            ),
+            PlaceCard(
+              title: 'مطعم البيت',
+              subtitle: 'مطاعم',
+              titleEn: 'Al-Bait Restaurant',
+              subtitleEn: 'Restaurants',
+              rating: 4.5,
+            ),
+          ],
+        ),
       ],
     );
 
@@ -2273,11 +2257,7 @@ class MostVisitedAndNewestSection extends StatelessWidget {
       child: isMobile(context)
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                mostVisited,
-                SizedBox(height: 20),
-                newest,
-              ],
+              children: [mostVisited, SizedBox(height: 20), newest],
             )
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2303,22 +2283,26 @@ class _PlaceCardRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: cards
-              .map((c) => Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: SizedBox(width: 150, child: c),
-                  ))
+              .map(
+                (c) => Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 4),
+                  child: SizedBox(width: 150, child: c),
+                ),
+              )
               .toList(),
         ),
       );
     }
     return Row(
       children: cards
-          .map((c) => Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: c,
-                ),
-              ))
+          .map(
+            (c) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4),
+                child: c,
+              ),
+            ),
+          )
           .toList(),
     );
   }
@@ -2337,9 +2321,9 @@ class EventsAndMapSection extends StatelessWidget {
           titleAr: 'الفعاليات القادمة',
           titleEn: 'Upcoming Events',
           emoji: '📅',
-          onViewAll: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => EventsScreen()),
-          ),
+          onViewAll: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => EventsScreen())),
         ),
         SizedBox(height: 12),
         EventRow(
@@ -2389,9 +2373,9 @@ class EventsAndMapSection extends StatelessWidget {
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => MapScreen()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => MapScreen()));
           },
           child: Container(
             height: 190,
@@ -2415,8 +2399,7 @@ class EventsAndMapSection extends StatelessWidget {
                       TileLayer(
                         urlTemplate:
                             'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName:
-                            'com.nablus.smart_city_guide',
+                        userAgentPackageName: 'com.nablus.smart_city_guide',
                       ),
                       MarkerLayer(
                         markers: mapPlaces
@@ -2442,10 +2425,7 @@ class EventsAndMapSection extends StatelessWidget {
                   bottom: 10,
                   right: 10,
                   child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
@@ -2456,10 +2436,7 @@ class EventsAndMapSection extends StatelessWidget {
                         'Open Full Map',
                       ),
                       textDirection: AppState.instance.dir,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 11),
                     ),
                   ),
                 ),
@@ -2475,11 +2452,7 @@ class EventsAndMapSection extends StatelessWidget {
       child: isMobile(context)
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                eventsColumn,
-                SizedBox(height: 20),
-                mapColumn,
-              ],
+              children: [eventsColumn, SizedBox(height: 20), mapColumn],
             )
           : Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2549,14 +2522,11 @@ class EventRow extends StatelessWidget {
               children: [
                 Text(
                   day,
-                  style: AppTypography.title(Colors.white).copyWith(
-                    fontSize: 14,
-                  ),
+                  style: AppTypography.title(
+                    Colors.white,
+                  ).copyWith(fontSize: 14),
                 ),
-                Text(
-                  shownMonth,
-                  style: AppTypography.caption(Colors.white),
-                ),
+                Text(shownMonth, style: AppTypography.caption(Colors.white)),
               ],
             ),
           ),
@@ -2570,9 +2540,9 @@ class EventRow extends StatelessWidget {
                   textDirection: app.dir,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label(AppColors.textWhite).copyWith(
-                    fontSize: 12.5,
-                  ),
+                  style: AppTypography.label(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 12.5),
                 ),
                 Text(
                   shownSubtitle,
@@ -2735,9 +2705,9 @@ class NewsCard extends StatelessWidget {
                   textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label(AppColors.textWhite).copyWith(
-                    fontSize: 12,
-                  ),
+                  style: AppTypography.label(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 12),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -2770,16 +2740,10 @@ class FooterSection extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: AppColors.primaryGradient,
-                ),
+                gradient: LinearGradient(colors: AppColors.primaryGradient),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                Icons.location_city,
-                color: Colors.white,
-                size: 16,
-              ),
+              child: Icon(Icons.location_city, color: Colors.white, size: 16),
             ),
             SizedBox(width: 8),
             Column(
@@ -2795,14 +2759,8 @@ class FooterSection extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  app.t(
-                    'دليلك السياحي الذكي',
-                    'Your Smart City Guide',
-                  ),
-                  style: TextStyle(
-                    color: AppColors.textGrey,
-                    fontSize: 9,
-                  ),
+                  app.t('دليلك السياحي الذكي', 'Your Smart City Guide'),
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 9),
                 ),
               ],
             ),
@@ -2813,13 +2771,7 @@ class FooterSection extends StatelessWidget {
     final quickLinksColumn = FooterColumn(
       titleAr: 'روابط سريعة',
       titleEn: 'Quick Links',
-      itemsAr: [
-        'الرئيسية',
-        'استكشف',
-        'الخريطة',
-        'الأخبار',
-        'المساعد الذكي',
-      ],
+      itemsAr: ['الرئيسية', 'استكشف', 'الخريطة', 'الأخبار', 'المساعد الذكي'],
       itemsEn: ['Home', 'Explore', 'Map', 'News', 'AI Assistant'],
       onScrollToTop: onScrollToTop,
     );
@@ -2832,21 +2784,16 @@ class FooterSection extends StatelessWidget {
         'الشروط والأحكام',
         'الأسئلة الشائعة',
       ],
-      itemsEn: [
-        'About Us',
-        'Privacy Policy',
-        'Terms & Conditions',
-        'FAQ',
-      ],
+      itemsEn: ['About Us', 'Privacy Policy', 'Terms & Conditions', 'FAQ'],
     );
     final contactColumn = Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (context) => ContactUsScreen()),
-          ),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => ContactUsScreen())),
           child: Text(
             app.t('تواصل معنا', 'Contact Us'),
             textDirection: app.dir,
@@ -2860,30 +2807,15 @@ class FooterSection extends StatelessWidget {
         SizedBox(height: 10),
         ContactRow(icon: Icons.phone, text: '+970 59 123 4567'),
         SizedBox(height: 8),
-        ContactRow(
-          icon: Icons.email,
-          text: 'info@nablus-guide.com',
-        ),
+        ContactRow(icon: Icons.email, text: 'info@nablus-guide.com'),
         SizedBox(height: 8),
-        ContactRow(
-          icon: Icons.location_on,
-          text: 'Nablus, Palestine',
-        ),
+        ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
         SizedBox(height: 10),
         Row(
           children: [
-            SocialIcon(
-              icon: Icons.facebook,
-              url: 'https://facebook.com',
-            ),
-            SocialIcon(
-              icon: Icons.camera_alt,
-              url: 'https://instagram.com',
-            ),
-            SocialIcon(
-              icon: Icons.alternate_email,
-              url: 'https://twitter.com',
-            ),
+            SocialIcon(icon: Icons.facebook, url: 'https://facebook.com'),
+            SocialIcon(icon: Icons.camera_alt, url: 'https://instagram.com'),
+            SocialIcon(icon: Icons.alternate_email, url: 'https://twitter.com'),
             SocialIcon(
               icon: Icons.play_circle_fill,
               url: 'https://youtube.com',
@@ -2906,7 +2838,10 @@ class FooterSection extends StatelessWidget {
                   children: [
                     logoBlock,
                     SizedBox(height: 20),
-                    Align(alignment: Alignment.centerRight, child: quickLinksColumn),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: quickLinksColumn,
+                    ),
                     SizedBox(height: 20),
                     Align(alignment: Alignment.centerRight, child: infoColumn),
                     SizedBox(height: 20),
@@ -2925,8 +2860,8 @@ class FooterSection extends StatelessWidget {
           Divider(color: AppColors.borderColor, height: 32),
           Text(
             app.t(
-              '© 2025 دليل نابلس الذكي - جميع الحقوق محفوظة',
-              '© 2025 Nablus Smart Guide - All Rights Reserved',
+              '© 2026 دليل نابلس الذكي - جميع الحقوق محفوظة',
+              '© 2026 Nablus Smart Guide - All Rights Reserved',
             ),
             textDirection: app.dir,
             style: TextStyle(color: AppColors.textGrey, fontSize: 11),

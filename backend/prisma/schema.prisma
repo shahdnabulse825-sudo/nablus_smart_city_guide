@@ -1,11 +1,13 @@
-// مخطط قاعدة البيانات الحقيقي لتطبيق دليل نابلس الذكي (PostgreSQL عبر Prisma)
+// مخطط قاعدة البيانات الحقيقي لتطبيق دليل نابلس الذكي (SQLite عبر Prisma)
+// قاعدة بيانات حقيقية محفوظة كملف واحد جوا مجلد backend نفسه (backend/prisma/dev.db)
+// — بدون تسجيل حساب، بدون رابط اتصال، بدون إنترنت. تشتغل فورًا بمجرد تشغيل السيرفر.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -19,10 +21,12 @@ model User {
   createdAt    DateTime @default(now())
 }
 
-// ==================== الأماكن العامة (فنادق، معالم، تسوق، مواصلات، صحة، صيدليات، تعليم، بنوك، ترفيه، حكومي) ====================
+// ==================== الأماكن العامة (مواصلات، صحة، تعليم، بنوك، ترفيه، حكومي فقط) ====================
+// ملاحظة: الفنادق/الصيدليات/المعالم/التسوق كل وحدة إلها نموذج مخصص تحت (نفس بنية
+// التطبيق بـ Flutter اللي بنى وحدة مستقلة لكل قسم غني بدل النموذج العام).
 model Listing {
   id                String   @id @default(cuid())
-  category          String // hotels | attractions | shopping | transport | health | pharmacies | education | banks | entertainment | government
+  category          String // transport | health | education | banks | entertainment | government
   nameAr            String
   nameEn            String
   typeAr            String
@@ -35,7 +39,7 @@ model Listing {
   infoLabelEn       String   @default("")
   aboutAr           String   @default("")
   aboutEn           String   @default("")
-  phone             String   @default("+970 59 000 0000")
+  phone             String   @default("")
   photoQuery        String   @default("nablus palestine city")
   imageUrl          String? // رابط صورة حقيقية رفعها الأدمن (لو موجودة)
   iconCodePoint     Int      @default(58719) // Icons.place (0xe55f)
@@ -44,6 +48,117 @@ model Listing {
   updatedAt         DateTime @updatedAt
 
   @@index([category])
+}
+
+// ==================== الفنادق ====================
+model Hotel {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  typeAr        String   @default("")
+  typeEn        String   @default("")
+  locationAr    String
+  locationEn    String
+  rating        Float    @default(4.0)
+  reviews       Int      @default(0)
+  priceInfoAr   String   @default("")
+  priceInfoEn   String   @default("")
+  priceTier     String   @default("medium") // cheap | medium | high
+  hoursAr       String   @default("")
+  hoursEn       String   @default("")
+  aboutAr       String   @default("")
+  aboutEn       String   @default("")
+  phone         String   @default("")
+  imageUrl      String?
+  gallery       String   @default("") // مسارات صور مفصولة بفواصل
+  amenities     String   @default("") // wifi,parking,restaurant,roomService (مفصولة بفواصل)
+  tags          String   @default("") // nearOldCity,nearUniversity,luxury... (مفصولة بفواصل)
+  iconCodePoint Int      @default(58719)
+  colorValue    Int      @default(7114727) // 0x6C5CE7
+  isFeatured    Boolean  @default(false)
+  lat           Float? // إحداثيات دقيقة حدّدها الأدمن بالضغط على الخريطة
+  lng           Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ==================== الصيدليات ====================
+model Pharmacy {
+  id          String   @id @default(cuid())
+  nameAr      String
+  nameEn      String
+  locationAr  String
+  locationEn  String
+  rating      Float    @default(4.0)
+  reviews     Int      @default(0)
+  hoursAr     String   @default("")
+  hoursEn     String   @default("")
+  is24Hours   Boolean  @default(false)
+  hasDelivery Boolean  @default(false)
+  aboutAr     String   @default("")
+  aboutEn     String   @default("")
+  phone       String   @default("")
+  imageUrl    String?
+  tags        String   @default("") // nearHospital... (مفصولة بفواصل)
+  iconCodePoint Int    @default(59691) // Icons.local_pharmacy
+  colorValue  Int      @default(3946230)
+  isFeatured  Boolean  @default(false)
+  lat         Float?
+  lng         Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ==================== المعالم السياحية ====================
+model Attraction {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  categories    String   @default("") // historical,religious,nature,oldCity,culture (مفصولة بفواصل)
+  locationAr    String
+  locationEn    String
+  rating        Float    @default(4.0)
+  reviews       Int      @default(0)
+  aboutAr       String   @default("")
+  aboutEn       String   @default("")
+  visitHoursAr  String   @default("")
+  visitHoursEn  String   @default("")
+  entryFeeAr    String   @default("")
+  entryFeeEn    String   @default("")
+  imageUrl      String?
+  iconCodePoint Int      @default(59217) // Icons.account_balance
+  colorValue    Int      @default(13217575) // 0xC9A227
+  isFeatured    Boolean  @default(false)
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ==================== المراكز التجارية (تسوق) ====================
+model ShoppingVenue {
+  id            String   @id @default(cuid())
+  nameAr        String
+  nameEn        String
+  typeAr        String   @default("")
+  typeEn        String   @default("")
+  locationAr    String
+  locationEn    String
+  rating        Float    @default(4.0)
+  reviews       Int      @default(0)
+  hoursAr       String   @default("")
+  hoursEn       String   @default("")
+  aboutAr       String   @default("")
+  aboutEn       String   @default("")
+  phone         String   @default("")
+  imageUrl      String?
+  iconCodePoint Int      @default(58728) // Icons.shopping_bag
+  colorValue    Int      @default(3900918) // 0x3B82F6
+  isFeatured    Boolean  @default(false)
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ==================== المطاعم ====================
@@ -63,9 +178,12 @@ model Restaurant {
   time          String   @default("")
   aboutAr       String   @default("")
   aboutEn       String   @default("")
+  phone         String   @default("")
   imageUrl      String?
   iconCodePoint Int      @default(58732) // Icons.restaurant (0xe56c)
   colorValue    Int      @default(7114727) // لون RGB فقط بدون بايت الشفافية (0x6C5CE7)
+  lat           Float?
+  lng           Float?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

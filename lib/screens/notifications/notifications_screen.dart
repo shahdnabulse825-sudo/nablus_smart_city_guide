@@ -136,6 +136,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final app = AppState.instance;
     final isAdmin = AuthService.instance.isAdmin;
     final feedbackList = isAdmin ? FeedbackService.instance.getAll() : <FeedbackMessage>[];
+    final myMessages = isAdmin
+        ? <FeedbackMessage>[]
+        : FeedbackService.instance.getForEmail(AuthService.instance.currentUserEmail ?? '');
     final unreadCount = isAdmin
         ? feedbackList.where((f) => !f.read).length
         : _visitorNotifications.where((n) => !n.read).length;
@@ -222,12 +225,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 itemBuilder: (context, i) =>
                                     _feedbackTile(app, feedbackList[i]),
                               ))
-                        : ListView.separated(
+                        : ListView(
                             padding: EdgeInsets.all(16),
-                            itemCount: _visitorNotifications.length,
-                            separatorBuilder: (_, _) => SizedBox(height: 10),
-                            itemBuilder: (context, i) =>
-                                _visitorTile(app, _visitorNotifications[i]),
+                            children: [
+                              if (myMessages.isNotEmpty) ...[
+                                Text(
+                                  app.t('رسائلي', 'My Messages'),
+                                  textDirection: app.dir,
+                                  style: AppTypography.label(AppColors.primary).copyWith(fontSize: 13),
+                                ),
+                                SizedBox(height: 10),
+                                for (final m in myMessages) ...[
+                                  _myMessageTile(app, m),
+                                  SizedBox(height: 10),
+                                ],
+                                SizedBox(height: 12),
+                                Text(
+                                  app.t('إشعارات عامة', 'General Notifications'),
+                                  textDirection: app.dir,
+                                  style: AppTypography.caption(AppColors.textGrey),
+                                ),
+                                SizedBox(height: 10),
+                              ],
+                              for (final n in _visitorNotifications) ...[
+                                _visitorTile(app, n),
+                                SizedBox(height: 10),
+                              ],
+                            ],
                           ),
                   ),
                 ],
@@ -248,6 +272,79 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           SizedBox(height: 12),
           Text(app.t('ما في رسائل من الزوار بعد', 'No visitor messages yet'),
               style: TextStyle(color: AppColors.textGrey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _myMessageTile(AppState app, FeedbackMessage f) {
+    final typeLabel = app.isArabic ? _feedbackLabelAr[f.type] : _feedbackLabelEn[f.type];
+    final hasReply = f.reply != null && f.reply!.isNotEmpty;
+    return AppCard(
+      padding: EdgeInsets.all(12),
+      color: AppColors.cardDark,
+      border: Border.all(color: AppColors.borderColor),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            textDirection: TextDirection.rtl,
+            children: [
+              Expanded(
+                child: Text('$typeLabel${f.relatedPlace != null ? ' — ${f.relatedPlace}' : ''}',
+                    textDirection: app.dir,
+                    style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 13)),
+              ),
+              Text(_relativeTime(f.createdAt, app.isArabic),
+                  style: AppTypography.caption(AppColors.textGrey)),
+            ],
+          ),
+          SizedBox(height: 6),
+          Text(f.message,
+              textDirection: app.dir,
+              textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+              style: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 12)),
+          SizedBox(height: 10),
+          if (hasReply)
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.green.withValues(alpha: 0.35)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    textDirection: TextDirection.rtl,
+                    children: [
+                      Icon(Icons.reply_rounded, size: 14, color: AppColors.green),
+                      SizedBox(width: 6),
+                      Text(app.t('رد الإدارة', 'Admin reply'),
+                          textDirection: app.dir,
+                          style: AppTypography.caption(AppColors.green).copyWith(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  SizedBox(height: 6),
+                  Text(f.reply!,
+                      textDirection: app.dir,
+                      textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                      style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 12)),
+                ],
+              ),
+            )
+          else
+            Row(
+              textDirection: TextDirection.rtl,
+              children: [
+                Icon(Icons.hourglass_empty_rounded, size: 13, color: AppColors.textGrey),
+                SizedBox(width: 6),
+                Text(app.t('بانتظار رد الإدارة', 'Waiting for admin reply'),
+                    style: AppTypography.caption(AppColors.textGrey)),
+              ],
+            ),
         ],
       ),
     );
@@ -318,8 +415,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
                     style: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 12)),
                 SizedBox(height: 6),
-                Text(_relativeTime(f.createdAt, app.isArabic),
-                    style: AppTypography.caption(AppColors.textGrey)),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Text(_relativeTime(f.createdAt, app.isArabic),
+                        style: AppTypography.caption(AppColors.textGrey)),
+                    if (f.reply != null && f.reply!.isNotEmpty) ...[
+                      SizedBox(width: 8),
+                      Icon(Icons.reply_rounded, size: 12, color: AppColors.green),
+                      SizedBox(width: 2),
+                      Text(app.t('تم الرد', 'Replied'),
+                          style: AppTypography.caption(AppColors.green)),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
@@ -330,54 +439,109 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   void _showFeedbackDetail(AppState app, FeedbackMessage f) {
     final typeLabel = app.isArabic ? _feedbackLabelAr[f.type] : _feedbackLabelEn[f.type];
+    final replyController = TextEditingController(text: f.reply ?? '');
     showDialog(
       context: context,
-      builder: (context) => Directionality(
-        textDirection: app.dir,
-        child: AlertDialog(
-          backgroundColor: AppColors.cardDark,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          title: Text('$typeLabel — ${f.name}',
-              textDirection: app.dir,
-              style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (f.email.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(f.email, style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
-                ),
-              if (f.relatedPlace != null)
-                Padding(
-                  padding: EdgeInsets.only(bottom: 8),
-                  child: Text(app.t('بخصوص: ${f.relatedPlace}', 'Regarding: ${f.relatedPlace}'),
-                      textDirection: app.dir,
-                      style: TextStyle(color: AppColors.primary, fontSize: 12)),
-                ),
-              Text(f.message,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return Directionality(
+            textDirection: app.dir,
+            child: AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              title: Text('$typeLabel — ${f.name}',
                   textDirection: app.dir,
-                  textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
-                  style: TextStyle(color: AppColors.textWhite, fontSize: 13, height: 1.5)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                await FeedbackService.instance.delete(f.key);
-                if (!context.mounted) return;
-                Navigator.of(context).pop();
-                setState(() {});
-              },
-              child: Text(app.t('حذف', 'Delete'), style: TextStyle(color: AppColors.red)),
+                  style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (f.email.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(f.email, style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                      ),
+                    if (f.relatedPlace != null)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child: Text(app.t('بخصوص: ${f.relatedPlace}', 'Regarding: ${f.relatedPlace}'),
+                            textDirection: app.dir,
+                            style: TextStyle(color: AppColors.primary, fontSize: 12)),
+                      ),
+                    Text(f.message,
+                        textDirection: app.dir,
+                        textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                        style: TextStyle(color: AppColors.textWhite, fontSize: 13, height: 1.5)),
+                    SizedBox(height: 16),
+                    Divider(color: AppColors.borderColor),
+                    SizedBox(height: 8),
+                    Text(app.t('ردّك', 'Your reply'),
+                        textDirection: app.dir,
+                        style: TextStyle(color: AppColors.textGrey, fontSize: 12)),
+                    SizedBox(height: 6),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.bgDark,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.borderColor),
+                      ),
+                      child: TextField(
+                        controller: replyController,
+                        maxLines: 3,
+                        textDirection: app.dir,
+                        style: TextStyle(color: AppColors.textWhite, fontSize: 13),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(10),
+                          hintText: app.t('اكتبي ردك هون...', 'Write your reply here...'),
+                          hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                        ),
+                      ),
+                    ),
+                    if (f.repliedAt != null) ...[
+                      SizedBox(height: 6),
+                      Text(
+                        app.t(
+                          'آخر رد: ${_relativeTime(f.repliedAt!, true)}',
+                          'Last replied: ${_relativeTime(f.repliedAt!, false)}',
+                        ),
+                        style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () async {
+                    await FeedbackService.instance.delete(f.key);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                    setState(() {});
+                  },
+                  child: Text(app.t('حذف', 'Delete'), style: TextStyle(color: AppColors.red)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(app.t('إغلاق', 'Close'), style: TextStyle(color: AppColors.textGrey)),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final text = replyController.text.trim();
+                    if (text.isEmpty) return;
+                    await FeedbackService.instance.reply(f.key, text);
+                    if (!context.mounted) return;
+                    Navigator.of(context).pop();
+                    setState(() {});
+                  },
+                  child: Text(app.t('إرسال الرد', 'Send reply'),
+                      style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(app.t('إغلاق', 'Close'), style: TextStyle(color: AppColors.primary)),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../map/map_screen.dart';
 import '../../widgets/themed_image.dart';
@@ -20,6 +21,8 @@ class DetailScreen extends StatelessWidget {
   locationAr; // اسم الشارع/الحي الفعلي (يُستخدم لتحديد الموقع على الخريطة فقط)
   final String? locationEn;
   final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
+  final String? localAsset; // مسار صورة محلية جاهزة بالمشروع (assets/...)
+  final String? phone; // رقم هاتف للاتصال المباشر (اختياري)
 
   const DetailScreen({
     super.key,
@@ -34,6 +37,8 @@ class DetailScreen extends StatelessWidget {
     this.locationAr,
     this.locationEn,
     this.customImageBase64,
+    this.localAsset,
+    this.phone,
   });
 
   @override
@@ -60,11 +65,21 @@ class DetailScreen extends StatelessWidget {
                 children: [
                   Stack(
                     children: [
-                      ThemedImage(
-                        query: guessPhotoQuery(subtitleAr ?? '', titleAr),
-                        fallbackSeed: titleEn,
-                        height: 260,
-                        customImageBase64: customImageBase64,
+                      GestureDetector(
+                        onTap: () => showImageZoom(
+                          context,
+                          query: guessPhotoQuery(subtitleAr ?? '', titleAr),
+                          fallbackSeed: titleEn,
+                          customImageBase64: customImageBase64,
+                          localAsset: localAsset,
+                        ),
+                        child: ThemedImage(
+                          query: guessPhotoQuery(subtitleAr ?? '', titleAr),
+                          fallbackSeed: titleEn,
+                          height: 260,
+                          customImageBase64: customImageBase64,
+                          localAsset: localAsset,
+                        ),
                       ),
                       Container(
                         height: 260,
@@ -199,6 +214,31 @@ class DetailScreen extends StatelessWidget {
                           style: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 13),
                         ),
                         SizedBox(height: 24),
+                        if (phone != null && phone!.isNotEmpty) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => launchUrl(Uri.parse('tel:$phone')),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: AppColors.borderColor),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.call,
+                                size: 16,
+                                color: AppColors.textWhite,
+                              ),
+                              label: Text(
+                                app.t('اتصال: $phone', 'Call: $phone'),
+                                style: AppTypography.label(AppColors.textWhite),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                        ],
                         SizedBox(
                           width: double.infinity,
                           height: 50,

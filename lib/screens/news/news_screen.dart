@@ -4,8 +4,11 @@ import '../common/detail_screen.dart';
 import '../../widgets/themed_image.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/keyboard_scrollable.dart';
 
 // كلمة بحث إنجليزية مناسبة لصورة كل خبر حسب تصنيفه
 final Map<String, String> _newsPhotoQueryByCategory = {
@@ -27,7 +30,8 @@ class NewsArticle {
   final String summaryEn;
   final String bodyAr;
   final String bodyEn;
-  final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا الخبر تحديدًا
+  final String?
+  customImageBase64; // صورة رفعها الأدمن يدويًا لهذا الخبر تحديدًا
 
   NewsArticle({
     required this.titleAr,
@@ -163,6 +167,7 @@ class _NewsScreenState extends State<NewsScreen> {
 
   bool _loaded = false;
   List<NewsArticle> _liveArticles = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -170,9 +175,16 @@ class _NewsScreenState extends State<NewsScreen> {
     _loadData();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadData() async {
     final db = LocalDbService.instance;
     await db.seedIfEmpty('news', newsSeedData.map(newsToMap).toList());
+    await ApiService.syncNews();
     final entries = db.getAll('news');
     setState(() {
       _liveArticles = entries.map((e) => mapToNews(e.value)).toList();
@@ -200,7 +212,9 @@ class _NewsScreenState extends State<NewsScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
         ),
       );
     }
@@ -225,8 +239,15 @@ class _NewsScreenState extends State<NewsScreen> {
                           onTap: () => Navigator.of(context).maybePop(),
                           child: Container(
                             padding: EdgeInsets.all(6),
-                            decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
-                            child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardDark,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.arrow_back_rounded,
+                              color: AppColors.textWhite,
+                              size: 18,
+                            ),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -234,10 +255,16 @@ class _NewsScreenState extends State<NewsScreen> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: AppColors.primaryGradient),
+                            gradient: LinearGradient(
+                              colors: AppColors.primaryGradient,
+                            ),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          child: Icon(Icons.article_rounded, color: Colors.white, size: 16),
+                          child: Icon(
+                            Icons.article_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                         SizedBox(width: 10),
                         Expanded(
@@ -246,124 +273,136 @@ class _NewsScreenState extends State<NewsScreen> {
                             textDirection: app.dir,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+                            style: AppTypography.title(
+                              AppColors.textWhite,
+                            ).copyWith(fontSize: 16),
                           ),
                         ),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => app.toggleLanguage(),
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 7,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark2,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
-                            ),
-                            child: Text(
-                              app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                              style: AppTypography.label(AppColors.textWhite),
-                            ),
-                          ),
-                        ),
+                        AppToggleBar(),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // شريط البحث
-                          Container(
-                            height: 48,
-                            padding: EdgeInsets.symmetric(horizontal: 14),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
-                              border: Border.all(color: AppColors.borderColor),
-                              boxShadow: AppColors.cardShadow,
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.search_rounded,
-                                  size: 18,
-                                  color: AppColors.primary,
+                    child: KeyboardScrollable(
+                      controller: _scrollController,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // شريط البحث
+                            Container(
+                              height: 48,
+                              padding: EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardDark,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
                                 ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    onChanged: (v) =>
-                                        setState(() => searchQuery = v),
-                                    style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 13),
-                                    decoration: InputDecoration(
-                                      isCollapsed: true,
-                                      border: InputBorder.none,
-                                      hintText: app.t(
-                                        'ابحث في الأخبار...',
-                                        'Search news...',
+                                border: Border.all(
+                                  color: AppColors.borderColor,
+                                ),
+                                boxShadow: AppColors.cardShadow,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: TextField(
+                                      onChanged: (v) =>
+                                          setState(() => searchQuery = v),
+                                      style: AppTypography.body(
+                                        AppColors.textWhite,
+                                      ).copyWith(fontSize: 13),
+                                      decoration: InputDecoration(
+                                        isCollapsed: true,
+                                        border: InputBorder.none,
+                                        hintText: app.t(
+                                          'ابحث في الأخبار...',
+                                          'Search news...',
+                                        ),
+                                        hintStyle: AppTypography.caption(
+                                          AppColors.textGrey,
+                                        ),
                                       ),
-                                      hintStyle: AppTypography.caption(AppColors.textGrey),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 16),
+                            // فلاتر التصنيف
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _catChip('all', app.t('الكل', 'All')),
+                                  SizedBox(width: 8),
+                                  _catChip(
+                                    'tourism',
+                                    app.t('سياحة', 'Tourism'),
+                                  ),
+                                  SizedBox(width: 8),
+                                  _catChip(
+                                    'events',
+                                    app.t('فعاليات', 'Events'),
+                                  ),
+                                  SizedBox(width: 8),
+                                  _catChip(
+                                    'development',
+                                    app.t('تطوير', 'Development'),
+                                  ),
+                                  SizedBox(width: 8),
+                                  _catChip(
+                                    'culture',
+                                    app.t('ثقافة', 'Culture'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 20),
+                            if (filtered.isEmpty)
+                              Padding(
+                                padding: EdgeInsets.symmetric(vertical: 60),
+                                child: Center(
+                                  child: Text(
+                                    app.t(
+                                      'لا توجد أخبار مطابقة',
+                                      'No matching news found',
+                                    ),
+                                    style: AppTypography.body(
+                                      AppColors.textGrey,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 16),
-                          // فلاتر التصنيف
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _catChip('all', app.t('الكل', 'All')),
-                                SizedBox(width: 8),
-                                _catChip('tourism', app.t('سياحة', 'Tourism')),
-                                SizedBox(width: 8),
-                                _catChip('events', app.t('فعاليات', 'Events')),
-                                SizedBox(width: 8),
-                                _catChip(
-                                  'development',
-                                  app.t('تطوير', 'Development'),
-                                ),
-                                SizedBox(width: 8),
-                                _catChip('culture', app.t('ثقافة', 'Culture')),
-                              ],
-                            ),
-                          ),
-                          SizedBox(height: 20),
-                          if (filtered.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60),
-                              child: Center(
-                                child: Text(
-                                  app.t(
-                                    'لا توجد أخبار مطابقة',
-                                    'No matching news found',
-                                  ),
-                                  style: AppTypography.body(AppColors.textGrey),
-                                ),
+                              )
+                            else
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: filtered.length,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: responsiveGridColumns(
+                                        context,
+                                        wide: 3,
+                                        narrow: 2,
+                                      ),
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                      childAspectRatio: 0.85,
+                                    ),
+                                itemBuilder: (context, i) =>
+                                    _ArticleCard(article: filtered[i]),
                               ),
-                            )
-                          else
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: responsiveGridColumns(context, wide: 3, narrow: 2),
-                                    crossAxisSpacing: 16,
-                                    mainAxisSpacing: 16,
-                                    childAspectRatio: 0.85,
-                                  ),
-                              itemBuilder: (context, i) =>
-                                  _ArticleCard(article: filtered[i]),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -385,7 +424,9 @@ class _NewsScreenState extends State<NewsScreen> {
         duration: const Duration(milliseconds: 180),
         padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: selected ? LinearGradient(colors: AppColors.primaryGradient) : null,
+          gradient: selected
+              ? LinearGradient(colors: AppColors.primaryGradient)
+              : null,
           color: selected ? null : AppColors.cardDark,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
@@ -394,7 +435,9 @@ class _NewsScreenState extends State<NewsScreen> {
         ),
         child: Text(
           label,
-          style: AppTypography.label(selected ? Colors.white : AppColors.textWhite),
+          style: AppTypography.label(
+            selected ? Colors.white : AppColors.textWhite,
+          ),
         ),
       ),
     );
@@ -435,33 +478,40 @@ class _ArticleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Stack(
-            children: [
-              ThemedImage(
-                query:
-                    _newsPhotoQueryByCategory[a.categoryKey] ??
-                    'nablus palestine city',
-                fallbackSeed: a.titleEn,
-                height: 110,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-                customImageBase64: a.customImageBase64,
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: AppColors.primaryGradient),
-                    borderRadius: BorderRadius.circular(6),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ThemedImage(
+                  query:
+                      _newsPhotoQueryByCategory[a.categoryKey] ??
+                      'nablus palestine city',
+                  fallbackSeed: a.titleEn,
+                  height: double.infinity,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.lg),
                   ),
-                  child: Text(
-                    category,
-                    style: AppTypography.caption(Colors.white),
+                  customImageBase64: a.customImageBase64,
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      category,
+                      style: AppTypography.caption(Colors.white),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Padding(
             padding: EdgeInsets.all(10),
@@ -474,7 +524,9 @@ class _ArticleCard extends StatelessWidget {
                   textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 12),
+                  style: AppTypography.label(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 12),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -486,10 +538,7 @@ class _ArticleCard extends StatelessWidget {
                   style: AppTypography.caption(AppColors.textGrey),
                 ),
                 SizedBox(height: 6),
-                Text(
-                  date,
-                  style: AppTypography.caption(AppColors.textGrey),
-                ),
+                Text(date, style: AppTypography.caption(AppColors.textGrey)),
               ],
             ),
           ),

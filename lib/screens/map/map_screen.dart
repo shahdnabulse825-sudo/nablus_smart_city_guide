@@ -6,6 +6,7 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/app_toggle_bar.dart';
 
 // ==================== بيانات نقطة على الخريطة (إحداثيات حقيقية) ====================
 class MapPlace {
@@ -158,6 +159,15 @@ Future<void> openInExternalMaps(MapPlace p) async {
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
+/// يفتح تطبيق خرائط خارجي بوضع الاتجاهات (Directions) مباشرة للوصول لنقطة
+/// معيّنة عبر GPS، بدل مجرد عرض دبّوس الموقع.
+Future<void> openDirectionsInExternalMaps(LatLng point) async {
+  final uri = Uri.parse(
+    'https://www.google.com/maps/dir/?api=1&destination=${point.latitude},${point.longitude}',
+  );
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
+}
+
 /// يبحث عن مكان موجود مسبقًا بالقائمة المنسّقة (بإحداثيات دقيقة) بالاسم.
 MapPlace? findCuratedPlace(String nameAr, String nameEn) {
   for (final p in mapPlaces) {
@@ -202,6 +212,17 @@ final Map<String, LatLng> _areaCoords = {
   'sufyan': LatLng(32.2220, 35.2570),
   'المساكن الشعبية': LatLng(32.2175, 35.2600),
   'popular housing': LatLng(32.2175, 35.2600),
+  'بيت وزان': LatLng(
+    32.2103,
+    35.2536,
+  ), // تقريبي: حي بيت وزان جنوب غرب نابلس عند سفح جبل جرزيم
+  'beit wazan': LatLng(32.2103, 35.2536),
+  'سوق الحدادين': LatLng(32.2202, 35.2588), // داخل البلدة القديمة
+  'souq al-hadadeen': LatLng(32.2202, 35.2588),
+  'شارع عمر المختار': LatLng(32.2226, 35.2601), // تقريبي: وسط نابلس
+  'omar al-mukhtar': LatLng(32.2226, 35.2601),
+  'شارع الاتحاد': LatLng(32.2258, 35.2589), // تقريبي: قرب مستشفى الاتحاد
+  'al-ittihad': LatLng(32.2258, 35.2589),
 };
 
 /// إحداثيات تقريبية واقعية لمنطقة معيّنة داخل نابلس بناءً على اسم الشارع/الحي
@@ -222,14 +243,18 @@ LatLng approxAreaPoint(String locationText, String seed) {
   return LatLng(base.latitude + dLat, base.longitude + dLng);
 }
 
-/// يحدد أنسب موقع حقيقي لأي مكان: من القائمة المنسّقة أولاً، وإلا تقريبًا
-/// حسب اسم الشارع/الحي المذكور في بياناته.
+/// يحدد أنسب موقع حقيقي لأي مكان: إحداثيات دقيقة حدّدها الأدمن بالضغط على
+/// الخريطة أولاً (لو موجودة)، وإلا من القائمة المنسّقة، وإلا تقريبًا حسب اسم
+/// الشارع/الحي المذكور في بياناته.
 LatLng resolveMapPoint({
   required String nameAr,
   required String nameEn,
   String locationAr = '',
   String locationEn = '',
+  double? lat,
+  double? lng,
 }) {
+  if (lat != null && lng != null) return LatLng(lat, lng);
   final curated = findCuratedPlace(nameAr, nameEn);
   if (curated != null) return curated.point;
   final locationText = locationEn.isNotEmpty ? locationEn : locationAr;
@@ -322,7 +347,12 @@ class _MapScreenState extends State<MapScreen> {
         final filtered = _filtered;
         final mobile = isMobile(context);
         final mapArea = Container(
-          margin: EdgeInsets.fromLTRB(mobile ? 0 : 0, mobile ? 0 : 16, mobile ? 0 : 16, mobile ? 0 : 16),
+          margin: EdgeInsets.fromLTRB(
+            mobile ? 0 : 0,
+            mobile ? 0 : 16,
+            mobile ? 0 : 16,
+            mobile ? 0 : 16,
+          ),
           decoration: BoxDecoration(
             borderRadius: mobile ? null : BorderRadius.circular(AppRadius.lg),
             border: mobile ? null : Border.all(color: AppColors.borderColor),
@@ -397,16 +427,25 @@ class _MapScreenState extends State<MapScreen> {
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _showPlacesSheet(context, app),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: AppColors.primaryGradient),
+                        gradient: LinearGradient(
+                          colors: AppColors.primaryGradient,
+                        ),
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                         boxShadow: AppColors.glowShadow,
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.list_rounded, size: 16, color: Colors.white),
+                          Icon(
+                            Icons.list_rounded,
+                            size: 16,
+                            color: Colors.white,
+                          ),
                           SizedBox(width: 6),
                           Text(
                             app.t('الأماكن', 'Places'),
@@ -519,125 +558,129 @@ class _MapScreenState extends State<MapScreen> {
     VoidCallback? onPickPlace,
   }) {
     return Container(
-        padding: EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.borderColor),
-          boxShadow: onPickPlace == null ? AppColors.cardShadow : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 40,
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark2,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: AppColors.borderColor),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.search_rounded, size: 16, color: AppColors.textGrey),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: TextField(
-                      onChanged: (v) => setState(() => searchQuery = v),
-                      style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 12),
-                      decoration: InputDecoration(
-                        isCollapsed: true,
-                        border: InputBorder.none,
-                        hintText: app.t('ابحث عن مكان...', 'Search a place...'),
-                        hintStyle: AppTypography.caption(AppColors.textGrey),
-                      ),
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.borderColor),
+        boxShadow: onPickPlace == null ? AppColors.cardShadow : null,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 40,
+            padding: EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark2,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.borderColor),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.search_rounded, size: 16, color: AppColors.textGrey),
+                SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    onChanged: (v) => setState(() => searchQuery = v),
+                    style: AppTypography.body(
+                      AppColors.textWhite,
+                    ).copyWith(fontSize: 12),
+                    decoration: InputDecoration(
+                      isCollapsed: true,
+                      border: InputBorder.none,
+                      hintText: app.t('ابحث عن مكان...', 'Search a place...'),
+                      hintStyle: AppTypography.caption(AppColors.textGrey),
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                _catChip('all', app.t('الكل', 'All')),
-                _catChip('landmark', app.t('معالم', 'Landmarks')),
-                _catChip('restaurant', app.t('مطاعم', 'Restaurants')),
-                _catChip('hotel', app.t('فنادق', 'Hotels')),
-                _catChip('park', app.t('حدائق', 'Parks')),
-                _catChip('shopping', app.t('تسوق', 'Shopping')),
+                ),
               ],
             ),
-            SizedBox(height: 12),
-            Expanded(
-              child: ListView.separated(
-                itemCount: filtered.length,
-                separatorBuilder: (_, _) => SizedBox(height: 8),
-                itemBuilder: (context, i) {
-                  final p = filtered[i];
-                  final isSelected = p == selected;
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      _focusOn(p);
-                      onPickPlace?.call();
-                    },
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 160),
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
+          ),
+          SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _catChip('all', app.t('الكل', 'All')),
+              _catChip('landmark', app.t('معالم', 'Landmarks')),
+              _catChip('restaurant', app.t('مطاعم', 'Restaurants')),
+              _catChip('hotel', app.t('فنادق', 'Hotels')),
+              _catChip('park', app.t('حدائق', 'Parks')),
+              _catChip('shopping', app.t('تسوق', 'Shopping')),
+            ],
+          ),
+          SizedBox(height: 12),
+          Expanded(
+            child: ListView.separated(
+              itemCount: filtered.length,
+              separatorBuilder: (_, _) => SizedBox(height: 8),
+              itemBuilder: (context, i) {
+                final p = filtered[i];
+                final isSelected = p == selected;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _focusOn(p);
+                    onPickPlace?.call();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary.withValues(alpha: 0.15)
+                          : AppColors.cardDark2,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(
                         color: isSelected
-                            ? AppColors.primary.withValues(alpha: 0.15)
-                            : AppColors.cardDark2,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.borderColor,
-                        ),
-                      ),
-                      child: Row(
-                        textDirection: TextDirection.rtl,
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: p.color.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(p.icon, size: 16, color: p.color),
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  app.isArabic ? p.nameAr : p.nameEn,
-                                  textDirection: app.dir,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.label(AppColors.textWhite),
-                                ),
-                                Text(
-                                  app.isArabic ? p.categoryAr : p.categoryEn,
-                                  textDirection: app.dir,
-                                  style: AppTypography.caption(AppColors.textGrey),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                            ? AppColors.primary
+                            : AppColors.borderColor,
                       ),
                     ),
-                  );
-                },
-              ),
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: p.color.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(p.icon, size: 16, color: p.color),
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                app.isArabic ? p.nameAr : p.nameEn,
+                                textDirection: app.dir,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.label(AppColors.textWhite),
+                              ),
+                              Text(
+                                app.isArabic ? p.categoryAr : p.categoryEn,
+                                textDirection: app.dir,
+                                style: AppTypography.caption(
+                                  AppColors.textGrey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -668,7 +711,9 @@ class _MapScreenState extends State<MapScreen> {
         duration: const Duration(milliseconds: 180),
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          gradient: selected ? LinearGradient(colors: AppColors.primaryGradient) : null,
+          gradient: selected
+              ? LinearGradient(colors: AppColors.primaryGradient)
+              : null,
           color: selected ? null : AppColors.cardDark2,
           borderRadius: BorderRadius.circular(AppRadius.pill),
           border: Border.all(
@@ -713,7 +758,11 @@ class _SelectedPlaceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.borderColor),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Row(
@@ -723,7 +772,9 @@ class _SelectedPlaceCard extends StatelessWidget {
             width: 46,
             height: 46,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [p.color, p.color.withValues(alpha: 0.7)]),
+              gradient: LinearGradient(
+                colors: [p.color, p.color.withValues(alpha: 0.7)],
+              ),
               shape: BoxShape.circle,
             ),
             child: Icon(p.icon, color: Colors.white, size: 22),
@@ -738,7 +789,9 @@ class _SelectedPlaceCard extends StatelessWidget {
                   textDirection: app.dir,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+                  style: AppTypography.title(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 14),
                 ),
                 Row(
                   children: [
@@ -773,7 +826,11 @@ class _SelectedPlaceCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 border: Border.all(color: AppColors.borderColor),
               ),
-              child: Icon(Icons.directions_rounded, size: 16, color: AppColors.primary),
+              child: Icon(
+                Icons.directions_rounded,
+                size: 16,
+                color: AppColors.primary,
+              ),
             ),
           ),
           GestureDetector(
@@ -807,7 +864,11 @@ class _SelectedPlaceCard extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onClose,
-            child: Icon(Icons.close_rounded, color: AppColors.textGrey, size: 18),
+            child: Icon(
+              Icons.close_rounded,
+              color: AppColors.textGrey,
+              size: 18,
+            ),
           ),
         ],
       ),
@@ -839,8 +900,15 @@ class _TopBarSimple extends StatelessWidget {
             onTap: () => Navigator.of(context).maybePop(),
             child: Container(
               padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
-              child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.textWhite,
+                size: 18,
+              ),
             ),
           ),
           SizedBox(width: 12),
@@ -857,24 +925,12 @@ class _TopBarSimple extends StatelessWidget {
           Text(
             app.t(titleAr, titleEn),
             textDirection: app.dir,
-            style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+            style: AppTypography.title(
+              AppColors.textWhite,
+            ).copyWith(fontSize: 16),
           ),
           Spacer(),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => app.toggleLanguage(),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark2,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                style: AppTypography.label(AppColors.textWhite),
-              ),
-            ),
-          ),
+          AppToggleBar(),
         ],
       ),
     );

@@ -54,6 +54,42 @@ class LocalDbService {
     }
   }
 
+  /// تعبئة/تحديث صندوق بحيث تضل بيانات الكود (seedData) هي المرجع دائمًا:
+  /// - لو العنصر مش موجود (حسب nameEn) بيتضاف.
+  /// - لو موجود بس بيانات قديمة مخزّنة عنده (صورة/هاتف/ساعات...) بتختلف عن الكود، بيتحدّث تلقائيًا.
+  /// هيك تعديلات الكود (زي إضافة صورة أو تصحيح رقم هاتف) بتوصل للتطبيق فورًا بدون مسح بيانات التطبيق يدويًا.
+  Future<void> syncSeed(String boxName, List<Map<String, dynamic>> seedData) async {
+    final box = _box(boxName);
+    final existing = getAll(boxName);
+    final byName = {
+      for (final e in existing)
+        if ((e.value['nameEn'] as String?)?.isNotEmpty == true) e.value['nameEn']: e,
+    };
+    for (final item in seedData) {
+      final nameEn = item['nameEn'] as String?;
+      final match = nameEn == null ? null : byName[nameEn];
+      if (match == null) {
+        await box.add(Map<String, dynamic>.from(item));
+      } else if (!_mapsEqual(match.value, item)) {
+        await box.put(match.key, Map<String, dynamic>.from(item));
+      }
+    }
+  }
+
+  bool _mapsEqual(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final keys = {...a.keys, ...b.keys};
+    for (final k in keys) {
+      final av = a[k];
+      final bv = b[k];
+      if (av is List && bv is List) {
+        if (av.length != bv.length || !av.every((e) => bv.contains(e))) return false;
+      } else if (av != bv) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /// يرجع كل العناصر بصندوق معيّن مع مفاتيحها (المفتاح لازم للتعديل والحذف)
   List<MapEntry<dynamic, Map<String, dynamic>>> getAll(String boxName) {
     final box = _box(boxName);

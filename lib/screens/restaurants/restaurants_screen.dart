@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/favorites_service.dart';
+import '../../services/api_service.dart';
 import '../map/map_screen.dart';
 import '../news/news_screen.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
-import '../category/category_list_screen.dart';
-import '../category/category_data.dart';
+import '../hotels/hotels_screen.dart';
+import '../attractions/attractions_screen.dart';
 import '../../widgets/responsive.dart';
 import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/keyboard_scrollable.dart';
 
 // ==================== بيانات المطعم ====================
 class RestaurantData {
@@ -36,6 +40,10 @@ class RestaurantData {
   final String?
   customImageBase64; // صورة رفعها الأدمن يدويًا لهذا المطعم تحديدًا
   final bool isFeatured; // مطعم مميز/مروَّج له، يظهر أولًا وبشارة خاصة
+  final String phone; // رقم الهاتف للاتصال المباشر من شاشة التفاصيل
+  final double?
+  lat; // إحداثيات دقيقة حدّدها الأدمن بالضغط على الخريطة (لو موجودة)
+  final double? lng;
 
   RestaurantData({
     required this.nameAr,
@@ -57,167 +65,13 @@ class RestaurantData {
     required this.placeholderColor,
     this.customImageBase64,
     this.isFeatured = false,
+    this.phone = '',
+    this.lat,
+    this.lng,
   });
 }
 
 final List<RestaurantData> restaurantsSeedData = [
-  RestaurantData(
-    nameAr: 'مطعم البيت النابلسي',
-    nameEn: 'Al-Bait Al-Nabulsi Restaurant',
-    categoryAr: 'مأكولات شعبية',
-    categoryEn: 'Traditional Food',
-    cuisineKey: 'traditional',
-    locationAr: 'شارع سفيان - نابلس',
-    locationEn: 'Sufyan St. - Nablus',
-    rating: 4.8,
-    reviews: 256,
-    priceRange: '25-35 ₪',
-    priceTier: 'medium',
-    time: '20 دقيقة',
-    aboutAr:
-        'مطعم تراثي نابلسي يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn:
-        'A traditional Nablus restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
-    image: 'assets/images/restaurants/r1.jpg',
-    placeholderIcon: Icons.dinner_dining,
-    placeholderColor: Color(0xFFB5651D),
-    isFeatured: true,
-  ),
-  RestaurantData(
-    nameAr: 'مطعم الأندلس',
-    nameEn: 'Al-Andalus Restaurant',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
-    locationAr: 'شارع فيصل - نابلس',
-    locationEn: 'Faisal St. - Nablus',
-    rating: 4.6,
-    reviews: 205,
-    priceRange: '30-45 ₪',
-    priceTier: 'medium',
-    time: '25 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r2.jpg',
-    placeholderIcon: Icons.restaurant,
-    placeholderColor: Color(0xFF8E5B3F),
-  ),
-  RestaurantData(
-    nameAr: 'Burger Lounge',
-    nameEn: 'Burger Lounge',
-    categoryAr: 'وجبات سريعة',
-    categoryEn: 'Fast Food',
-    cuisineKey: 'fastfood',
-    locationAr: 'دوار الشهداء - نابلس',
-    locationEn: 'Martyrs Circle - Nablus',
-    rating: 4.6,
-    reviews: 180,
-    priceRange: '20-35 ₪',
-    priceTier: 'medium',
-    time: '25 دقيقة',
-    aboutAr: 'أشهى البرغر الطازج مع بطاطا مقرمشة وصوصات مميزة.',
-    aboutEn:
-        'The tastiest fresh burgers with crispy fries and signature sauces.',
-    image: 'assets/images/restaurants/r3.jpg',
-    placeholderIcon: Icons.lunch_dining,
-    placeholderColor: Color(0xFFD4A017),
-  ),
-  RestaurantData(
-    nameAr: 'كافية الريفة',
-    nameEn: 'Al-Reefa Cafe',
-    categoryAr: 'كافيهات',
-    categoryEn: 'Cafes',
-    cuisineKey: 'cafe',
-    locationAr: 'منطقة الرابية - نابلس',
-    locationEn: 'Al-Rabya Area - Nablus',
-    rating: 4.4,
-    reviews: 140,
-    priceRange: '15-25 ₪',
-    priceTier: 'cheap',
-    time: '20 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r4.jpg',
-    placeholderIcon: Icons.coffee,
-    placeholderColor: Color(0xFF6F4E37),
-  ),
-  RestaurantData(
-    nameAr: 'حلويات السلطان',
-    nameEn: 'Al-Sultan Sweets',
-    categoryAr: 'حلويات',
-    categoryEn: 'Sweets',
-    cuisineKey: 'sweets',
-    locationAr: 'شارع رفيديا - نابلس',
-    locationEn: 'Rafidia St. - Nablus',
-    rating: 4.5,
-    reviews: 210,
-    priceRange: '10-20 ₪',
-    priceTier: 'cheap',
-    time: '20 دقيقة',
-    aboutAr: 'أشهى الحلويات الشرقية الطازجة يوميًا.',
-    aboutEn: 'The finest traditional sweets made fresh daily.',
-    image: 'assets/images/restaurants/r5.jpg',
-    placeholderIcon: Icons.cake,
-    placeholderColor: Color(0xFFC9A227),
-  ),
-  RestaurantData(
-    nameAr: 'بيتزا نابلس',
-    nameEn: 'Nablus Pizza',
-    categoryAr: 'إيطالي',
-    categoryEn: 'Italian',
-    cuisineKey: 'italian',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.3,
-    reviews: 260,
-    priceRange: '20-30 ₪',
-    priceTier: 'medium',
-    time: '20 دقيقة',
-    aboutAr: 'بيتزا إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn: 'Authentic Italian pizza with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r6.jpg',
-    placeholderIcon: Icons.local_pizza,
-    placeholderColor: Color(0xFFB33A2E),
-  ),
-  RestaurantData(
-    nameAr: 'شاورما نابلس',
-    nameEn: 'Nablus Shawarma',
-    categoryAr: 'وجبات سريعة',
-    categoryEn: 'Fast Food',
-    cuisineKey: 'fastfood',
-    locationAr: 'شارع عمان - نابلس',
-    locationEn: 'Amman St. - Nablus',
-    rating: 4.2,
-    reviews: 275,
-    priceRange: '10-15 ₪',
-    priceTier: 'cheap',
-    time: '15 دقيقة',
-    aboutAr: 'شاورما طازجة يوميًا بنكهة لا تُنسى.',
-    aboutEn: 'Fresh shawarma made daily with an unforgettable taste.',
-    image: 'assets/images/restaurants/r7.jpg',
-    placeholderIcon: Icons.kebab_dining,
-    placeholderColor: Color(0xFF7A4B2A),
-  ),
-  RestaurantData(
-    nameAr: 'كنافة نابلس',
-    nameEn: 'Nablus Kunafa',
-    categoryAr: 'حلويات',
-    categoryEn: 'Sweets',
-    cuisineKey: 'sweets',
-    locationAr: 'المساكن الشعبية - نابلس',
-    locationEn: 'Popular Housing - Nablus',
-    rating: 4.2,
-    reviews: 190,
-    priceRange: '12-20 ₪',
-    priceTier: 'cheap',
-    time: '10 دقيقة',
-    aboutAr: 'الكنافة النابلسية الأصلية بالجبن الطازج.',
-    aboutEn: 'Authentic Nabulsi kunafa made with fresh cheese.',
-    image: 'assets/images/restaurants/r8.jpg',
-    placeholderIcon: Icons.bakery_dining,
-    placeholderColor: Color(0xFFE8A33D),
-  ),
   RestaurantData(
     nameAr: 'مطعم تنورين',
     nameEn: 'Tannourine Restaurant',
@@ -231,103 +85,40 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '25-35 ₪',
     priceTier: 'medium',
     time: '20 دقيقة',
-    aboutAr:
-        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
+    aboutAr: 'يشتهر بالمشاوي والأطباق الشعبية المشوية على الفحم بنكهة مميزة.',
     aboutEn:
-        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
-    image: 'assets/images/restaurants/r9.jpg',
+        'Known for grilled traditional dishes and charcoal-grilled meats with a distinctive flavor.',
+    image: 'assets/images/restaurants/tanoreen.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFB5651D),
   ),
   RestaurantData(
-    nameAr: 'مطعم المدينة',
-    nameEn: 'Al-Madina Restaurant',
-    categoryAr: 'مأكولات شعبية',
-    categoryEn: 'Traditional Food',
-    cuisineKey: 'traditional',
-    locationAr: 'وسط البلد - نابلس',
-    locationEn: 'Downtown - Nablus',
-    rating: 4.1,
-    reviews: 95,
-    priceRange: '25-35 ₪',
-    priceTier: 'medium',
-    time: '10 دقيقة',
-    aboutAr:
-        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn:
-        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
-    image: 'assets/images/restaurants/r10.jpg',
-    placeholderIcon: Icons.dinner_dining,
-    placeholderColor: Color(0xFF8E5B3F),
-  ),
-  RestaurantData(
-    nameAr: 'مطعم ليفانت (Levant)',
-    nameEn: 'Levant Restaurant',
-    categoryAr: 'مأكولات شعبية',
-    categoryEn: 'Traditional Food',
-    cuisineKey: 'traditional',
-    locationAr: 'شارع فيصل - نابلس',
-    locationEn: 'Faisal St. - Nablus',
-    rating: 4.5,
-    reviews: 288,
-    priceRange: '25-35 ₪',
-    priceTier: 'medium',
-    time: '30 دقيقة',
-    aboutAr:
-        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn:
-        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
-    image: 'assets/images/restaurants/r11.jpg',
-    placeholderIcon: Icons.dinner_dining,
-    placeholderColor: Color(0xFFD4A017),
-  ),
-  RestaurantData(
-    nameAr: 'مطعم الف ليلة وليلة',
-    nameEn: 'Alf Layla wa Layla Restaurant',
-    categoryAr: 'مأكولات شعبية',
-    categoryEn: 'Traditional Food',
-    cuisineKey: 'traditional',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.0,
-    reviews: 168,
-    priceRange: '25-35 ₪',
-    priceTier: 'medium',
-    time: '10 دقيقة',
-    aboutAr:
-        'مطعم يقدم أشهى الأطباق الشعبية بنكهات أصيلة ومكونات طازجة من قلب نابلس.',
-    aboutEn:
-        'A restaurant serving the finest local dishes with authentic flavors and fresh ingredients from the heart of Nablus.',
-    image: 'assets/images/restaurants/r12.jpg',
-    placeholderIcon: Icons.dinner_dining,
-    placeholderColor: Color(0xFF6F4E37),
-  ),
-  RestaurantData(
     nameAr: 'W Restaurant',
     nameEn: 'W Restaurant',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
+    locationAr: 'شارع تونس - نابلس',
+    locationEn: 'Tunis St. - Nablus',
     rating: 3.9,
     reviews: 115,
     priceRange: '30-45 ₪',
     priceTier: 'medium',
     time: '15 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
+    aboutAr: 'يقدم مأكولات شرقية بلمسة عصرية وديكور أنيق يناسب السهرات.',
     aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r13.jpg',
+        'Serves Eastern cuisine with a modern twist in a stylish setting ideal for evenings out.',
+    image: 'assets/images/restaurants/w_restaurant.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFC9A227),
+    phone: '+970 59 736 7788',
   ),
   RestaurantData(
     nameAr: '1948 Restaurant',
     nameEn: '1948 Restaurant',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
     locationAr: 'رفيديا - نابلس',
     locationEn: 'Rafidia - Nablus',
     rating: 4.4,
@@ -335,39 +126,19 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '30-45 ₪',
     priceTier: 'medium',
     time: '30 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
+    aboutAr: 'يجمع بين نكهات المطبخ الفلسطيني التقليدي وتقديم عصري مميز.',
     aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r14.jpg',
+        'Blends traditional Palestinian flavors with a distinctive modern presentation.',
+    image: 'assets/images/restaurants/1948_restaurant.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFB33A2E),
   ),
   RestaurantData(
-    nameAr: 'Solido Restaurant',
-    nameEn: 'Solido Restaurant',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.1,
-    reviews: 226,
-    priceRange: '30-45 ₪',
-    priceTier: 'medium',
-    time: '30 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
-    aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r15.jpg',
-    placeholderIcon: Icons.restaurant,
-    placeholderColor: Color(0xFF7A4B2A),
-  ),
-  RestaurantData(
     nameAr: 'Ward Restaurant & Café',
     nameEn: 'Ward Restaurant & Café',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
     locationAr: 'شارع عمان - نابلس',
     locationEn: 'Amman St. - Nablus',
     rating: 4.3,
@@ -375,19 +146,21 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '30-45 ₪',
     priceTier: 'medium',
     time: '30 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
+    aboutAr:
+        'مطعم وكافيه بأجواء هادئة يجمع بين الأطباق الشرقية والمشروبات المختصة.',
     aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r16.jpg',
+        'A restaurant and café combining Eastern dishes with specialty drinks in a relaxed setting.',
+    image: 'assets/images/restaurants/ward_restaurant_cafe.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFE8A33D),
+    phone: '+970 9 234 8573',
   ),
   RestaurantData(
     nameAr: 'Rexos Café & Restaurant',
     nameEn: 'Rexos Café & Restaurant',
-    categoryAr: 'مأكولات شرقية',
-    categoryEn: 'Eastern Food',
-    cuisineKey: 'eastern',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
     locationAr: 'شارع فيصل - نابلس',
     locationEn: 'Faisal St. - Nablus',
     rating: 4.2,
@@ -395,10 +168,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '30-45 ₪',
     priceTier: 'medium',
     time: '10 دقيقة',
-    aboutAr: 'أطباق شرقية متنوعة بأسلوب تقديم راقٍ ونكهات غنية.',
+    aboutAr: 'يقدم قائمة متنوعة من الأطباق الشرقية والمشروبات في أجواء عصرية.',
     aboutEn:
-        'A variety of eastern dishes with elegant presentation and rich flavors.',
-    image: 'assets/images/restaurants/r17.jpg',
+        'Offers a diverse menu of Eastern dishes and drinks in a contemporary atmosphere.',
+    image: 'assets/images/restaurants/food_spread_platters.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFF9C6B30),
   ),
@@ -415,9 +188,10 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '15-25 ₪',
     priceTier: 'cheap',
     time: '25 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r18.jpg',
+    aboutAr: 'كافيه عصري بديكور أنيق ومساحة مناسبة للعمل والاجتماعات.',
+    aboutEn:
+        'A modern café with stylish décor and a comfortable space for work and meetings.',
+    image: 'assets/images/restaurants/pardo_cafe.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFFA85E2C),
   ),
@@ -434,11 +208,13 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '15-25 ₪',
     priceTier: 'cheap',
     time: '15 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r19.jpg',
+    aboutAr: 'تراس مفتوح وأجواء مريحة مع قائمة قهوة مختصة.',
+    aboutEn:
+        'An open-air terrace with a relaxed vibe and a specialty coffee menu.',
+    image: 'assets/images/restaurants/veranda_lounge.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFFB5651D),
+    phone: '+970 9 235 5778',
   ),
   RestaurantData(
     nameAr: 'Lemon W Nana',
@@ -453,30 +229,11 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '15-25 ₪',
     priceTier: 'cheap',
     time: '10 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r20.jpg',
+    aboutAr: 'معروف بمشروباته المنعشة القائمة على الليمون والنعناع.',
+    aboutEn: 'Known for its refreshing lemon-and-mint based drinks.',
+    image: 'assets/images/restaurants/lemon_w_nana.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFF8E5B3F),
-  ),
-  RestaurantData(
-    nameAr: 'Nosha Café',
-    nameEn: 'Nosha Café',
-    categoryAr: 'كافيه',
-    categoryEn: 'Cafe',
-    cuisineKey: 'cafe',
-    locationAr: 'شارع فيصل - نابلس',
-    locationEn: 'Faisal St. - Nablus',
-    rating: 4.0,
-    reviews: 84,
-    priceRange: '15-25 ₪',
-    priceTier: 'cheap',
-    time: '20 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r21.jpg',
-    placeholderIcon: Icons.coffee,
-    placeholderColor: Color(0xFFD4A017),
   ),
   RestaurantData(
     nameAr: 'Cedarz Gelato & Coffee House',
@@ -491,106 +248,280 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '15-25 ₪',
     priceTier: 'cheap',
     time: '20 دقيقة',
-    aboutAr: 'أجواء هادئة ومشروبات مختصة بمكونات مميزة.',
-    aboutEn: 'A calm atmosphere with specialty drinks and premium ingredients.',
-    image: 'assets/images/restaurants/r22.jpg',
+    aboutAr: 'يقدم جيلاتو إيطالي طازج إلى جانب قائمة قهوة متنوعة.',
+    aboutEn: 'Serves fresh Italian gelato alongside a varied coffee menu.',
+    image: 'assets/images/restaurants/cedarz_gelato.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFF6F4E37),
+    phone: '+970 594 802 121',
   ),
   RestaurantData(
-    nameAr: 'Pizza Inn',
-    nameEn: 'Pizza Inn',
-    categoryAr: 'وجبات سريعة',
-    categoryEn: 'Fast Food',
-    cuisineKey: 'fastfood',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.6,
-    reviews: 246,
-    priceRange: '10-20 ₪',
-    priceTier: 'cheap',
-    time: '25 دقيقة',
-    aboutAr: 'وجبات سريعة طازجة بنكهة لا تُنسى وخدمة سريعة.',
-    aboutEn: 'Fresh fast food with an unforgettable taste and quick service.',
-    image: 'assets/images/restaurants/r23.jpg',
-    placeholderIcon: Icons.fastfood,
+    nameAr: 'غلوريا جينز',
+    nameEn: "Gloria Jean's Coffees",
+    categoryAr: 'كافيه',
+    categoryEn: 'Cafe',
+    cuisineKey: 'cafe',
+    locationAr: 'شارع جامعة النجاح - نابلس',
+    locationEn: 'An-Najah University St. - Nablus',
+    rating: 4.5,
+    reviews: 160,
+    priceRange: '20-35 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'سلسلة عالمية للقهوة المختصة والعصائر الطازجة والمشروبات المثلجة.',
+    aboutEn:
+        'A global chain for specialty coffee, fresh juices, and iced drinks.',
+    image: 'assets/images/restaurants/gloria_jeans.jpg',
+    placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFFC9A227),
+    phone: '+970 593 555 111',
   ),
   RestaurantData(
-    nameAr: 'Mono Pizza',
-    nameEn: 'Mono Pizza',
-    categoryAr: 'وجبات سريعة',
-    categoryEn: 'Fast Food',
-    cuisineKey: 'fastfood',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.4,
-    reviews: 296,
-    priceRange: '10-20 ₪',
+    nameAr: 'تري هاوس كافيه',
+    nameEn: 'Tree House Cafe',
+    categoryAr: 'كافيه',
+    categoryEn: 'Cafe',
+    cuisineKey: 'cafe',
+    locationAr: 'شارع النصر - حارة الغرب - نابلس',
+    locationEn: 'Al-Nasr St. - Harat Al-Gharb - Nablus',
+    rating: 4.6,
+    reviews: 120,
+    priceRange: '15-25 ₪',
     priceTier: 'cheap',
-    time: '25 دقيقة',
-    aboutAr: 'وجبات سريعة طازجة بنكهة لا تُنسى وخدمة سريعة.',
-    aboutEn: 'Fresh fast food with an unforgettable taste and quick service.',
-    image: 'assets/images/restaurants/r24.jpg',
-    placeholderIcon: Icons.fastfood,
-    placeholderColor: Color(0xFFB33A2E),
-  ),
-  RestaurantData(
-    nameAr: 'Sawa Rbena',
-    nameEn: 'Sawa Rbena',
-    categoryAr: 'وجبات سريعة',
-    categoryEn: 'Fast Food',
-    cuisineKey: 'fastfood',
-    locationAr: 'شارع عمان - نابلس',
-    locationEn: 'Amman St. - Nablus',
-    rating: 4.0,
-    reviews: 135,
-    priceRange: '10-20 ₪',
-    priceTier: 'cheap',
-    time: '30 دقيقة',
-    aboutAr: 'وجبات سريعة طازجة بنكهة لا تُنسى وخدمة سريعة.',
-    aboutEn: 'Fresh fast food with an unforgettable taste and quick service.',
-    image: 'assets/images/restaurants/r25.jpg',
-    placeholderIcon: Icons.fastfood,
+    time: '15 دقيقة',
+    aboutAr: 'كافيه هادئ بديكور طبيعي دافئ يناسب الجلسات الطويلة.',
+    aboutEn: 'A calm café with warm, natural décor perfect for long hangouts.',
+    image: 'assets/images/restaurants/al_shajara.jpg',
+    placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFF7A4B2A),
+    phone: '+970 597 831 061',
   ),
   RestaurantData(
-    nameAr: 'Shawarma House',
-    nameEn: 'Shawarma House',
+    nameAr: 'ع الطريق - فرع الدوار',
+    nameEn: 'Aa Al-Tareeq - Dawar Branch',
+    categoryAr: 'كافيه',
+    categoryEn: 'Cafe',
+    cuisineKey: 'cafe',
+    locationAr: 'المجمع التجاري - الدوار - نابلس',
+    locationEn: 'Commercial Complex - Al-Dawar - Nablus',
+    rating: 4.4,
+    reviews: 90,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'كافيه شعبي بسيط قريب من الدوار يقدم القهوة والمشروبات اليومية.',
+    aboutEn:
+        'A simple neighborhood café near Al-Dawar serving coffee and daily drinks.',
+    image: 'assets/images/restaurants/3altareeq_coffee.jpg',
+    placeholderIcon: Icons.coffee,
+    placeholderColor: Color(0xFF9C6644),
+  ),
+  RestaurantData(
+    nameAr: 'الدجاج الملكي فرايزر - شارع فيصل',
+    nameEn: 'Malaky Broast Chicken - Faisal St.',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'شارع فيصل - نابلس',
+    locationEn: 'Faisal St. - Nablus',
+    rating: 4.4,
+    reviews: 110,
+    priceRange: '15-30 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'دجاج بروست مقرمش بوصفة خاصة وأطباق دجاج متنوعة.',
+    aboutEn:
+        'Crispy broast chicken with a signature recipe and varied chicken plates.',
+    image: 'assets/images/restaurants/malaky_broast.jpg',
+    placeholderIcon: Icons.fastfood,
+    placeholderColor: Color(0xFFB5651D),
+    phone: '+970 1700 250 250',
+  ),
+  RestaurantData(
+    nameAr: 'الدجاج الملكي فرايزر - شارع سفيان',
+    nameEn: 'Malaky Broast Chicken - Sufyan St.',
     categoryAr: 'وجبات سريعة',
     categoryEn: 'Fast Food',
     cuisineKey: 'fastfood',
     locationAr: 'شارع سفيان - نابلس',
     locationEn: 'Sufyan St. - Nablus',
-    rating: 4.7,
-    reviews: 152,
-    priceRange: '10-20 ₪',
-    priceTier: 'cheap',
-    time: '30 دقيقة',
-    aboutAr: 'وجبات سريعة طازجة بنكهة لا تُنسى وخدمة سريعة.',
-    aboutEn: 'Fresh fast food with an unforgettable taste and quick service.',
-    image: 'assets/images/restaurants/r26.jpg',
+    rating: 4.3,
+    reviews: 95,
+    priceRange: '15-30 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'دجاج بروست مقرمش بوصفة خاصة وأطباق دجاج متنوعة.',
+    aboutEn:
+        'Crispy broast chicken with a signature recipe and varied chicken plates.',
+    image: 'assets/images/restaurants/malaky_broast.jpg',
     placeholderIcon: Icons.fastfood,
-    placeholderColor: Color(0xFFE8A33D),
+    placeholderColor: Color(0xFF8E5B3F),
+    phone: '+970 1700 250 250',
   ),
   RestaurantData(
-    nameAr: 'بكداش للحلويات',
-    nameEn: 'Bakdash Sweets',
-    categoryAr: 'حلويات',
-    categoryEn: 'Sweets',
-    cuisineKey: 'sweets',
-    locationAr: 'وسط البلد - نابلس',
-    locationEn: 'Downtown - Nablus',
-    rating: 4.1,
-    reviews: 77,
+    nameAr: 'شاورما الشاطر حسن',
+    nameEn: 'Al-Shater Hasan Shawarma',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'شارع عسكر الرئيسي - نابلس',
+    locationEn: 'Askar Main St. - Nablus',
+    rating: 4.4,
+    reviews: 100,
     priceRange: '10-20 ₪',
     priceTier: 'cheap',
-    time: '10 دقيقة',
-    aboutAr: 'أشهى الحلويات الشرقية الطازجة يوميًا.',
-    aboutEn: 'The finest traditional sweets made fresh daily.',
-    image: 'assets/images/restaurants/r27.jpg',
-    placeholderIcon: Icons.cake,
-    placeholderColor: Color(0xFF9C6B30),
+    time: '15 دقيقة',
+    aboutAr: 'شاورما فلسطينية شعبية معروفة بنكهتها الأصيلة وزحمتها الدائمة.',
+    aboutEn:
+        'A popular Palestinian shawarma spot known for its authentic taste.',
+    image: 'assets/images/restaurants/al_shater_hasan.jpg',
+    placeholderIcon: Icons.kebab_dining,
+    placeholderColor: Color(0xFFD4A017),
+    phone: '+970 9 231 5222',
+  ),
+  RestaurantData(
+    nameAr: 'بوبايز فلسطين - سيتي مول نابلس',
+    nameEn: 'Popeyes Palestine - City Mall Nablus',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'سيتي مول - نابلس',
+    locationEn: 'City Mall - Nablus',
+    rating: 4.4,
+    reviews: 105,
+    priceRange: '20-35 ₪',
+    priceTier: 'medium',
+    time: '25 دقيقة',
+    aboutAr: 'دجاج مقرمش بطريقة لويزيانا الأمريكية بنكهة حارة مميزة.',
+    aboutEn:
+        'Crispy Louisiana-style fried chicken with a spicy signature kick.',
+    image: 'assets/images/restaurants/popeyes.jpg',
+    placeholderIcon: Icons.fastfood,
+    placeholderColor: Color(0xFFE8A33D),
+    phone: '+970 1700 808 080',
+  ),
+  RestaurantData(
+    nameAr: 'تريو شاورما',
+    nameEn: 'Trio Shawerma',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'وسط نابلس',
+    locationEn: 'Downtown Nablus',
+    rating: 4.4,
+    reviews: 165,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'شاورما دجاج ولحمة بأطباق متنوعة وسندويشات مميزة.',
+    aboutEn:
+        'Chicken and beef shawarma with a variety of plates and sandwiches.',
+    image: 'assets/images/restaurants/trio_shawarma.jpg',
+    placeholderIcon: Icons.kebab_dining,
+    placeholderColor: Color(0xFF8E5B3F),
+    phone: '+970 9 236 7614',
+  ),
+  RestaurantData(
+    nameAr: 'أورجادا برجرز',
+    nameEn: 'Orgada Burgers',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'شارع عبد الرحيم محمود - نابلس',
+    locationEn: 'Abdul Rahim Mahmoud St. - Nablus',
+    rating: 4.5,
+    reviews: 130,
+    priceRange: '20-35 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'برجر مشوي طازج بلحمة عالية الجودة وخبز منزلي.',
+    aboutEn: 'Freshly grilled burgers with premium beef and homemade buns.',
+    image: 'assets/images/restaurants/orgada_burgers.jpg',
+    placeholderIcon: Icons.lunch_dining,
+    placeholderColor: Color(0xFFC9A227),
+    phone: '+972 9 235 7166',
+  ),
+  RestaurantData(
+    nameAr: '90s Burger',
+    nameEn: '90s Burger',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'رفيديا - طلعة بليبلة - نابلس',
+    locationEn: 'Rafidia - Balibla Slope - Nablus',
+    rating: 4.6,
+    reviews: 145,
+    priceRange: '20-35 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'برجرات بطابع رجعي وأجواء شبابية مع صوصات مبتكرة.',
+    aboutEn: 'Retro-themed burgers in a youthful vibe with creative sauces.',
+    image: 'assets/images/restaurants/90s_burger_logo.jpg',
+    placeholderIcon: Icons.lunch_dining,
+    placeholderColor: Color(0xFFD4A017),
+    phone: '+970 9 235 9090',
+  ),
+  RestaurantData(
+    nameAr: 'هارت أتاك - جلطة',
+    nameEn: 'Heart Attack - جلطة',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'رفيديا - بجانب المستشفى العربي التخصصي - نابلس',
+    locationEn: 'Rafidia - next to Arab Specialized Hospital - Nablus',
+    rating: 4.5,
+    reviews: 175,
+    priceRange: '20-40 ₪',
+    priceTier: 'medium',
+    time: '25 دقيقة',
+    aboutAr: 'برجرات ضخمة محشوة بطبقات جبنة ولحمة لعشاق الوجبات الدسمة.',
+    aboutEn:
+        'Massive loaded burgers stacked with cheese and beef for hearty appetites.',
+    image: 'assets/images/restaurants/jaltah_burger.jpg',
+    placeholderIcon: Icons.lunch_dining,
+    placeholderColor: Color(0xFF7A4B2A),
+    phone: '+970 59 566 5960',
+  ),
+  RestaurantData(
+    nameAr: 'بيتزا تايم',
+    nameEn: 'Pizza TIME Restaurant',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'وسط مدينة نابلس',
+    locationEn: 'Downtown Nablus',
+    rating: 4.2,
+    reviews: 88,
+    priceRange: '20-35 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr: 'بيتزا وسندويشات سريعة بأسعار مناسبة للجميع.',
+    aboutEn: 'Quick pizza and sandwiches at prices that suit everyone.',
+    image: 'assets/images/restaurants/pizza_time.jpg',
+    placeholderIcon: Icons.local_pizza,
+    placeholderColor: Color(0xFFA85E2C),
+    phone: '+970 9 234 3440',
+  ),
+  RestaurantData(
+    nameAr: 'فريزدي',
+    nameEn: 'Friesday',
+    categoryAr: 'وجبات سريعة',
+    categoryEn: 'Fast Food',
+    cuisineKey: 'fastfood',
+    locationAr: 'وسط نابلس',
+    locationEn: 'Downtown Nablus',
+    rating: 4.3,
+    reviews: 96,
+    priceRange: '15-25 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'متخصص بالبطاطا المقرمشة بنكهات متعددة والوجبات الخفيفة.',
+    aboutEn:
+        'Specializes in crispy fries with multiple flavors and light bites.',
+    image: 'assets/images/restaurants/friesday.jpg',
+    placeholderIcon: Icons.fastfood,
+    placeholderColor: Color(0xFFE8A33D),
+    phone: '+970 595 687 077',
   ),
   RestaurantData(
     nameAr: 'كنافة الأقصى',
@@ -605,30 +536,14 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '10-20 ₪',
     priceTier: 'cheap',
     time: '20 دقيقة',
-    aboutAr: 'أشهى الحلويات الشرقية الطازجة يوميًا.',
-    aboutEn: 'The finest traditional sweets made fresh daily.',
-    image: 'assets/images/restaurants/r28.jpg',
+    aboutAr:
+        'في قلب البلدة القديمة، يقدم الكنافة النابلسية الساخنة طازجة أولًا بأول.',
+    aboutEn:
+        'Located in the heart of the Old City, serving hot Nabulsi kunafa fresh off the tray.',
+    image: 'assets/images/restaurants/sweets_kunafa.jpg',
     placeholderIcon: Icons.cake,
     placeholderColor: Color(0xFFA85E2C),
-  ),
-  RestaurantData(
-    nameAr: 'Becasse Bakery',
-    nameEn: 'Becasse Bakery',
-    categoryAr: 'حلويات',
-    categoryEn: 'Sweets',
-    cuisineKey: 'sweets',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.8,
-    reviews: 278,
-    priceRange: '10-20 ₪',
-    priceTier: 'cheap',
-    time: '15 دقيقة',
-    aboutAr: 'أشهى الحلويات الشرقية الطازجة يوميًا.',
-    aboutEn: 'The finest traditional sweets made fresh daily.',
-    image: 'assets/images/restaurants/r29.jpg',
-    placeholderIcon: Icons.cake,
-    placeholderColor: Color(0xFFB5651D),
+    phone: '+970 9 237 6412',
   ),
   RestaurantData(
     nameAr: 'أبو سير للحلويات',
@@ -643,31 +558,117 @@ final List<RestaurantData> restaurantsSeedData = [
     priceRange: '10-20 ₪',
     priceTier: 'cheap',
     time: '20 دقيقة',
-    aboutAr: 'أشهى الحلويات الشرقية الطازجة يوميًا.',
-    aboutEn: 'The finest traditional sweets made fresh daily.',
-    image: 'assets/images/restaurants/r30.jpg',
+    aboutAr: 'من أقدم محلات الحلويات في نابلس، يشتهر بالكنافة والمفروكة.',
+    aboutEn:
+        "One of Nablus's oldest sweet shops, known for kunafa and mafrouka.",
+    image: 'assets/images/restaurants/abu_seir_sweets.jpg',
     placeholderIcon: Icons.cake,
     placeholderColor: Color(0xFF8E5B3F),
   ),
   RestaurantData(
-    nameAr: 'Pizza Inn',
-    nameEn: 'Pizza Inn',
+    nameAr: 'حلويات بوابة البيك - رفيديا',
+    nameEn: 'Bawabat Al-Baik Sweets - Rafidia',
+    categoryAr: 'حلويات',
+    categoryEn: 'Sweets',
+    cuisineKey: 'sweets',
+    locationAr: 'رفيديا - بناية مرعي - نابلس',
+    locationEn: 'Rafidia - Mar\'i Building - Nablus',
+    rating: 4.5,
+    reviews: 108,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'يشتهر بالهريسة والحلويات الشرقية الطازجة المحضّرة يوميًا.',
+    aboutEn:
+        'Known for fresh harissa and traditional Eastern sweets made daily.',
+    image: 'assets/images/restaurants/albaik_sweets.jpg',
+    placeholderIcon: Icons.cake,
+    placeholderColor: Color(0xFFC9A227),
+    phone: '+970 9 238 4644',
+  ),
+  RestaurantData(
+    nameAr: 'حلويات السرايا',
+    nameEn: 'Al-Saraya Sweets',
+    categoryAr: 'حلويات',
+    categoryEn: 'Sweets',
+    cuisineKey: 'sweets',
+    locationAr: 'شارع رفيديا - نابلس',
+    locationEn: 'Rafidia St. - Nablus',
+    rating: 4.6,
+    reviews: 132,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'يشتهر بالقراقيش والحلويات الشرقية الفاخرة.',
+    aboutEn: 'Known for karakesh and premium Eastern sweets.',
+    image: 'assets/images/restaurants/karakesh_alsaraya.jpg',
+    placeholderIcon: Icons.cake,
+    placeholderColor: Color(0xFFB5651D),
+    phone: '+970 9 259 1414',
+  ),
+  RestaurantData(
+    nameAr: 'حلويات أبو صالحة',
+    nameEn: 'Abu Saleh Sweets',
+    categoryAr: 'حلويات',
+    categoryEn: 'Sweets',
+    cuisineKey: 'sweets',
+    locationAr: 'رفيديا - نابلس',
+    locationEn: 'Rafidia - Nablus',
+    rating: 4.4,
+    reviews: 85,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr: 'محل حلويات شعبي يقدم تشكيلة يومية من الحلويات الشرقية الطازجة.',
+    aboutEn:
+        'A neighborhood sweet shop offering a daily selection of fresh Eastern sweets.',
+    image: 'assets/images/restaurants/abu_salha_sweets.jpg',
+    placeholderIcon: Icons.cake,
+    placeholderColor: Color(0xFF7A4B2A),
+    phone: '+970 9 234 1561',
+  ),
+  RestaurantData(
+    nameAr: 'حلويات أبو صالحة - فرع الدوار',
+    nameEn: 'Abu Saleh Sweets - Al-Dawar Branch',
+    categoryAr: 'حلويات',
+    categoryEn: 'Sweets',
+    cuisineKey: 'sweets',
+    locationAr: 'دوار الحسين - مجمع نابلس التجاري - وسط البلد - نابلس',
+    locationEn:
+        'Al-Hussein Circle - Nablus Commercial Complex - Downtown - Nablus',
+    rating: 4.3,
+    reviews: 70,
+    priceRange: '10-20 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr:
+        'فرع الدوار لمحل أبو صالحة، يقدم نفس التشكيلة الشعبية من الحلويات.',
+    aboutEn:
+        'The Al-Dawar branch of Abu Saleh, offering the same popular sweets selection.',
+    image: 'assets/images/restaurants/abu_salha_sweets.jpg',
+    placeholderIcon: Icons.cake,
+    placeholderColor: Color(0xFF9C6644),
+    phone: '+970 9 238 2325',
+  ),
+  RestaurantData(
+    nameAr: 'بيتزا إن فلسطين',
+    nameEn: 'Pizza Inn Palestine',
     categoryAr: 'إيطالي',
     categoryEn: 'Italian',
     cuisineKey: 'italian',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.3,
-    reviews: 273,
+    locationAr: 'رفيديا - مقابل جامعة النجاح الوطنية - نابلس',
+    locationEn: 'Rafidia - opposite An-Najah National University - Nablus',
+    rating: 4.4,
+    reviews: 190,
     priceRange: '25-40 ₪',
     priceTier: 'medium',
     time: '20 دقيقة',
-    aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn:
-        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r31.jpg',
+    aboutAr: 'يقدم بيتزا وباستا وأطباق إيطالية متنوعة.',
+    aboutEn: 'Serves pizza, pasta, and a variety of Italian dishes.',
+    image: 'assets/images/restaurants/pizza_inn.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFD4A017),
+    phone: '+970 9 235 6936',
   ),
   RestaurantData(
     nameAr: 'Mono Pizza',
@@ -675,81 +676,168 @@ final List<RestaurantData> restaurantsSeedData = [
     categoryAr: 'إيطالي',
     categoryEn: 'Italian',
     cuisineKey: 'italian',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.0,
+    locationAr: 'وسط مدينة نابلس',
+    locationEn: 'Downtown Nablus',
+    rating: 4.3,
     reviews: 150,
     priceRange: '25-40 ₪',
     priceTier: 'medium',
     time: '15 دقيقة',
-    aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn:
-        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r32.jpg',
+    aboutAr: 'متخصص بالبيتزا الإيطالية مع تشكيلة من المقبلات.',
+    aboutEn: 'Specializes in Italian pizza with a selection of appetizers.',
+    image: 'assets/images/restaurants/mono_pizza.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFF6F4E37),
+    phone: '+970 9 235 5655',
   ),
   RestaurantData(
-    nameAr: 'Solido Restaurant',
-    nameEn: 'Solido Restaurant',
+    nameAr: 'بيتزا هاوس',
+    nameEn: 'Pizza House',
     categoryAr: 'إيطالي',
     categoryEn: 'Italian',
     cuisineKey: 'italian',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
+    locationAr:
+        'رفيديا - شارع الجامعة القديم - بالقرب من فندق القصر، بجانب مخابز أيام زمان - نابلس',
+    locationEn:
+        'Rafidia - Old University St. - near Al-Qasr Hotel, next to Ayyam Zaman Bakery - Nablus',
     rating: 4.5,
-    reviews: 239,
-    priceRange: '25-40 ₪',
+    reviews: 120,
+    priceRange: '20-35 ₪',
     priceTier: 'medium',
-    time: '10 دقيقة',
-    aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn:
-        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r33.jpg',
+    time: '20 دقيقة',
+    aboutAr: 'بيتزا طازجة بعجينة بيتية وتشكيلة نكهات متنوعة.',
+    aboutEn: 'Fresh pizza with homemade dough and a variety of flavors.',
+    image: 'assets/images/restaurants/pizza_house.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFC9A227),
+    phone: '+970 9 235 2121',
   ),
   RestaurantData(
-    nameAr: 'La Piazza',
-    nameEn: 'La Piazza',
+    nameAr: 'بيتزا تايم',
+    nameEn: 'Pizza TIME',
     categoryAr: 'إيطالي',
     categoryEn: 'Italian',
     cuisineKey: 'italian',
-    locationAr: 'شارع عمان - نابلس',
-    locationEn: 'Amman St. - Nablus',
-    rating: 4.4,
-    reviews: 103,
-    priceRange: '25-40 ₪',
+    locationAr: 'رفيديا - شارع عبد الرحيم محمود - قرب جامعة النجاح - نابلس',
+    locationEn:
+        'Rafidia - Abdul Rahim Mahmoud St. - near An-Najah University - Nablus',
+    rating: 4.3,
+    reviews: 95,
+    priceRange: '20-35 ₪',
     priceTier: 'medium',
-    time: '30 دقيقة',
-    aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
-    aboutEn:
-        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r34.jpg',
+    time: '20 دقيقة',
+    aboutAr: 'بيتزا وأطباق إيطالية بأسعار مناسبة للجميع.',
+    aboutEn: 'Pizza and Italian dishes at prices that suit everyone.',
+    image: 'assets/images/restaurants/pizza_time.jpg',
     placeholderIcon: Icons.local_pizza,
     placeholderColor: Color(0xFFB33A2E),
+    phone: '+970 1700 202 020',
   ),
   RestaurantData(
-    nameAr: 'Italian House',
-    nameEn: 'Italian House',
-    categoryAr: 'إيطالي',
-    categoryEn: 'Italian',
-    cuisineKey: 'italian',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
+    nameAr: 'مطبخ العمدة',
+    nameEn: 'Matbakh Al-Omda Restaurant',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
+    locationAr: 'منطقة المخفية - بعد عيادة الصحة بـ 100 متر - نابلس',
+    locationEn: 'Al-Makhfiya Area - 100m past the health clinic - Nablus',
     rating: 4.6,
-    reviews: 101,
-    priceRange: '25-40 ₪',
+    reviews: 90,
+    priceRange: '30-50 ₪',
     priceTier: 'medium',
     time: '25 دقيقة',
-    aboutAr: 'بيتزا وأطباق إيطالية أصلية بعجينة طرية ومكونات فريدة.',
+    aboutAr:
+        'يشتهر بتقديم الأكلات الشعبية الفلسطينية والمناسف الأصيلة بنكهة بيتية مميزة.',
     aboutEn:
-        'Authentic Italian pizza and dishes with soft dough and unique toppings.',
-    image: 'assets/images/restaurants/r35.jpg',
-    placeholderIcon: Icons.local_pizza,
-    placeholderColor: Color(0xFF7A4B2A),
+        'Known for serving authentic Palestinian traditional dishes and Mansaf with a distinctive homemade flavor.',
+    image: 'assets/images/restaurants/al_omda_kitchen.jpg',
+    placeholderIcon: Icons.dinner_dining,
+    placeholderColor: Color(0xFFA0522D),
+  ),
+  RestaurantData(
+    nameAr: 'مطعم وفرن الخليلي',
+    nameEn: 'Al-Khalili Restaurant & Bakery',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
+    locationAr:
+        'البلدة القديمة - بجانب الجامع الصلاحي الكبير، مقابل جاتوه فرح - نابلس',
+    locationEn:
+        'Old City - next to Al-Salahi Grand Mosque, opposite Gateau Farah - Nablus',
+    rating: 4.7,
+    reviews: 134,
+    priceRange: '20-40 ₪',
+    priceTier: 'medium',
+    time: '20 دقيقة',
+    aboutAr:
+        'يقدم أشهى الأكلات الشعبية البلدية والمشاوي وفطور الصباح الطازج يوميًا.',
+    aboutEn:
+        'Serves delicious traditional local dishes, grills, and fresh daily breakfast.',
+    image: 'assets/images/restaurants/al_khalili_pizza.jpg',
+    placeholderIcon: Icons.outdoor_grill,
+    placeholderColor: Color(0xFF8B5E3C),
+  ),
+  RestaurantData(
+    nameAr: 'مطعم فتة وعجة',
+    nameEn: 'Fatteh & Ijjeh Restaurant',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
+    locationAr:
+        'شارع فيصل - مقابل مستوصف الرحمة، بجانب مخبز أبو صالحية - نابلس',
+    locationEn:
+        'Faisal St. - opposite Al-Rahma Clinic, next to Abu Salahiya Bakery - Nablus',
+    rating: 4.5,
+    reviews: 112,
+    priceRange: '10-25 ₪',
+    priceTier: 'cheap',
+    time: '15 دقيقة',
+    aboutAr:
+        'متخصص في الفطور الشعبي كالحمص والفول والفلافل وأنواع الفتة الشهية.',
+    aboutEn:
+        'Specializes in traditional breakfast dishes like hummus, fava beans, falafel, and various fatteh.',
+    image: 'assets/images/restaurants/vegetable_kebba_platter.jpg',
+    placeholderIcon: Icons.free_breakfast,
+    placeholderColor: Color(0xFF6B4226),
+  ),
+  RestaurantData(
+    nameAr: 'مطعم كان ياما كان',
+    nameEn: 'Kan Yama Kan Restaurant',
+    categoryAr: 'مأكولات شعبية',
+    categoryEn: 'Traditional Food',
+    cuisineKey: 'traditional',
+    locationAr: 'شارع رفيديا - نابلس',
+    locationEn: 'Rafidia St. - Nablus',
+    rating: 4.5,
+    reviews: 98,
+    priceRange: '25-45 ₪',
+    priceTier: 'medium',
+    time: '25 دقيقة',
+    aboutAr: 'يقدم أطباقًا شهية من المأكولات الشعبية والشرقية بلمسة تقليدية.',
+    aboutEn:
+        'Offers delicious traditional and Eastern dishes with an authentic touch.',
+    image: 'assets/images/restaurants/kan_ya_ma_kan.jpg',
+    placeholderIcon: Icons.restaurant_menu,
+    placeholderColor: Color(0xFFB5651D),
   ),
 ];
+
+// ترتيب الأقسام الافتراضي لتجميع المطاعم في القائمة (نفس ترتيب فلتر نوع الطعام بالشريط الجانبي)
+const List<String> cuisineOrder = [
+  'traditional',
+  'cafe',
+  'fastfood',
+  'sweets',
+  'italian',
+];
+
+const Map<String, (String, String)> cuisineCategoryLabels = {
+  'traditional': ('مأكولات شعبية', 'Traditional Food'),
+  'cafe': ('كافيهات', 'Cafes'),
+  'fastfood': ('وجبات سريعة', 'Fast Food'),
+  'sweets': ('حلويات', 'Sweets'),
+  'italian': ('إيطالي', 'Italian'),
+};
 
 // كلمة بحث إنجليزية مناسبة لصورة المطعم: أولاً نحاول اكتشاف الطبق الفعلي من
 // اسم المطعم نفسه (حتى ما تظهر صورة برغر لمطعم شاورما مثلاً)، وإلا نرجع
@@ -787,8 +875,6 @@ String restaurantPhotoQuery(RestaurantData data) {
   switch (data.cuisineKey) {
     case 'traditional':
       return 'arabic food plate';
-    case 'eastern':
-      return 'middle eastern food';
     case 'cafe':
       return 'coffee shop interior';
     case 'fastfood':
@@ -823,13 +909,17 @@ class _RestaurantImage extends StatelessWidget {
       fallbackIcon: data.placeholderIcon,
       fallbackColor: data.placeholderColor,
       customImageBase64: data.customImageBase64,
+      localAsset: data.image,
     );
   }
 }
 
 // ==================== الشاشة الرئيسية لصفحة المطاعم ====================
 class RestaurantsScreen extends StatefulWidget {
-  const RestaurantsScreen({super.key});
+  // قسم مبدئي (نوع طعام) نجي إله من كرت القسم بشاشة RestaurantCategoriesScreen
+  // إذا كانت null بتظهر كل المطاعم مجمّعة زي المعتاد.
+  final String? initialCuisine;
+  const RestaurantsScreen({super.key, this.initialCuisine});
 
   @override
   State<RestaurantsScreen> createState() => _RestaurantsScreenState();
@@ -839,24 +929,36 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   int selectedIndex = 0;
   bool isGridView = true;
   int currentPage = 0;
-  static const int perPage = 4;
+  // أكبر من عدد المطاعم الكلي حتى تظهر كل الأقسام مجمّعة بصفحة واحدة بدل تقطيعها بالترقيم
+  static const int perPage = 100;
 
   bool _loaded = false;
   List<RestaurantData> _liveRestaurants = [];
   List<dynamic> _keys = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialCuisine != null) {
+      selectedCuisines = {widget.initialCuisine!};
+    }
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
     final db = LocalDbService.instance;
-    await db.seedIfEmpty(
+    await db.syncSeed(
       'restaurants',
       restaurantsSeedData.map(restaurantToMap).toList(),
     );
+    await ApiService.syncRestaurants();
     final entries = db.getAll('restaurants');
     setState(() {
       _keys = entries.map((e) => e.key).toList();
@@ -896,6 +998,10 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     }).toList();
 
     list.sort((a, b) {
+      final categoryCompare = cuisineOrder
+          .indexOf(a.cuisineKey)
+          .compareTo(cuisineOrder.indexOf(b.cuisineKey));
+      if (categoryCompare != 0) return categoryCompare;
       if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
       if (sortByPriceAsc) return a.priceTier.compareTo(b.priceTier);
       return b.rating.compareTo(a.rating);
@@ -948,6 +1054,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           locationAr: r.locationAr,
           locationEn: r.locationEn,
           customImageBase64: r.customImageBase64,
+          localAsset: r.image,
+          phone: r.phone,
         ),
       ),
     );
@@ -993,71 +1101,22 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _TopNav(onComingSoon: _showComingSoon),
-                  _Banner(),
-                  Padding(
-                    padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
-                    child: isMobile(context)
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _FiltersSidebar(
-                                searchController: searchController,
-                                onSearchChanged: (v) => setState(() {
-                                  searchQuery = v;
-                                  currentPage = 0;
-                                }),
-                                selectedCuisines: selectedCuisines,
-                                onCuisineTap: _toggleCuisine,
-                                minRating: minRating,
-                                onRatingTap: (v) => setState(() {
-                                  minRating = v;
-                                  currentPage = 0;
-                                }),
-                                priceTier: priceTier,
-                                onPriceTap: (v) => setState(() {
-                                  priceTier = v;
-                                  currentPage = 0;
-                                }),
-                                onApply: () => setState(() {}),
-                              ),
-                              SizedBox(height: 16),
-                              _ResultsArea(
-                                items: pageItems,
-                                masterList: _liveRestaurants,
-                                allFilteredCount: filteredList.length,
-                                selectedData: null,
-                                isGridView: isGridView,
-                                onToggleView: (grid) =>
-                                    setState(() => isGridView = grid),
-                                onSortToggle: () => setState(
-                                  () => sortByPriceAsc = !sortByPriceAsc,
-                                ),
-                                sortByPriceAsc: sortByPriceAsc,
-                                onSelect: (data) =>
-                                    _openRestaurantDetail(context, data),
-                                onFavorite: (data) async {
-                                  await FavoritesService.instance
-                                      .toggleFavorite(data.nameEn);
-                                  setState(() {});
-                                },
-                                currentPage: currentPage,
-                                pageCount: _pageCount,
-                                onPageChange: (p) =>
-                                    setState(() => currentPage = p),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 240,
-                                child: _FiltersSidebar(
+            body: KeyboardScrollable(
+              controller: _scrollController,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TopNav(onComingSoon: _showComingSoon),
+                    _Banner(),
+                    Padding(
+                      padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
+                      child: isMobile(context)
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _FiltersSidebar(
                                   searchController: searchController,
                                   onSearchChanged: (v) => setState(() {
                                     searchQuery = v;
@@ -1077,14 +1136,12 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                   }),
                                   onApply: () => setState(() {}),
                                 ),
-                              ),
-                              SizedBox(width: 20),
-                              Expanded(
-                                child: _ResultsArea(
+                                SizedBox(height: 16),
+                                _ResultsArea(
                                   items: pageItems,
                                   masterList: _liveRestaurants,
                                   allFilteredCount: filteredList.length,
-                                  selectedData: selected,
+                                  selectedData: null,
                                   isGridView: isGridView,
                                   onToggleView: (grid) =>
                                       setState(() => isGridView = grid),
@@ -1092,9 +1149,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                     () => sortByPriceAsc = !sortByPriceAsc,
                                   ),
                                   sortByPriceAsc: sortByPriceAsc,
-                                  onSelect: (data) => setState(() {
-                                    selectedIndex = filteredList.indexOf(data);
-                                  }),
+                                  onSelect: (data) =>
+                                      _openRestaurantDetail(context, data),
                                   onFavorite: (data) async {
                                     await FavoritesService.instance
                                         .toggleFavorite(data.nameEn);
@@ -1105,37 +1161,377 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                   onPageChange: (p) =>
                                       setState(() => currentPage = p),
                                 ),
-                              ),
-                              SizedBox(width: 20),
-                              SizedBox(
-                                width: 320,
-                                child: selected == null
-                                    ? _EmptyDetailPanel()
-                                    : _DetailPanel(
-                                        restaurant: selected,
-                                        isFavorite: FavoritesService.instance
-                                            .isFavorite(selected.nameEn),
-                                        onBack: () =>
-                                            Navigator.of(context).maybePop(),
-                                        onFavorite: () async {
-                                          await FavoritesService.instance
-                                              .toggleFavorite(selected.nameEn);
-                                          setState(() {});
-                                        },
-                                        onShowSnack: (label) =>
-                                            _showComingSoon(context, label),
-                                      ),
-                              ),
-                            ],
-                          ),
-                  ),
-                  _FeaturesFooter(),
-                ],
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 240,
+                                  child: _FiltersSidebar(
+                                    searchController: searchController,
+                                    onSearchChanged: (v) => setState(() {
+                                      searchQuery = v;
+                                      currentPage = 0;
+                                    }),
+                                    selectedCuisines: selectedCuisines,
+                                    onCuisineTap: _toggleCuisine,
+                                    minRating: minRating,
+                                    onRatingTap: (v) => setState(() {
+                                      minRating = v;
+                                      currentPage = 0;
+                                    }),
+                                    priceTier: priceTier,
+                                    onPriceTap: (v) => setState(() {
+                                      priceTier = v;
+                                      currentPage = 0;
+                                    }),
+                                    onApply: () => setState(() {}),
+                                  ),
+                                ),
+                                SizedBox(width: 20),
+                                Expanded(
+                                  child: _ResultsArea(
+                                    items: pageItems,
+                                    masterList: _liveRestaurants,
+                                    allFilteredCount: filteredList.length,
+                                    selectedData: selected,
+                                    isGridView: isGridView,
+                                    onToggleView: (grid) =>
+                                        setState(() => isGridView = grid),
+                                    onSortToggle: () => setState(
+                                      () => sortByPriceAsc = !sortByPriceAsc,
+                                    ),
+                                    sortByPriceAsc: sortByPriceAsc,
+                                    onSelect: (data) => setState(() {
+                                      selectedIndex = filteredList.indexOf(
+                                        data,
+                                      );
+                                    }),
+                                    onFavorite: (data) async {
+                                      await FavoritesService.instance
+                                          .toggleFavorite(data.nameEn);
+                                      setState(() {});
+                                    },
+                                    currentPage: currentPage,
+                                    pageCount: _pageCount,
+                                    onPageChange: (p) =>
+                                        setState(() => currentPage = p),
+                                  ),
+                                ),
+                                SizedBox(width: 20),
+                                SizedBox(
+                                  width: 320,
+                                  child: selected == null
+                                      ? _EmptyDetailPanel()
+                                      : _DetailPanel(
+                                          restaurant: selected,
+                                          isFavorite: FavoritesService.instance
+                                              .isFavorite(selected.nameEn),
+                                          onBack: () =>
+                                              Navigator.of(context).maybePop(),
+                                          onFavorite: () async {
+                                            await FavoritesService.instance
+                                                .toggleFavorite(
+                                                  selected.nameEn,
+                                                );
+                                            setState(() {});
+                                          },
+                                          onShowSnack: (label) =>
+                                              _showComingSoon(context, label),
+                                        ),
+                                ),
+                              ],
+                            ),
+                    ),
+                    _FeaturesFooter(),
+                  ],
+                ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+// ==================== شاشة اختيار قسم المطاعم (كروت الأقسام) ====================
+// أول شاشة تظهر لما تفتح "المطاعم": كرت لكل نوع طعام، وبالضغط عليه بتفتح
+// قائمة مطاعم ذلك القسم فقط (RestaurantsScreen مع initialCuisine محدد).
+class RestaurantCategoriesScreen extends StatefulWidget {
+  const RestaurantCategoriesScreen({super.key});
+
+  @override
+  State<RestaurantCategoriesScreen> createState() =>
+      _RestaurantCategoriesScreenState();
+}
+
+class _RestaurantCategoriesScreenState
+    extends State<RestaurantCategoriesScreen> {
+  bool _loaded = false;
+  List<RestaurantData> _liveRestaurants = [];
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    final db = LocalDbService.instance;
+    await db.syncSeed(
+      'restaurants',
+      restaurantsSeedData.map(restaurantToMap).toList(),
+    );
+    await ApiService.syncRestaurants();
+    final entries = db.getAll('restaurants');
+    setState(() {
+      _liveRestaurants = entries.map((e) => mapToRestaurant(e.value)).toList();
+      _loaded = true;
+    });
+  }
+
+  void _showComingSoon(BuildContext context, String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppState.instance.t(
+            '$label قيد التطوير قريبًا',
+            '$label coming soon',
+          ),
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    if (!_loaded) {
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Scaffold(
+          backgroundColor: AppColors.bgDark,
+          body: Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        return Directionality(
+          textDirection: TextDirection.ltr,
+          child: Scaffold(
+            backgroundColor: AppColors.bgDark,
+            body: KeyboardScrollable(
+              controller: _scrollController,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TopNav(onComingSoon: _showComingSoon),
+                    _Banner(),
+                    Padding(
+                      padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
+                      child: GridView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: cuisineOrder.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: responsiveGridColumns(
+                            context,
+                            wide: 3,
+                            narrow: 2,
+                          ),
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 1.15,
+                        ),
+                        itemBuilder: (context, i) {
+                          final key = cuisineOrder[i];
+                          final count = _liveRestaurants
+                              .where((r) => r.cuisineKey == key)
+                              .length;
+                          return _CuisineCategoryCard(
+                            cuisineKey: key,
+                            count: count,
+                            onTap: () => Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    RestaurantsScreen(initialCuisine: key),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    _FeaturesFooter(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+const Map<String, IconData> _cuisineCategoryIcons = {
+  'traditional': Icons.dinner_dining,
+  'cafe': Icons.coffee,
+  'fastfood': Icons.fastfood,
+  'sweets': Icons.cake,
+  'italian': Icons.local_pizza,
+};
+
+const Map<String, Color> _cuisineCategoryColors = {
+  'traditional': Color(0xFFB5651D),
+  'cafe': Color(0xFF6F4E37),
+  'fastfood': Color(0xFFD4A017),
+  'sweets': Color(0xFFC9A227),
+  'italian': Color(0xFFB33A2E),
+};
+
+// صور حقيقية لكروت الأقسام (اختيارية) - إذا ما في صورة لقسم معيّن بيرجع لتصميم
+// الأيقونة الافتراضي.
+const Map<String, String> _cuisineCategoryImages = {
+  'traditional': 'assets/images/restaurants/traditional_food.jpg',
+  'italian': 'assets/images/restaurants/italian_food.jpg',
+  'cafe': 'assets/images/restaurants/cafe_interior.jpg',
+  'sweets': 'assets/images/restaurants/sweets_kunafa.jpg',
+  'fastfood': 'assets/images/restaurants/fastfood_shawarma.jpg',
+};
+
+class _CuisineCategoryCard extends StatelessWidget {
+  final String cuisineKey;
+  final int count;
+  final VoidCallback onTap;
+  const _CuisineCategoryCard({
+    required this.cuisineKey,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final label = cuisineCategoryLabels[cuisineKey];
+    final title = label == null ? '' : app.t(label.$1, label.$2);
+    final image = _cuisineCategoryImages[cuisineKey];
+
+    if (image != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: AppColors.cardShadow,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.asset(image, fit: BoxFit.cover),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.05),
+                      Colors.black.withValues(alpha: 0.75),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      textAlign: TextAlign.start,
+                      textDirection: app.dir,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      app.t('$count مطعم', '$count places'),
+                      style: TextStyle(color: Colors.white70, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final icon = _cuisineCategoryIcons[cuisineKey] ?? Icons.restaurant;
+    final color = _cuisineCategoryColors[cuisineKey] ?? AppColors.primary;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.sidebarDark,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.borderColor),
+        ),
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              textDirection: app.dir,
+              style: TextStyle(
+                color: AppColors.textWhite,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              app.t('$count مطعم', '$count places'),
+              style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1166,34 +1562,13 @@ class _TopNav extends StatelessWidget {
       ),
       _navItem(context, app.t('المطاعم', 'Restaurants'), true, null),
       _navItem(context, app.t('الفنادق', 'Hotels'), false, () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => CategoryListScreen(
-              titleAr: 'فنادق',
-              titleEn: 'Hotels',
-              bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
-              bannerSubtitleEn: 'The best places to stay in Nablus',
-              icon: Icons.bed,
-              boxName: 'hotels',
-              seedData: hotelsData,
-            ),
-          ),
-        );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => HotelsScreen()));
       }),
       _navItem(context, app.t('الأماكن السياحية', 'Attractions'), false, () {
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => CategoryListScreen(
-              titleAr: 'سياحة ومعالم',
-              titleEn: 'Attractions',
-              bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
-              bannerSubtitleEn:
-                  'Discover the finest historic and natural landmarks of Nablus',
-              icon: Icons.mosque,
-              boxName: 'attractions',
-              seedData: attractionsData,
-            ),
-          ),
+          MaterialPageRoute(builder: (context) => AttractionCategoriesScreen()),
         );
       }),
       _navItem(
@@ -1268,45 +1643,7 @@ class _TopNav extends StatelessWidget {
               ),
             ),
           SizedBox(width: mobile ? 8 : 0),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => app.toggleTheme(),
-            child: Icon(
-              app.isDark ? Icons.dark_mode : Icons.light_mode,
-              color: AppColors.textWhite,
-              size: 20,
-            ),
-          ),
-          SizedBox(width: mobile ? 10 : 14),
-          if (!mobile)
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => app.toggleLanguage(),
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark2,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                  style: TextStyle(color: AppColors.textWhite, fontSize: 11),
-                ),
-              ),
-            )
-          else
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => app.toggleLanguage(),
-              child: Text(
-                app.isArabic ? 'EN' : 'AR',
-                style: TextStyle(
-                  color: AppColors.textWhite,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+          AppToggleBar(),
           SizedBox(width: mobile ? 10 : 14),
           CircleAvatar(
             radius: mobile ? 15 : 18,
@@ -1375,10 +1712,18 @@ class _Banner extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ThemedImage(
-            query: 'Nablus restaurant',
-            fallbackSeed: 'nablus-restaurants-banner',
-            height: 200,
+          GestureDetector(
+            onTap: () => showImageZoom(
+              context,
+              query: 'Nablus restaurant',
+              fallbackSeed: 'nablus-restaurants-banner',
+              fallbackIcon: Icons.restaurant,
+            ),
+            child: ThemedImage(
+              query: 'Nablus restaurant',
+              fallbackSeed: 'nablus-restaurants-banner',
+              height: 200,
+            ),
           ),
           Container(
             decoration: BoxDecoration(
@@ -1400,7 +1745,9 @@ class _Banner extends StatelessWidget {
                 Text(
                   app.t('المطاعم في نابلس', 'Restaurants in Nablus'),
                   textDirection: app.dir,
-                  style: AppTypography.display(Colors.white).copyWith(fontSize: 28),
+                  style: AppTypography.display(
+                    Colors.white,
+                  ).copyWith(fontSize: 28),
                 ),
                 SizedBox(height: 10),
                 Row(
@@ -1408,7 +1755,11 @@ class _Banner extends StatelessWidget {
                   children: [
                     Container(width: 40, height: 1, color: AppColors.gold),
                     SizedBox(width: 8),
-                    Icon(Icons.emoji_events_rounded, color: AppColors.gold, size: 16),
+                    Icon(
+                      Icons.emoji_events_rounded,
+                      color: AppColors.gold,
+                      size: 16,
+                    ),
                     SizedBox(width: 8),
                     Container(width: 40, height: 1, color: AppColors.gold),
                   ],
@@ -1470,7 +1821,9 @@ class _FiltersSidebar extends StatelessWidget {
               Text(
                 app.t('تصفية النتائج', 'Filter Results'),
                 textDirection: app.dir,
-                style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+                style: AppTypography.title(
+                  AppColors.textWhite,
+                ).copyWith(fontSize: 14),
               ),
             ],
           ),
@@ -1535,11 +1888,6 @@ class _FiltersSidebar extends StatelessWidget {
             app.t('مأكولات شعبية', 'Traditional'),
             selectedCuisines.contains('traditional'),
             () => onCuisineTap('traditional'),
-          ),
-          _checkRow(
-            app.t('شرقي', 'Eastern'),
-            selectedCuisines.contains('eastern'),
-            () => onCuisineTap('eastern'),
           ),
           _checkRow(
             app.t('كافيهات', 'Cafes'),
@@ -1856,62 +2204,133 @@ class _ResultsArea extends StatelessWidget {
               ),
             ),
           )
-        else if (isGridView)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: responsiveGridColumns(
-                context,
-                wide: 4,
-                narrow: 2,
-              ),
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 14,
-              childAspectRatio: 0.72,
-            ),
-            itemBuilder: (context, i) {
-              final r = items[i];
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => onSelect(r),
-                child: _RestaurantCard(
-                  data: r,
-                  isFavorite: FavoritesService.instance.isFavorite(r.nameEn),
-                  isSelected: r == selectedData,
-                  onFavorite: () => onFavorite(r),
-                ),
-              );
-            },
-          )
         else
           Column(
-            children: items
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: _groupByCuisine(items)
                 .map(
-                  (r) => Padding(
-                    padding: EdgeInsets.only(bottom: 12),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => onSelect(r),
-                      child: _RestaurantListTile(
-                        data: r,
-                        isFavorite: FavoritesService.instance.isFavorite(
-                          r.nameEn,
-                        ),
-                        isSelected: r == selectedData,
-                        onFavorite: () => onFavorite(r),
-                      ),
+                  (group) => Padding(
+                    padding: EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _CategorySectionHeader(cuisineKey: group.key),
+                        SizedBox(height: 12),
+                        if (isGridView)
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: NeverScrollableScrollPhysics(),
+                            itemCount: group.value.length,
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: responsiveGridColumns(
+                                    context,
+                                    wide: 4,
+                                    narrow: 2,
+                                  ),
+                                  crossAxisSpacing: 14,
+                                  mainAxisSpacing: 14,
+                                  childAspectRatio: 0.72,
+                                ),
+                            itemBuilder: (context, i) {
+                              final r = group.value[i];
+                              return GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => onSelect(r),
+                                child: _RestaurantCard(
+                                  data: r,
+                                  isFavorite: FavoritesService.instance
+                                      .isFavorite(r.nameEn),
+                                  isSelected: r == selectedData,
+                                  onFavorite: () => onFavorite(r),
+                                ),
+                              );
+                            },
+                          )
+                        else
+                          Column(
+                            children: group.value
+                                .map(
+                                  (r) => Padding(
+                                    padding: EdgeInsets.only(bottom: 12),
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => onSelect(r),
+                                      child: _RestaurantListTile(
+                                        data: r,
+                                        isFavorite: FavoritesService.instance
+                                            .isFavorite(r.nameEn),
+                                        isSelected: r == selectedData,
+                                        onFavorite: () => onFavorite(r),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                      ],
                     ),
                   ),
                 )
                 .toList(),
           ),
-        SizedBox(height: 20),
-        _Pagination(
-          currentPage: currentPage,
-          pageCount: pageCount,
-          onPageChange: onPageChange,
+        if (pageCount > 1) ...[
+          SizedBox(height: 20),
+          _Pagination(
+            currentPage: currentPage,
+            pageCount: pageCount,
+            onPageChange: onPageChange,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// تجميع المطاعم حسب القسم (نوع الطعام) مع الحفاظ على الترتيب الوارد
+// (القائمة مرتّبة مسبقًا حسب القسم في _RestaurantsScreenState._filtered لذا
+// المطاعم من نفس القسم متتالية دائمًا).
+List<MapEntry<String, List<RestaurantData>>> _groupByCuisine(
+  List<RestaurantData> items,
+) {
+  final groups = <MapEntry<String, List<RestaurantData>>>[];
+  for (final r in items) {
+    if (groups.isNotEmpty && groups.last.key == r.cuisineKey) {
+      groups.last.value.add(r);
+    } else {
+      groups.add(MapEntry(r.cuisineKey, [r]));
+    }
+  }
+  return groups;
+}
+
+class _CategorySectionHeader extends StatelessWidget {
+  final String cuisineKey;
+  const _CategorySectionHeader({required this.cuisineKey});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final label = cuisineCategoryLabels[cuisineKey];
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 18,
+          decoration: BoxDecoration(
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        SizedBox(width: 8),
+        Text(
+          label == null ? '' : app.t(label.$1, label.$2),
+          textDirection: app.dir,
+          style: TextStyle(
+            color: AppColors.textWhite,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -1945,78 +2364,35 @@ class _RestaurantCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Stack(
-            children: [
-              _RestaurantImage(
-                data: data,
-                height: 110,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-              ),
-              Positioned(
-                bottom: 8,
-                left: 8,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.star, size: 12, color: Colors.white),
-                      SizedBox(width: 3),
-                      Text(
-                        '${data.rating}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _RestaurantImage(
+                  data: data,
+                  height: double.infinity,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.lg),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onFavorite,
-                  child: Container(
-                    padding: EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      size: 14,
-                      color: isFavorite ? AppColors.red : AppColors.textGrey,
-                    ),
-                  ),
-                ),
-              ),
-              if (data.isFeatured)
                 Positioned(
-                  top: 8,
+                  bottom: 8,
                   left: 8,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bolt, size: 10, color: Colors.white),
-                        SizedBox(width: 2),
+                        Icon(Icons.star, size: 12, color: Colors.white),
+                        SizedBox(width: 3),
                         Text(
-                          app.t('مميز', 'Featured'),
+                          '${data.rating}',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -2024,7 +2400,57 @@ class _RestaurantCard extends StatelessWidget {
                     ),
                   ),
                 ),
-            ],
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onFavorite,
+                    child: Container(
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        size: 14,
+                        color: isFavorite ? AppColors.red : AppColors.textGrey,
+                      ),
+                    ),
+                  ),
+                ),
+                if (data.isFeatured)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: AppColors.primaryGradient,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt, size: 10, color: Colors.white),
+                          SizedBox(width: 2),
+                          Text(
+                            app.t('مميز', 'Featured'),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
           Padding(
             padding: EdgeInsets.all(10),
@@ -2140,10 +2566,14 @@ class _RestaurantListTile extends StatelessWidget {
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
-          _RestaurantImage(
-            data: data,
+          SizedBox(
+            width: 70,
             height: 70,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            child: _RestaurantImage(
+              data: data,
+              height: 70,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
           ),
           SizedBox(width: 12),
           Expanded(
@@ -2344,7 +2774,18 @@ class _DetailPanel extends StatelessWidget {
         children: [
           Stack(
             children: [
-              _RestaurantImage(data: r, height: 170),
+              GestureDetector(
+                onTap: () => showImageZoom(
+                  context,
+                  query: restaurantPhotoQuery(r),
+                  fallbackSeed: r.nameEn,
+                  fallbackIcon: r.placeholderIcon,
+                  fallbackColor: r.placeholderColor,
+                  customImageBase64: r.customImageBase64,
+                  localAsset: r.image,
+                ),
+                child: _RestaurantImage(data: r, height: 170),
+              ),
               Positioned(
                 top: 10,
                 left: 10,
@@ -2441,7 +2882,9 @@ class _DetailPanel extends StatelessWidget {
                     _actionIcon(
                       Icons.call,
                       app.t('اتصال', 'Call'),
-                      () => onShowSnack(app.t('الاتصال', 'Call')),
+                      () => r.phone.isEmpty
+                          ? onShowSnack(app.t('الاتصال', 'Call'))
+                          : launchUrl(Uri.parse('tel:${r.phone}')),
                     ),
                     _actionIcon(
                       Icons.location_on,
@@ -2452,6 +2895,8 @@ class _DetailPanel extends StatelessWidget {
                           nameEn: r.nameEn,
                           locationAr: r.locationAr,
                           locationEn: r.locationEn,
+                          lat: r.lat,
+                          lng: r.lng,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -2512,7 +2957,9 @@ class _DetailPanel extends StatelessWidget {
                   height: 46,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient,
+                      ),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                       boxShadow: AppColors.glowShadow,
                     ),
@@ -2523,6 +2970,8 @@ class _DetailPanel extends StatelessWidget {
                           nameEn: r.nameEn,
                           locationAr: r.locationAr,
                           locationEn: r.locationEn,
+                          lat: r.lat,
+                          lng: r.lng,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -2545,10 +2994,16 @@ class _DetailPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
                       ),
-                      icon: Icon(Icons.map_rounded, size: 16, color: Colors.white),
+                      icon: Icon(
+                        Icons.map_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         app.t('عرض على الخريطة', 'Show on Map'),
-                        style: AppTypography.title(Colors.white).copyWith(fontSize: 13),
+                        style: AppTypography.title(
+                          Colors.white,
+                        ).copyWith(fontSize: 13),
                       ),
                     ),
                   ),
@@ -2607,7 +3062,11 @@ class _EmptyDetailPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.restaurant_menu_rounded, color: AppColors.textGrey, size: 28),
+            Icon(
+              Icons.restaurant_menu_rounded,
+              color: AppColors.textGrey,
+              size: 28,
+            ),
             SizedBox(height: 10),
             Text(
               app.t(
@@ -2655,7 +3114,9 @@ class _FeaturesFooter extends StatelessWidget {
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: AppColors.primaryGradient),
+                        gradient: LinearGradient(
+                          colors: AppColors.primaryGradient,
+                        ),
                         shape: BoxShape.circle,
                         boxShadow: AppColors.glowShadow,
                       ),

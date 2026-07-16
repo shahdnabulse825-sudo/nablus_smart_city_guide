@@ -3,12 +3,17 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import '../restaurants/restaurants_screen.dart';
+import '../hotels/hotels_screen.dart';
+import '../pharmacies/pharmacies_screen.dart';
+import '../attractions/attractions_screen.dart';
+import '../shopping/shopping_screen.dart';
 import '../category/category_list_screen.dart';
 import '../category/category_data.dart';
 import '../category/more_categories_screen.dart';
 import '../places/all_places_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/keyboard_scrollable.dart';
 
 /// شاشة استكشاف عامة: بحث سريع + كل التصنيفات + أفضل الأماكن تقييمًا بالمدينة.
 class ExploreScreen extends StatefulWidget {
@@ -20,6 +25,13 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   String searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   late final List<Map<String, dynamic>> _categories = [
     {
@@ -27,28 +39,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Restaurants',
       'icon': Icons.restaurant,
       'color': AppColors.red,
-      'onTap': (BuildContext context) => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (context) => RestaurantsScreen())),
+      'onTap': (BuildContext context) => Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => RestaurantCategoriesScreen()),
+      ),
     },
     {
       'labelAr': 'فنادق',
       'labelEn': 'Hotels',
       'icon': Icons.bed,
       'color': AppColors.purple,
-      'onTap': (BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'فنادق',
-            titleEn: 'Hotels',
-            bannerSubtitleAr: 'أفضل أماكن الإقامة في نابلس',
-            bannerSubtitleEn: 'The best places to stay in Nablus',
-            icon: Icons.bed,
-            boxName: 'hotels',
-            seedData: hotelsData,
-          ),
-        ),
-      ),
+      'onTap': (BuildContext context) => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => HotelsScreen())),
     },
     {
       'labelAr': 'سياحة ومعالم',
@@ -56,18 +58,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'icon': Icons.mosque,
       'color': AppColors.gold,
       'onTap': (BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'سياحة ومعالم',
-            titleEn: 'Attractions',
-            bannerSubtitleAr: 'اكتشف أجمل معالم نابلس التاريخية والطبيعية',
-            bannerSubtitleEn:
-                'Discover the finest historic and natural landmarks of Nablus',
-            icon: Icons.mosque,
-            boxName: 'attractions',
-            seedData: attractionsData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => AttractionCategoriesScreen()),
       ),
     },
     {
@@ -76,17 +67,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'icon': Icons.shopping_bag,
       'color': AppColors.primary,
       'onTap': (BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'تسوق',
-            titleEn: 'Shopping',
-            bannerSubtitleAr: 'أفضل أماكن التسوق في المدينة',
-            bannerSubtitleEn: 'The best shopping spots in the city',
-            icon: Icons.shopping_bag,
-            boxName: 'shopping',
-            seedData: shoppingData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => ShoppingCategoriesScreen()),
       ),
     },
     {
@@ -132,19 +113,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Pharmacies',
       'icon': Icons.local_pharmacy,
       'color': AppColors.primary,
-      'onTap': (BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'صيدليات',
-            titleEn: 'Pharmacies',
-            bannerSubtitleAr: 'أقرب الصيدليات وأوقات عملها',
-            bannerSubtitleEn: 'Nearest pharmacies and their working hours',
-            icon: Icons.local_pharmacy,
-            boxName: 'pharmacies',
-            seedData: pharmaciesData,
-          ),
-        ),
-      ),
+      'onTap': (BuildContext context) => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => PharmaciesScreen())),
     },
     {
       'labelAr': 'المزيد',
@@ -198,8 +169,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           onTap: () => Navigator.of(context).maybePop(),
                           child: Container(
                             padding: EdgeInsets.all(6),
-                            decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
-                            child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardDark,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.arrow_back_rounded,
+                              color: AppColors.textWhite,
+                              size: 18,
+                            ),
                           ),
                         ),
                         SizedBox(width: 12),
@@ -207,172 +185,224 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: AppColors.primaryGradient),
+                            gradient: LinearGradient(
+                              colors: AppColors.primaryGradient,
+                            ),
                             borderRadius: BorderRadius.circular(AppRadius.sm),
                           ),
-                          child: Icon(Icons.explore_rounded, color: Colors.white, size: 16),
+                          child: Icon(
+                            Icons.explore_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                         SizedBox(width: 10),
                         Text(
                           app.t('استكشف', 'Explore'),
                           textDirection: app.dir,
-                          style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+                          style: AppTypography.title(
+                            AppColors.textWhite,
+                          ).copyWith(fontSize: 16),
                         ),
                       ],
                     ),
                   ),
                   Expanded(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Container(
-                            height: 50,
-                            padding: EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(AppRadius.pill),
-                              border: Border.all(color: AppColors.borderColor),
-                              boxShadow: AppColors.cardShadow,
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.14),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(Icons.search_rounded, color: AppColors.primary, size: 18),
+                    child: KeyboardScrollable(
+                      controller: _scrollController,
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              height: 50,
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardDark,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
                                 ),
-                                SizedBox(width: 10),
-                                Expanded(
-                                  child: TextField(
-                                    onChanged: (v) =>
-                                        setState(() => searchQuery = v),
-                                    style: AppTypography.body(AppColors.textWhite),
-                                    decoration: InputDecoration(
-                                      isCollapsed: true,
-                                      border: InputBorder.none,
-                                      hintText: app.t(
-                                        'ابحث عن مكان، مطعم، فندق، معلم...',
-                                        'Search for a place, restaurant, hotel...',
+                                border: Border.all(
+                                  color: AppColors.borderColor,
+                                ),
+                                boxShadow: AppColors.cardShadow,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.14,
                                       ),
-                                      hintStyle: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 13),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.search_rounded,
+                                      color: AppColors.primary,
+                                      size: 18,
                                     ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (searchQuery.isNotEmpty) ...[
-                            SizedBox(height: 20),
-                            Text(
-                              app.t('نتائج البحث', 'Search Results'),
-                              textDirection: app.dir,
-                              style: AppTypography.headline(AppColors.textWhite).copyWith(fontSize: 16),
-                            ),
-                            SizedBox(height: 12),
-                            if (results.isEmpty)
-                              Padding(
-                                padding: EdgeInsets.symmetric(vertical: 30),
-                                child: Center(
-                                  child: Text(
-                                    app.t(
-                                      'لا توجد نتائج مطابقة',
-                                      'No matching results',
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: TextField(
+                                      onChanged: (v) =>
+                                          setState(() => searchQuery = v),
+                                      style: AppTypography.body(
+                                        AppColors.textWhite,
+                                      ),
+                                      decoration: InputDecoration(
+                                        isCollapsed: true,
+                                        border: InputBorder.none,
+                                        hintText: app.t(
+                                          'ابحث عن مكان، مطعم، فندق، معلم...',
+                                          'Search for a place, restaurant, hotel...',
+                                        ),
+                                        hintStyle: AppTypography.body(
+                                          AppColors.textGrey,
+                                        ).copyWith(fontSize: 13),
+                                      ),
                                     ),
-                                    style: AppTypography.body(AppColors.textGrey),
                                   ),
-                                ),
-                              )
-                            else
-                              ...results.map((p) => _placeRow(context, app, p)),
-                          ] else ...[
-                            SizedBox(height: 24),
-                            Text(
-                              app.t('التصنيفات', 'Categories'),
-                              textDirection: app.dir,
-                              style: AppTypography.headline(AppColors.textWhite).copyWith(fontSize: 16),
+                                ],
+                              ),
                             ),
-                            SizedBox(height: 14),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: _categories.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: responsiveGridColumns(context, wide: 4, narrow: 3),
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    childAspectRatio: 0.85,
+                            if (searchQuery.isNotEmpty) ...[
+                              SizedBox(height: 20),
+                              Text(
+                                app.t('نتائج البحث', 'Search Results'),
+                                textDirection: app.dir,
+                                style: AppTypography.headline(
+                                  AppColors.textWhite,
+                                ).copyWith(fontSize: 16),
+                              ),
+                              SizedBox(height: 12),
+                              if (results.isEmpty)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 30),
+                                  child: Center(
+                                    child: Text(
+                                      app.t(
+                                        'لا توجد نتائج مطابقة',
+                                        'No matching results',
+                                      ),
+                                      style: AppTypography.body(
+                                        AppColors.textGrey,
+                                      ),
+                                    ),
                                   ),
-                              itemBuilder: (context, i) {
-                                final c = _categories[i];
-                                return GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () =>
-                                      (c['onTap'] as Function)(context),
-                                  child: Column(
-                                    children: [
-                                      Container(
-                                        width: 56,
-                                        height: 56,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              c['color'] as Color,
-                                              (c['color'] as Color).withValues(alpha: 0.7),
-                                            ],
+                                )
+                              else
+                                ...results.map(
+                                  (p) => _placeRow(context, app, p),
+                                ),
+                            ] else ...[
+                              SizedBox(height: 24),
+                              Text(
+                                app.t('التصنيفات', 'Categories'),
+                                textDirection: app.dir,
+                                style: AppTypography.headline(
+                                  AppColors.textWhite,
+                                ).copyWith(fontSize: 16),
+                              ),
+                              SizedBox(height: 14),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: _categories.length,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: responsiveGridColumns(
+                                        context,
+                                        wide: 4,
+                                        narrow: 3,
+                                      ),
+                                      crossAxisSpacing: 14,
+                                      mainAxisSpacing: 14,
+                                      childAspectRatio: 0.85,
+                                    ),
+                                itemBuilder: (context, i) {
+                                  final c = _categories[i];
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: () =>
+                                        (c['onTap'] as Function)(context),
+                                    child: Column(
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [
+                                                c['color'] as Color,
+                                                (c['color'] as Color)
+                                                    .withValues(alpha: 0.7),
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              AppRadius.lg,
+                                            ),
+                                            boxShadow: AppColors.cardShadow,
                                           ),
-                                          borderRadius: BorderRadius.circular(AppRadius.lg),
-                                          boxShadow: AppColors.cardShadow,
+                                          child: Icon(
+                                            c['icon'],
+                                            color: Colors.white,
+                                            size: 26,
+                                          ),
                                         ),
-                                        child: Icon(
-                                          c['icon'],
-                                          color: Colors.white,
-                                          size: 26,
+                                        SizedBox(height: 6),
+                                        Text(
+                                          app.t(c['labelAr'], c['labelEn']),
+                                          textDirection: app.dir,
+                                          textAlign: TextAlign.center,
+                                          style:
+                                              AppTypography.label(
+                                                AppColors.textWhite,
+                                              ).copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                         ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(height: 28),
+                              Text(
+                                app.t('الأعلى تقييمًا', 'Top Rated'),
+                                textDirection: app.dir,
+                                style: AppTypography.headline(
+                                  AppColors.textWhite,
+                                ).copyWith(fontSize: 16),
+                              ),
+                              SizedBox(height: 14),
+                              GridView.builder(
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: _topRated.length,
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: responsiveGridColumns(
+                                        context,
+                                        wide: 4,
+                                        narrow: 2,
                                       ),
-                                      SizedBox(height: 6),
-                                      Text(
-                                        app.t(c['labelAr'], c['labelEn']),
-                                        textDirection: app.dir,
-                                        textAlign: TextAlign.center,
-                                        style: AppTypography.label(AppColors.textWhite).copyWith(fontWeight: FontWeight.w500),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                            SizedBox(height: 28),
-                            Text(
-                              app.t('الأعلى تقييمًا', 'Top Rated'),
-                              textDirection: app.dir,
-                              style: AppTypography.headline(AppColors.textWhite).copyWith(fontSize: 16),
-                            ),
-                            SizedBox(height: 14),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: _topRated.length,
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: responsiveGridColumns(context, wide: 4, narrow: 2),
-                                    crossAxisSpacing: 14,
-                                    mainAxisSpacing: 14,
-                                    childAspectRatio: 0.75,
-                                  ),
-                              itemBuilder: (context, i) {
-                                final p = _topRated[i];
-                                return _placeCard(context, app, p);
-                              },
-                            ),
+                                      crossAxisSpacing: 14,
+                                      mainAxisSpacing: 14,
+                                      childAspectRatio: 0.75,
+                                    ),
+                                itemBuilder: (context, i) {
+                                  final p = _topRated[i];
+                                  return _placeCard(context, app, p);
+                                },
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
@@ -399,6 +429,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           locationAr: p.locationAr,
           locationEn: p.locationEn,
           customImageBase64: p.customImageBase64,
+          localAsset: p.image,
         ),
       ),
     );
@@ -424,6 +455,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 fallbackIcon: p.icon,
                 fallbackColor: p.color,
                 customImageBase64: p.customImageBase64,
+                localAsset: p.image,
               ),
             ),
             SizedBox(width: 10),
@@ -467,38 +499,44 @@ class _ExploreScreenState extends State<ExploreScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Stack(
-            children: [
-              ThemedImage(
-                query: p.photoQuery,
-                fallbackSeed: p.nameEn,
-                height: 90,
-                fallbackIcon: p.icon,
-                fallbackColor: p.color,
-                customImageBase64: p.customImageBase64,
-              ),
-              Positioned(
-                bottom: 6,
-                left: 6,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: AppColors.primaryGradient),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.star_rounded, size: 10, color: Colors.white),
-                      SizedBox(width: 2),
-                      Text(
-                        '${p.rating}',
-                        style: AppTypography.caption(Colors.white),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ThemedImage(
+                  query: p.photoQuery,
+                  fallbackSeed: p.nameEn,
+                  height: double.infinity,
+                  fallbackIcon: p.icon,
+                  fallbackColor: p.color,
+                  customImageBase64: p.customImageBase64,
+                  localAsset: p.image,
+                ),
+                Positioned(
+                  bottom: 6,
+                  left: 6,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient,
                       ),
-                    ],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.star_rounded, size: 10, color: Colors.white),
+                        SizedBox(width: 2),
+                        Text(
+                          '${p.rating}',
+                          style: AppTypography.caption(Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Padding(
             padding: EdgeInsets.all(8),

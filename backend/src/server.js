@@ -7,6 +7,10 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const listingsRoutes = require('./routes/listings');
 const restaurantsRoutes = require('./routes/restaurants');
+const hotelsRoutes = require('./routes/hotels');
+const pharmaciesRoutes = require('./routes/pharmacies');
+const attractionsRoutes = require('./routes/attractions');
+const shoppingRoutes = require('./routes/shopping');
 const newsRoutes = require('./routes/news');
 
 const app = express();
@@ -22,6 +26,10 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);
 app.use('/api/restaurants', restaurantsRoutes);
+app.use('/api/hotels', hotelsRoutes);
+app.use('/api/pharmacies', pharmaciesRoutes);
+app.use('/api/attractions', attractionsRoutes);
+app.use('/api/shopping', shoppingRoutes);
 app.use('/api/news', newsRoutes);
 
 // معالج أخطاء عام (يلتقط أخطاء multer، وفشل الاتصال بقاعدة البيانات، وأي استثناء غير متوقع بالراوترات)

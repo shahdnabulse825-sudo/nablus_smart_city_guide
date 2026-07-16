@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'local_db_service.dart';
+import 'api_service.dart';
 
 /// خدمة حسابات بسيطة ومحلية بالكامل (بدون سيرفر).
 /// كلمات المرور تُخزَّن مُشفّرة بـ SHA-256 (مو نص عادي)، بس هذا حماية أساسية بس،
@@ -13,6 +14,7 @@ class AuthService {
   String? currentUserName;
   bool isGuest = false;
   bool isAdmin = false;
+  String? adminToken; // JWT حقيقي من السيرفر — لازم لأي عملية إضافة/تعديل/حذف بلوحة الأدمن
 
   String _hash(String input) {
     return sha256.convert(utf8.encode(input)).toString();
@@ -86,6 +88,19 @@ class AuthService {
     await LocalDbService.instance.saveSession({'type': 'admin'});
   }
 
+  /// دخول أدمن حقيقي عبر السيرفر — يجيب توكن JWT حقيقي لازم لأي عملية كتابة
+  /// (إضافة/تعديل/حذف) بلوحة الأدمن. يرجّع null لو نجح، أو رسالة خطأ عربية.
+  Future<String?> loginAsAdminReal(String username, String password) async {
+    final token = await ApiService.adminLogin(username, password);
+    if (token == null) {
+      return 'تعذّر تسجيل الدخول — تأكدي إنه السيرفر شغال (npm run dev) وإنه اسم المستخدم وكلمة المرور صح';
+    }
+    isAdmin = true;
+    adminToken = token;
+    await LocalDbService.instance.saveSession({'type': 'admin', 'token': token});
+    return null;
+  }
+
   /// تُستدعى مرة وحدة عند بدء التطبيق: تسترجع آخر جلسة دخول محفوظة (لو موجودة)
   /// حتى ما يرجع المستخدم لشاشة تسجيل الدخول بعد كل تحديث للصفحة.
   /// بعد استدعائها، افحصي isAdmin / isGuest / isLoggedIn / hasRestoredSession لتحديد شاشة البداية.
@@ -96,6 +111,7 @@ class AuthService {
     switch (session['type']) {
       case 'admin':
         isAdmin = true;
+        adminToken = session['token'] as String?;
         break;
       case 'guest':
         isGuest = true;
@@ -120,6 +136,7 @@ class AuthService {
     currentUserName = null;
     isGuest = false;
     isAdmin = false;
+    adminToken = null;
     await LocalDbService.instance.clearSession();
   }
 

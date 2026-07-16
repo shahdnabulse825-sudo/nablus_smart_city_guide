@@ -3,14 +3,8 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../admin/admin_screen.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/app_toggle_bar.dart';
 import 'sign_up_screen.dart';
-
-/// ⚠️ بيانات الأدمن الافتراضية (محلية بالكامل، بدون سيرفر):
-/// اسم المستخدم: admin
-/// كلمة المرور: admin123
-/// غيّريهم من هون لو حابة.
-const String kAdminUsername = 'admin';
-const String kAdminPassword = 'admin123';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -86,24 +80,18 @@ class _LoginScreenState extends State<LoginScreen> {
       errorMessage = null;
       isLoading = true;
     });
-    await Future.delayed(Duration(milliseconds: 500));
+
+    final error = await AuthService.instance.loginAsAdminReal(user, pass);
+
     if (!mounted) return;
     setState(() => isLoading = false);
 
-    if (user == kAdminUsername && pass == kAdminPassword) {
-      await AuthService.instance.loginAsAdmin();
-      if (!mounted) return;
+    if (error == null) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => AdminHomeScreen()),
       );
     } else {
-      final app = AppState.instance;
-      setState(() {
-        errorMessage = app.t(
-          'اسم المستخدم أو كلمة المرور غير صحيحة',
-          'Incorrect username or password',
-        );
-      });
+      setState(() => errorMessage = error);
     }
   }
 
@@ -170,57 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             // ==== تبديل اللغة والمظهر ====
                             Row(
                               mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => app.toggleTheme(),
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.cardDark,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppColors.borderColor,
-                                      ),
-                                      boxShadow: AppColors.cardShadow,
-                                    ),
-                                    child: Icon(
-                                      app.isDark
-                                          ? Icons.dark_mode_rounded
-                                          : Icons.light_mode_rounded,
-                                      color: AppColors.textWhite,
-                                      size: 16,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                GestureDetector(
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => app.toggleLanguage(),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.cardDark,
-                                      borderRadius: BorderRadius.circular(
-                                        AppRadius.pill,
-                                      ),
-                                      border: Border.all(
-                                        color: AppColors.borderColor,
-                                      ),
-                                      boxShadow: AppColors.cardShadow,
-                                    ),
-                                    child: Text(
-                                      app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                                      style: AppTypography.label(
-                                        AppColors.textWhite,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                              children: [AppToggleBar()],
                             ),
                             SizedBox(height: 16),
                             // ==== الشعار ====
@@ -340,16 +278,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.red.withValues(
-                                    alpha: 0.12,
-                                  ),
+                                  color: AppColors.red.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(
                                     AppRadius.sm,
                                   ),
                                   border: Border.all(
-                                    color: AppColors.red.withValues(
-                                      alpha: 0.4,
-                                    ),
+                                    color: AppColors.red.withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: Row(
@@ -378,8 +312,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             Center(
                               child: Text(
                                 app.t(
-                                  '© 2025 دليل نابلس الذكي',
-                                  '© 2025 Nablus Smart Guide',
+                                  '© 2026 دليل نابلس الذكي',
+                                  '© 2026 Nablus Smart Guide',
                                 ),
                                 style: AppTypography.caption(
                                   AppColors.textGrey,

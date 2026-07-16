@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../screens/restaurants/restaurants_screen.dart' show RestaurantData;
+import '../screens/hotels/hotels_screen.dart' show HotelData;
+import '../screens/pharmacies/pharmacies_screen.dart' show PharmacyData;
+import '../screens/attractions/attractions_screen.dart' show AttractionData;
+import '../screens/shopping/shopping_screen.dart' show ShoppingVenueData;
 import '../screens/category/category_data.dart' show ListingItem;
 import '../screens/news/news_screen.dart' show NewsArticle;
 
@@ -24,6 +28,9 @@ Map<String, dynamic> restaurantToMap(RestaurantData r) => {
   'colorValue': r.placeholderColor.toARGB32(),
   'customImageBase64': r.customImageBase64,
   'isFeatured': r.isFeatured,
+  'phone': r.phone,
+  'lat': r.lat,
+  'lng': r.lng,
 };
 
 RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
@@ -49,9 +56,228 @@ RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
   placeholderColor: Color(m['colorValue'] ?? 0xFF6C5CE7),
   customImageBase64: m['customImageBase64'],
   isFeatured: m['isFeatured'] ?? false,
+  phone: m['phone'] ?? '',
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
 );
 
-// ==================== العناصر العامة (فنادق/سياحة/تسوق/مواصلات/صحة/صيدليات) ====================
+// ==================== الفنادق ====================
+Map<String, dynamic> hotelToMap(HotelData h) => {
+  'nameAr': h.nameAr,
+  'nameEn': h.nameEn,
+  'typeAr': h.typeAr,
+  'typeEn': h.typeEn,
+  'locationAr': h.locationAr,
+  'locationEn': h.locationEn,
+  'rating': h.rating,
+  'reviews': h.reviews,
+  'priceInfoAr': h.priceInfoAr,
+  'priceInfoEn': h.priceInfoEn,
+  'priceTier': h.priceTier,
+  'hoursAr': h.hoursAr,
+  'hoursEn': h.hoursEn,
+  'aboutAr': h.aboutAr,
+  'aboutEn': h.aboutEn,
+  'phone': h.phone,
+  'image': h.image,
+  'gallery': h.gallery,
+  'amenities': h.amenities,
+  'tags': h.tags,
+  'iconCodePoint': h.placeholderIcon.codePoint,
+  'colorValue': h.placeholderColor.toARGB32(),
+  'customImageBase64': h.customImageBase64,
+  'isFeatured': h.isFeatured,
+  'lat': h.lat,
+  'lng': h.lng,
+};
+
+HotelData mapToHotel(Map<String, dynamic> m) => HotelData(
+  nameAr: m['nameAr'] ?? '',
+  nameEn: m['nameEn'] ?? '',
+  typeAr: m['typeAr'] ?? '',
+  typeEn: m['typeEn'] ?? '',
+  locationAr: m['locationAr'] ?? '',
+  locationEn: m['locationEn'] ?? '',
+  rating: (m['rating'] as num?)?.toDouble() ?? 4.0,
+  reviews: (m['reviews'] as num?)?.toInt() ?? 0,
+  // نقرأ infoLabelAr/En كاحتياط للبيانات القديمة المخزّنة قبل تحويل الفنادق
+  // لنموذجها الخاص (كانت تشارك نموذج ListingItem العام).
+  priceInfoAr: m['priceInfoAr'] ?? m['infoLabelAr'] ?? '',
+  priceInfoEn: m['priceInfoEn'] ?? m['infoLabelEn'] ?? '',
+  priceTier: m['priceTier'] ?? 'medium',
+  hoursAr: m['hoursAr'] ?? '',
+  hoursEn: m['hoursEn'] ?? '',
+  aboutAr: m['aboutAr'] ?? '',
+  aboutEn: m['aboutEn'] ?? '',
+  phone: m['phone'] ?? '',
+  image: m['image'] ?? '',
+  gallery: (m['gallery'] as List?)?.cast<String>() ?? const [],
+  amenities: (m['amenities'] as List?)?.cast<String>() ?? const [],
+  tags: (m['tags'] as List?)?.cast<String>() ?? const [],
+  placeholderIcon: IconData(
+    m['iconCodePoint'] ?? Icons.hotel.codePoint,
+    fontFamily: 'MaterialIcons',
+  ),
+  placeholderColor: Color(m['colorValue'] ?? 0xFF6C5CE7),
+  customImageBase64: m['customImageBase64'],
+  isFeatured: m['isFeatured'] ?? false,
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
+);
+
+// ==================== الصيدليات ====================
+Map<String, dynamic> pharmacyToMap(PharmacyData p) => {
+  'nameAr': p.nameAr,
+  'nameEn': p.nameEn,
+  'locationAr': p.locationAr,
+  'locationEn': p.locationEn,
+  'rating': p.rating,
+  'reviews': p.reviews,
+  'hoursAr': p.hoursAr,
+  'hoursEn': p.hoursEn,
+  'is24Hours': p.is24Hours,
+  'hasDelivery': p.hasDelivery,
+  'aboutAr': p.aboutAr,
+  'aboutEn': p.aboutEn,
+  'phone': p.phone,
+  'image': p.image,
+  'tags': p.tags,
+  'iconCodePoint': p.placeholderIcon.codePoint,
+  'colorValue': p.placeholderColor.toARGB32(),
+  'customImageBase64': p.customImageBase64,
+  'isFeatured': p.isFeatured,
+  'lat': p.lat,
+  'lng': p.lng,
+};
+
+PharmacyData mapToPharmacy(Map<String, dynamic> m) => PharmacyData(
+  nameAr: m['nameAr'] ?? '',
+  nameEn: m['nameEn'] ?? '',
+  locationAr: m['locationAr'] ?? '',
+  locationEn: m['locationEn'] ?? '',
+  rating: (m['rating'] as num?)?.toDouble() ?? 4.0,
+  reviews: (m['reviews'] as num?)?.toInt() ?? 0,
+  hoursAr: m['hoursAr'] ?? '',
+  hoursEn: m['hoursEn'] ?? '',
+  is24Hours: m['is24Hours'] ?? false,
+  hasDelivery: m['hasDelivery'] ?? false,
+  aboutAr: m['aboutAr'] ?? '',
+  aboutEn: m['aboutEn'] ?? '',
+  phone: m['phone'] ?? '',
+  image: m['image'] ?? '',
+  tags: (m['tags'] as List?)?.cast<String>() ?? const [],
+  placeholderIcon: IconData(
+    m['iconCodePoint'] ?? Icons.local_pharmacy.codePoint,
+    fontFamily: 'MaterialIcons',
+  ),
+  placeholderColor: Color(m['colorValue'] ?? 0xFF3B82F6),
+  customImageBase64: m['customImageBase64'],
+  isFeatured: m['isFeatured'] ?? false,
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
+);
+
+// ==================== المعالم السياحية ====================
+Map<String, dynamic> attractionToMap(AttractionData a) => {
+  'nameAr': a.nameAr,
+  'nameEn': a.nameEn,
+  'categories': a.categories,
+  'locationAr': a.locationAr,
+  'locationEn': a.locationEn,
+  'rating': a.rating,
+  'reviews': a.reviews,
+  'aboutAr': a.aboutAr,
+  'aboutEn': a.aboutEn,
+  'visitHoursAr': a.visitHoursAr,
+  'visitHoursEn': a.visitHoursEn,
+  'entryFeeAr': a.entryFeeAr,
+  'entryFeeEn': a.entryFeeEn,
+  'image': a.image,
+  'iconCodePoint': a.placeholderIcon.codePoint,
+  'colorValue': a.placeholderColor.toARGB32(),
+  'customImageBase64': a.customImageBase64,
+  'isFeatured': a.isFeatured,
+  'lat': a.lat,
+  'lng': a.lng,
+};
+
+AttractionData mapToAttraction(Map<String, dynamic> m) => AttractionData(
+  nameAr: m['nameAr'] ?? '',
+  nameEn: m['nameEn'] ?? '',
+  categories: (m['categories'] as List?)?.cast<String>() ?? const [],
+  locationAr: m['locationAr'] ?? '',
+  locationEn: m['locationEn'] ?? '',
+  rating: (m['rating'] as num?)?.toDouble() ?? 4.0,
+  reviews: (m['reviews'] as num?)?.toInt() ?? 0,
+  aboutAr: m['aboutAr'] ?? '',
+  aboutEn: m['aboutEn'] ?? '',
+  visitHoursAr: m['visitHoursAr'] ?? '',
+  visitHoursEn: m['visitHoursEn'] ?? '',
+  entryFeeAr: m['entryFeeAr'] ?? '',
+  entryFeeEn: m['entryFeeEn'] ?? '',
+  image: m['image'] ?? '',
+  placeholderIcon: IconData(
+    m['iconCodePoint'] ?? Icons.account_balance.codePoint,
+    fontFamily: 'MaterialIcons',
+  ),
+  placeholderColor: Color(m['colorValue'] ?? 0xFFC9A227),
+  customImageBase64: m['customImageBase64'],
+  isFeatured: m['isFeatured'] ?? false,
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
+);
+
+// ==================== المراكز التجارية (تسوق) ====================
+Map<String, dynamic> shoppingVenueToMap(ShoppingVenueData v) => {
+  'nameAr': v.nameAr,
+  'nameEn': v.nameEn,
+  'typeAr': v.typeAr,
+  'typeEn': v.typeEn,
+  'locationAr': v.locationAr,
+  'locationEn': v.locationEn,
+  'rating': v.rating,
+  'reviews': v.reviews,
+  'hoursAr': v.hoursAr,
+  'hoursEn': v.hoursEn,
+  'aboutAr': v.aboutAr,
+  'aboutEn': v.aboutEn,
+  'phone': v.phone,
+  'image': v.image,
+  'iconCodePoint': v.placeholderIcon.codePoint,
+  'colorValue': v.placeholderColor.toARGB32(),
+  'customImageBase64': v.customImageBase64,
+  'isFeatured': v.isFeatured,
+  'lat': v.lat,
+  'lng': v.lng,
+};
+
+ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueData(
+  nameAr: m['nameAr'] ?? '',
+  nameEn: m['nameEn'] ?? '',
+  typeAr: m['typeAr'] ?? '',
+  typeEn: m['typeEn'] ?? '',
+  locationAr: m['locationAr'] ?? '',
+  locationEn: m['locationEn'] ?? '',
+  rating: (m['rating'] as num?)?.toDouble() ?? 4.0,
+  reviews: (m['reviews'] as num?)?.toInt() ?? 0,
+  hoursAr: m['hoursAr'] ?? m['infoLabelAr'] ?? '',
+  hoursEn: m['hoursEn'] ?? m['infoLabelEn'] ?? '',
+  aboutAr: m['aboutAr'] ?? '',
+  aboutEn: m['aboutEn'] ?? '',
+  phone: m['phone'] ?? '',
+  image: m['image'] ?? '',
+  placeholderIcon: IconData(
+    m['iconCodePoint'] ?? Icons.shopping_bag.codePoint,
+    fontFamily: 'MaterialIcons',
+  ),
+  placeholderColor: Color(m['colorValue'] ?? 0xFF3B82F6),
+  customImageBase64: m['customImageBase64'],
+  isFeatured: m['isFeatured'] ?? false,
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
+);
+
+// ==================== العناصر العامة (سياحة/تسوق/مواصلات/صحة) ====================
 Map<String, dynamic> listingToMap(ListingItem it) => {
   'nameAr': it.nameAr,
   'nameEn': it.nameEn,

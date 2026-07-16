@@ -12,6 +12,18 @@ function numField(v, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+// إحداثيات اختيارية (lat/lng) — بتيجي كنص من الفورم، وممكن ما تكون موجودة أصلاً
+function optCoord(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function optCoordUpdate(v, existing) {
+  if (v === undefined) return existing;
+  return optCoord(v);
+}
+
 router.get('/', async (req, res) => {
   const items = await prisma.restaurant.findMany({ orderBy: { rating: 'desc' } });
   res.json(items);
@@ -41,9 +53,12 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       time: b.time || '',
       aboutAr: b.aboutAr || '',
       aboutEn: b.aboutEn || '',
+      phone: b.phone || '',
       imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
       iconCodePoint: numField(b.iconCodePoint, 0xe56c),
       colorValue: numField(b.colorValue, 0x6c5ce7) & 0xffffff,
+      lat: optCoord(b.lat),
+      lng: optCoord(b.lng),
     },
   });
   res.status(201).json(item);
@@ -85,7 +100,10 @@ router.put('/:id', requireAuth, requireAdmin, upload.single('image'), async (req
       time: b.time ?? existing.time,
       aboutAr: b.aboutAr ?? existing.aboutAr,
       aboutEn: b.aboutEn ?? existing.aboutEn,
+      phone: b.phone ?? existing.phone,
       imageUrl,
+      lat: optCoordUpdate(b.lat, existing.lat),
+      lng: optCoordUpdate(b.lng, existing.lng),
     },
   });
   res.json(item);

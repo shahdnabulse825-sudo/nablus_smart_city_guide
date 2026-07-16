@@ -10,6 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/responsive.dart';
 import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/keyboard_scrollable.dart';
 
 /// شاشة عامة قابلة لإعادة الاستخدام لعرض أي تصنيف (فنادق، سياحة، تسوق، مواصلات، صحة، صيدليات)
 /// نفس التصميم بالضبط، بس البيانات والعنوان يختلفوا حسب التصنيف المُمرَّر.
@@ -46,11 +48,18 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   bool _loaded = false;
   List<ListingItem> _liveItems = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -91,7 +100,9 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           descriptionAr: it.aboutAr,
           descriptionEn: it.aboutEn,
           rating: it.rating,
-          extraInfo: AppState.instance.isArabic ? it.infoLabelAr : it.infoLabelEn,
+          extraInfo: AppState.instance.isArabic
+              ? it.infoLabelAr
+              : it.infoLabelEn,
           locationAr: it.locationAr,
           locationEn: it.locationEn,
           customImageBase64: it.customImageBase64,
@@ -125,56 +136,33 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
-            body: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _TopBar(
-                    titleAr: widget.titleAr,
-                    titleEn: widget.titleEn,
-                    icon: widget.icon,
-                  ),
-                  _Banner(
-                    titleAr: widget.titleAr,
-                    titleEn: widget.titleEn,
-                    subtitleAr: widget.bannerSubtitleAr,
-                    subtitleEn: widget.bannerSubtitleEn,
-                    seed: widget.titleEn,
-                    boxName: widget.boxName,
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
-                    child: isMobile(context)
-                        ? Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              _FiltersSidebar(
-                                onSearchChanged: (v) =>
-                                    setState(() => searchQuery = v),
-                                minRating: minRating,
-                                onRatingTap: (v) => setState(
-                                  () => minRating = minRating == v ? 0 : v,
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              _ResultsGrid(
-                                items: filtered,
-                                selected: null,
-                                onSelect: (it) => _openDetail(context, it),
-                                onFavorite: (it) async {
-                                  await FavoritesService.instance
-                                      .toggleFavorite(it.nameEn);
-                                  setState(() {});
-                                },
-                              ),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                width: 240,
-                                child: _FiltersSidebar(
+            body: KeyboardScrollable(
+              controller: _scrollController,
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _TopBar(
+                      titleAr: widget.titleAr,
+                      titleEn: widget.titleEn,
+                      icon: widget.icon,
+                    ),
+                    _Banner(
+                      titleAr: widget.titleAr,
+                      titleEn: widget.titleEn,
+                      subtitleAr: widget.bannerSubtitleAr,
+                      subtitleEn: widget.bannerSubtitleEn,
+                      seed: widget.titleEn,
+                      boxName: widget.boxName,
+                    ),
+                    Padding(
+                      padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
+                      child: isMobile(context)
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _FiltersSidebar(
                                   onSearchChanged: (v) =>
                                       setState(() => searchQuery = v),
                                   minRating: minRating,
@@ -182,42 +170,72 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                     () => minRating = minRating == v ? 0 : v,
                                   ),
                                 ),
-                              ),
-                              SizedBox(width: 20),
-                              Expanded(
-                                child: _ResultsGrid(
+                                SizedBox(height: 16),
+                                _ResultsGrid(
                                   items: filtered,
-                                  selected: selected,
-                                  onSelect: (it) => setState(
-                                    () => selectedIndex = filtered.indexOf(it),
-                                  ),
+                                  selected: null,
+                                  onSelect: (it) => _openDetail(context, it),
                                   onFavorite: (it) async {
                                     await FavoritesService.instance
                                         .toggleFavorite(it.nameEn);
                                     setState(() {});
                                   },
                                 ),
-                              ),
-                              SizedBox(width: 20),
-                              SizedBox(
-                                width: 320,
-                                child: selected == null
-                                    ? _EmptyPanel()
-                                    : _DetailPanel(
-                                        item: selected,
-                                        isFavorite: FavoritesService.instance
-                                            .isFavorite(selected.nameEn),
-                                        onFavorite: () async {
-                                          await FavoritesService.instance
-                                              .toggleFavorite(selected.nameEn);
-                                          setState(() {});
-                                        },
-                                      ),
-                              ),
-                            ],
-                          ),
-                  ),
-                ],
+                              ],
+                            )
+                          : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 240,
+                                  child: _FiltersSidebar(
+                                    onSearchChanged: (v) =>
+                                        setState(() => searchQuery = v),
+                                    minRating: minRating,
+                                    onRatingTap: (v) => setState(
+                                      () => minRating = minRating == v ? 0 : v,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 20),
+                                Expanded(
+                                  child: _ResultsGrid(
+                                    items: filtered,
+                                    selected: selected,
+                                    onSelect: (it) => setState(
+                                      () =>
+                                          selectedIndex = filtered.indexOf(it),
+                                    ),
+                                    onFavorite: (it) async {
+                                      await FavoritesService.instance
+                                          .toggleFavorite(it.nameEn);
+                                      setState(() {});
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 20),
+                                SizedBox(
+                                  width: 320,
+                                  child: selected == null
+                                      ? _EmptyPanel()
+                                      : _DetailPanel(
+                                          item: selected,
+                                          isFavorite: FavoritesService.instance
+                                              .isFavorite(selected.nameEn),
+                                          onFavorite: () async {
+                                            await FavoritesService.instance
+                                                .toggleFavorite(
+                                                  selected.nameEn,
+                                                );
+                                            setState(() {});
+                                          },
+                                        ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -255,7 +273,11 @@ class _TopBar extends StatelessWidget {
                 color: AppColors.cardDark,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.textWhite,
+                size: 18,
+              ),
             ),
           ),
           SizedBox(width: 12),
@@ -275,24 +297,12 @@ class _TopBar extends StatelessWidget {
               textDirection: app.dir,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
+              style: AppTypography.title(
+                AppColors.textWhite,
+              ).copyWith(fontSize: 16),
             ),
           ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => app.toggleLanguage(),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark2,
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                app.isArabic ? 'عربي  EN' : 'EN  عربي',
-                style: AppTypography.label(AppColors.textWhite),
-              ),
-            ),
-          ),
+          AppToggleBar(),
         ],
       ),
     );
@@ -344,10 +354,17 @@ class _Banner extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          ThemedImage(
-            query: _bannerQueryByBox[boxName] ?? 'nablus palestine city',
-            fallbackSeed: '$seed-banner',
-            height: 200,
+          GestureDetector(
+            onTap: () => showImageZoom(
+              context,
+              query: _bannerQueryByBox[boxName] ?? 'nablus palestine city',
+              fallbackSeed: '$seed-banner',
+            ),
+            child: ThemedImage(
+              query: _bannerQueryByBox[boxName] ?? 'nablus palestine city',
+              fallbackSeed: '$seed-banner',
+              height: 200,
+            ),
           ),
           Container(
             decoration: BoxDecoration(
@@ -369,7 +386,9 @@ class _Banner extends StatelessWidget {
                 Text(
                   app.t(titleAr, titleEn),
                   textDirection: app.dir,
-                  style: AppTypography.display(Colors.white).copyWith(fontSize: 28),
+                  style: AppTypography.display(
+                    Colors.white,
+                  ).copyWith(fontSize: 28),
                 ),
                 SizedBox(height: 8),
                 Text(
@@ -413,7 +432,9 @@ class _FiltersSidebar extends StatelessWidget {
               Text(
                 app.t('تصفية النتائج', 'Filter Results'),
                 textDirection: app.dir,
-                style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+                style: AppTypography.title(
+                  AppColors.textWhite,
+                ).copyWith(fontSize: 14),
               ),
             ],
           ),
@@ -433,7 +454,9 @@ class _FiltersSidebar extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     onChanged: onSearchChanged,
-                    style: AppTypography.body(AppColors.textWhite).copyWith(fontSize: 12),
+                    style: AppTypography.body(
+                      AppColors.textWhite,
+                    ).copyWith(fontSize: 12),
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
@@ -538,7 +561,11 @@ class _ResultsGrid extends StatelessWidget {
             physics: NeverScrollableScrollPhysics(),
             itemCount: items.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: responsiveGridColumns(context, wide: 4, narrow: 2),
+              crossAxisCount: responsiveGridColumns(
+                context,
+                wide: 4,
+                narrow: 2,
+              ),
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
               childAspectRatio: 0.72,
@@ -591,62 +618,39 @@ class _ItemCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Stack(
-            children: [
-              ThemedImage(
-                query: item.photoQuery,
-                fallbackSeed: item.nameEn,
-                height: 110,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-                fallbackIcon: item.placeholderIcon,
-                fallbackColor: item.placeholderColor,
-                customImageBase64: item.customImageBase64,
-              ),
-              Positioned(
-                bottom: 8,
-                left: 8,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(6),
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ThemedImage(
+                  query: item.photoQuery,
+                  fallbackSeed: item.nameEn,
+                  height: double.infinity,
+                  borderRadius: BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.lg),
                   ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.star, size: 12, color: Colors.white),
-                      SizedBox(width: 3),
-                      Text(
-                        '${item.rating}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+                  fallbackIcon: item.placeholderIcon,
+                  fallbackColor: item.placeholderColor,
+                  customImageBase64: item.customImageBase64,
                 ),
-              ),
-              if (item.isFeatured)
                 Positioned(
-                  top: 8,
+                  bottom: 8,
                   left: 8,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.bolt, size: 10, color: Colors.white),
-                        SizedBox(width: 2),
+                        Icon(Icons.star, size: 12, color: Colors.white),
+                        SizedBox(width: 3),
                         Text(
-                          app.t('مميز', 'Featured'),
+                          '${item.rating}',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 9,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -654,27 +658,57 @@ class _ItemCard extends StatelessWidget {
                     ),
                   ),
                 ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onFavorite,
-                  child: Container(
-                    padding: EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
+                if (item.isFeatured)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: AppColors.primaryGradient,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt, size: 10, color: Colors.white),
+                          SizedBox(width: 2),
+                          Text(
+                            app.t('مميز', 'Featured'),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                      size: 14,
-                      color: isFavorite ? AppColors.red : AppColors.textGrey,
+                  ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onFavorite,
+                    child: Container(
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        size: 14,
+                        color: isFavorite ? AppColors.red : AppColors.textGrey,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Padding(
             padding: EdgeInsets.all(10),
@@ -769,13 +803,23 @@ class _DetailPanel extends StatelessWidget {
         children: [
           Stack(
             children: [
-              ThemedImage(
-                query: it.photoQuery,
-                fallbackSeed: it.nameEn,
-                height: 170,
-                fallbackIcon: it.placeholderIcon,
-                fallbackColor: it.placeholderColor,
-                customImageBase64: it.customImageBase64,
+              GestureDetector(
+                onTap: () => showImageZoom(
+                  context,
+                  query: it.photoQuery,
+                  fallbackSeed: it.nameEn,
+                  fallbackIcon: it.placeholderIcon,
+                  fallbackColor: it.placeholderColor,
+                  customImageBase64: it.customImageBase64,
+                ),
+                child: ThemedImage(
+                  query: it.photoQuery,
+                  fallbackSeed: it.nameEn,
+                  height: 170,
+                  fallbackIcon: it.placeholderIcon,
+                  fallbackColor: it.placeholderColor,
+                  customImageBase64: it.customImageBase64,
+                ),
               ),
               Positioned(
                 top: 10,
@@ -952,7 +996,9 @@ class _DetailPanel extends StatelessWidget {
                   height: 46,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: AppColors.primaryGradient),
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient,
+                      ),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                       boxShadow: AppColors.glowShadow,
                     ),
@@ -985,10 +1031,16 @@ class _DetailPanel extends StatelessWidget {
                           borderRadius: BorderRadius.circular(AppRadius.md),
                         ),
                       ),
-                      icon: Icon(Icons.map_rounded, size: 16, color: Colors.white),
+                      icon: Icon(
+                        Icons.map_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         app.t('عرض على الخريطة', 'Show on Map'),
-                        style: AppTypography.title(Colors.white).copyWith(fontSize: 13),
+                        style: AppTypography.title(
+                          Colors.white,
+                        ).copyWith(fontSize: 13),
                       ),
                     ),
                   ),
@@ -1054,7 +1106,10 @@ class _EmptyPanel extends StatelessWidget {
             Icon(Icons.touch_app_rounded, color: AppColors.textGrey, size: 28),
             SizedBox(height: 10),
             Text(
-              app.t('اختر عنصرًا لعرض تفاصيله', 'Select an item to see details'),
+              app.t(
+                'اختر عنصرًا لعرض تفاصيله',
+                'Select an item to see details',
+              ),
               textAlign: TextAlign.center,
               textDirection: app.dir,
               style: AppTypography.body(AppColors.textGrey),
