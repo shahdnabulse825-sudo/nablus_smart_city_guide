@@ -3,6 +3,7 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../../widgets/themed_image.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
+import '../../services/api_service.dart';
 import '../../services/favorites_service.dart';
 import '../map/map_screen.dart';
 import 'category_data.dart';
@@ -78,6 +79,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
       widget.boxName,
       widget.seedData.map(listingToMap).toList(),
     );
+    await ApiService.syncBox(widget.boxName);
     final entries = db.getAll(widget.boxName);
     setState(() {
       _liveItems = entries.map((e) => mapToListing(e.value)).toList();
