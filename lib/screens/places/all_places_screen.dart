@@ -13,6 +13,7 @@ import '../shopping/shopping_screen.dart'
     show ShoppingVenueData, shoppingVenuePhotoQuery;
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
+import '../../services/recommendation_service.dart';
 import '../../widgets/responsive.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/keyboard_scrollable.dart';
@@ -36,6 +37,10 @@ class UniversalPlace {
   final String? customImageBase64;
   final bool isFeatured;
   final String image;
+  final double? lat;
+  final double? lng;
+  final String? priceTier; // 'cheap' | 'medium' | 'high' | null (not all categories have a price tier)
+  final bool is24Hours;
 
   UniversalPlace({
     required this.nameAr,
@@ -55,6 +60,10 @@ class UniversalPlace {
     this.customImageBase64,
     this.isFeatured = false,
     this.image = '',
+    this.lat,
+    this.lng,
+    this.priceTier,
+    this.is24Hours = false,
   });
 }
 
@@ -96,6 +105,9 @@ UniversalPlace _fromHotel(HotelData h) => UniversalPlace(
   customImageBase64: h.customImageBase64,
   isFeatured: h.isFeatured,
   image: h.image,
+  lat: h.lat,
+  lng: h.lng,
+  priceTier: h.priceTier,
 );
 
 UniversalPlace _fromAttraction(AttractionData a) => UniversalPlace(
@@ -126,6 +138,8 @@ UniversalPlace _fromAttraction(AttractionData a) => UniversalPlace(
   customImageBase64: a.customImageBase64,
   isFeatured: a.isFeatured,
   image: a.image,
+  lat: a.lat,
+  lng: a.lng,
 );
 
 UniversalPlace _fromShoppingVenue(ShoppingVenueData v) => UniversalPlace(
@@ -146,6 +160,8 @@ UniversalPlace _fromShoppingVenue(ShoppingVenueData v) => UniversalPlace(
   customImageBase64: v.customImageBase64,
   isFeatured: v.isFeatured,
   image: v.image,
+  lat: v.lat,
+  lng: v.lng,
 );
 
 UniversalPlace _fromPharmacy(PharmacyData p) => UniversalPlace(
@@ -166,6 +182,9 @@ UniversalPlace _fromPharmacy(PharmacyData p) => UniversalPlace(
   customImageBase64: p.customImageBase64,
   isFeatured: p.isFeatured,
   image: p.image,
+  lat: p.lat,
+  lng: p.lng,
+  is24Hours: p.is24Hours,
 );
 
 UniversalPlace _fromRestaurant(RestaurantData r) => UniversalPlace(
@@ -186,6 +205,9 @@ UniversalPlace _fromRestaurant(RestaurantData r) => UniversalPlace(
   customImageBase64: r.customImageBase64,
   isFeatured: r.isFeatured,
   image: r.image,
+  lat: r.lat,
+  lng: r.lng,
+  priceTier: r.priceTier,
 );
 
 List<ListingItem> _liveListings(String boxName) => LocalDbService.instance
@@ -203,6 +225,11 @@ List<HotelData> _liveHotels() => LocalDbService.instance
     .map((e) => mapToHotel(e.value))
     .toList();
 
+// نسخ عامة (public) من القوائم الحية أعلاه، حتى تقدر خدمة البحث الذكي تفحص
+// حقول فرعية (cuisineKey, categories, tags) مش موجودة بـ UniversalPlace نفسه.
+List<RestaurantData> liveRestaurantsForSearch() => _liveRestaurants();
+List<HotelData> liveHotelsForSearch() => _liveHotels();
+
 List<PharmacyData> _livePharmacies() => LocalDbService.instance
     .getAll('pharmacies')
     .map((e) => mapToPharmacy(e.value))
@@ -217,6 +244,8 @@ List<ShoppingVenueData> _liveShoppingVenues() => LocalDbService.instance
     .getAll('shopping')
     .map((e) => mapToShoppingVenue(e.value))
     .toList();
+
+List<AttractionData> liveAttractionsForSearch() => _liveAttractions();
 
 /// كل الأماكن بكل الأقسام، مقروءة حيًا من قاعدة البيانات المحلية (تعكس أي تعديل
 /// أو صورة يضيفها الأدمن فورًا) بدلًا من قائمة ثابتة.
@@ -281,7 +310,7 @@ final Map<String, String> _categoryLabelsEn = {
   'government': 'Government',
 };
 
-enum PlacesSortMode { featured, topRated, newest }
+enum PlacesSortMode { featured, topRated, newest, trending, recommended, interests }
 
 /// شاشة موحّدة تعرض كل الأماكن (مطاعم، فنادق، معالم، تسوق...) قابلة للبحث
 /// والتصفية، تُستخدم كوجهة "عرض الكل" لأقسام الأماكن المفضلة/الأكثر زيارة/أحدث الأماكن.
@@ -325,6 +354,12 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
           }
           return b.rating.compareTo(a.rating);
         });
+      case PlacesSortMode.trending:
+        return RecommendationService.trendingToday(limit: 100);
+      case PlacesSortMode.recommended:
+        return RecommendationService.recommendedForYou(limit: 100);
+      case PlacesSortMode.interests:
+        return RecommendationService.basedOnYourInterests(limit: 100);
     }
   }
 

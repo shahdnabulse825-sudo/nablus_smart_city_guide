@@ -11,6 +11,8 @@ import 'screens/pharmacies/pharmacies_screen.dart' show pharmaciesSeedData;
 import 'screens/attractions/attractions_screen.dart' show attractionsSeedData;
 import 'screens/shopping/shopping_screen.dart' show shoppingVenuesSeedData;
 import 'screens/news/news_screen.dart' show newsSeedData;
+import 'screens/events/events_data.dart' show eventsData;
+import 'screens/home/home_screen.dart' show AppState;
 import 'theme/app_theme.dart';
 import 'screens/splash/splash_screen.dart';
 
@@ -55,6 +57,7 @@ Future<void> _seedAllBoxes() async {
     restaurantsSeedData.map(restaurantToMap).toList(),
   );
   await db.seedIfEmpty('news', newsSeedData.map(newsToMap).toList());
+  await db.seedIfEmpty('events', eventsData.map(eventToMap).toList());
 
   // نحاول نجيب أحدث بيانات من سيرفر الباك اند الحقيقي (backend/) لو كان شغال —
   // ولو مو شغال/بدون إنترنت، بتنلقط بصمت ونكمل بالبيانات المحلية فوق بدون أي مشكلة.
@@ -64,6 +67,8 @@ Future<void> _seedAllBoxes() async {
   await ApiService.syncAttractions();
   await ApiService.syncShopping();
   await ApiService.syncNews();
+  await ApiService.syncEvents();
+  await AppState.instance.incrementVisitorCount();
 }
 
 class NablusGuideApp extends StatelessWidget {

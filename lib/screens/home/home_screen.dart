@@ -18,6 +18,7 @@ import '../news/news_screen.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 import '../auth/login_screen.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_service.dart';
 import '../category/category_list_screen.dart';
 import '../category/category_data.dart';
 import '../category/more_categories_screen.dart';
@@ -25,6 +26,8 @@ import '../explore/explore_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../places/all_places_screen.dart';
 import '../events/events_screen.dart';
+import '../nearby/nearby_places_screen.dart';
+import 'recommendations_section.dart';
 import '../../services/favorites_service.dart';
 import '../info/about_us_screen.dart';
 import '../../widgets/responsive.dart';
@@ -127,6 +130,24 @@ class AppState extends ChangeNotifier {
     weather = await WeatherService.instance.fetchNablusWeather();
     weatherLoading = false;
     notifyListeners();
+  }
+
+  // ---------- عدّاد الزوار الحقيقي (مشترك بين كل المستخدمين عبر السيرفر) ----------
+  int? visitorCount;
+
+  Future<void> fetchVisitorCount() async {
+    visitorCount = await ApiService.getVisitCount();
+    notifyListeners();
+  }
+
+  /// تُستدعى مرة وحدة عند بدء التطبيق (main.dart) — بتسجّل هاي الزيارة بالسيرفر
+  /// وبتحدّث الرقم المعروض فورًا بالنتيجة الحقيقية الجديدة بدون طلب إضافي.
+  Future<void> incrementVisitorCount() async {
+    final newCount = await ApiService.incrementVisitCount();
+    if (newCount != null) {
+      visitorCount = newCount;
+      notifyListeners();
+    }
   }
 }
 
@@ -262,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 StatsRow(),
                 CategoriesSection(),
                 FavoritePlacesSection(),
-                MostVisitedAndNewestSection(),
+                RecommendationsSection(),
                 EventsAndMapSection(),
                 LatestNewsSection(),
                 FooterSection(
@@ -798,6 +819,14 @@ class TopBar extends StatelessWidget {
         ).push(MaterialPageRoute(builder: (context) => MapScreen())),
       ),
       NavItem(
+        iconAr: 'قريب مني',
+        iconEn: 'Nearby',
+        icon: Icons.near_me_rounded,
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => NearbyPlacesScreen())),
+      ),
+      NavItem(
         iconAr: 'الأخبار',
         iconEn: 'News',
         icon: Icons.article,
@@ -1266,48 +1295,60 @@ class SearchBar_ extends StatelessWidget {
     final app = AppState.instance;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        height: 54,
-        padding: EdgeInsets.symmetric(horizontal: 10),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: AppColors.borderColor),
-          boxShadow: AppColors.cardShadow,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ExploreScreen(autofocusSearch: true),
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.14),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.search_rounded,
-                color: AppColors.primary,
-                size: 19,
-              ),
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
-                style: AppTypography.body(AppColors.textWhite),
-                decoration: InputDecoration(
-                  hintText: app.t(
-                    'ابحث عن مكان، مطعم، فندق، معلم...',
-                    'Search for a place, restaurant, hotel...',
-                  ),
-                  hintStyle: AppTypography.body(
-                    AppColors.textGrey,
-                  ).copyWith(fontSize: 13),
-                  border: InputBorder.none,
+        child: Container(
+          height: 54,
+          padding: EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: AppColors.borderColor),
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.search_rounded,
+                  color: AppColors.primary,
+                  size: 19,
                 ),
               ),
-            ),
-          ],
+              SizedBox(width: 10),
+              Expanded(
+                child: IgnorePointer(
+                  child: TextField(
+                    enabled: false,
+                    textAlign: app.isArabic ? TextAlign.right : TextAlign.left,
+                    style: AppTypography.body(AppColors.textWhite),
+                    decoration: InputDecoration(
+                      hintText: app.t(
+                        'ابحث عن مكان، مطعم، فندق، معلم...',
+                        'Search for a place, restaurant, hotel...',
+                      ),
+                      hintStyle: AppTypography.body(
+                        AppColors.textGrey,
+                      ).copyWith(fontSize: 13),
+                      border: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1351,12 +1392,20 @@ class StatsRow extends StatelessWidget {
           ),
           SizedBox(width: 14),
           Expanded(
-            child: StatCard(
-              icon: Icons.people,
-              iconColor: AppColors.purple,
-              titleAr: 'عدد الزوار اليوم',
-              titleEn: 'Visitors Today',
-              value: '1,245',
+            child: Builder(
+              builder: (context) {
+                final app = AppState.instance;
+                final count = app.visitorCount;
+                return StatCard(
+                  icon: Icons.people,
+                  iconColor: AppColors.purple,
+                  titleAr: 'إجمالي الزوار',
+                  titleEn: 'Total Visitors',
+                  value: count == null
+                      ? app.t('غير متاح', 'Unavailable')
+                      : NumberFormat.decimalPattern().format(count),
+                );
+              },
             ),
           ),
           SizedBox(width: 14),
@@ -1451,49 +1500,49 @@ class CategoriesSection extends StatelessWidget {
       'labelEn': 'Restaurants',
       'icon': Icons.restaurant_rounded,
       'color': AppColors.red,
-      'photoQuery': 'Nablus restaurant',
+      'photoQuery': 'restaurant food table Nablus',
     },
     {
       'labelAr': 'فنادق',
       'labelEn': 'Hotels',
       'icon': Icons.bed_rounded,
       'color': AppColors.purple,
-      'photoQuery': 'Nablus hotel',
+      'photoQuery': 'hotel room bed Nablus',
     },
     {
       'labelAr': 'سياحة ومعالم',
       'labelEn': 'Attractions',
       'icon': Icons.mosque_rounded,
       'color': AppColors.gold,
-      'photoQuery': 'Nablus old city',
+      'photoQuery': 'landmark old city alley Nablus',
     },
     {
       'labelAr': 'تسوق',
       'labelEn': 'Shopping',
       'icon': Icons.shopping_bag_rounded,
       'color': AppColors.primary,
-      'photoQuery': 'Nablus market',
+      'photoQuery': 'market shopping bags Nablus',
     },
     {
       'labelAr': 'مواصلات',
       'labelEn': 'Transport',
       'icon': Icons.directions_bus_rounded,
       'color': AppColors.teal,
-      'photoQuery': 'Nablus street',
+      'photoQuery': 'bus station transport Nablus',
     },
     {
       'labelAr': 'صحة',
       'labelEn': 'Health',
       'icon': Icons.favorite_rounded,
       'color': AppColors.teal,
-      'photoQuery': 'Nablus hospital',
+      'photoQuery': 'hospital medical cross Nablus',
     },
     {
       'labelAr': 'صيدليات',
       'labelEn': 'Pharmacies',
       'icon': Icons.local_pharmacy_rounded,
       'color': AppColors.primary,
-      'photoQuery': 'Nablus pharmacy',
+      'photoQuery': 'pharmacy medicine shelves Nablus',
     },
     {
       'labelAr': 'المزيد',
@@ -2157,124 +2206,10 @@ class PlaceCard extends StatelessWidget {
 }
 
 // ==================== الأكثر زيارة + أحدث الأماكن ====================
-class MostVisitedAndNewestSection extends StatelessWidget {
-  const MostVisitedAndNewestSection({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final mostVisited = Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        SectionHeader(
-          titleAr: 'الأكثر زيارة',
-          titleEn: 'Most Visited',
-          emoji: '🔥',
-          onViewAll: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => AllPlacesScreen(
-                titleAr: 'الأكثر زيارة',
-                titleEn: 'Most Visited',
-                sortMode: PlacesSortMode.topRated,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 12),
-        _PlaceCardRow(
-          cards: const [
-            PlaceCard(
-              title: 'البلدة القديمة',
-              subtitle: 'معلم تاريخي',
-              titleEn: 'Old City',
-              subtitleEn: 'Historic Landmark',
-              rating: 4.8,
-            ),
-            PlaceCard(
-              title: 'ميدان الشهداء',
-              subtitle: 'معلم / ميدان',
-              titleEn: 'Martyrs Square',
-              subtitleEn: 'Landmark / Square',
-              rating: 4.6,
-            ),
-            PlaceCard(
-              title: 'جامع الساطون',
-              subtitle: 'معلم ديني',
-              titleEn: 'Al-Satoun Mosque',
-              subtitleEn: 'Religious Landmark',
-              rating: 4.7,
-            ),
-          ],
-        ),
-      ],
-    );
-    final newest = Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        SectionHeader(
-          titleAr: 'أحدث الأماكن',
-          titleEn: 'Newest Places',
-          onViewAll: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => AllPlacesScreen(
-                titleAr: 'أحدث الأماكن',
-                titleEn: 'Newest Places',
-                sortMode: PlacesSortMode.newest,
-              ),
-            ),
-          ),
-        ),
-        SizedBox(height: 12),
-        _PlaceCardRow(
-          cards: const [
-            PlaceCard(
-              title: 'كافيه المدينة',
-              subtitle: 'مقهى',
-              titleEn: 'City Cafe',
-              subtitleEn: 'Cafe',
-              rating: 4.3,
-            ),
-            PlaceCard(
-              title: 'مركز نابلس مول',
-              subtitle: 'تسوق',
-              titleEn: 'Nablus Mall',
-              subtitleEn: 'Shopping',
-              rating: 4.4,
-            ),
-            PlaceCard(
-              title: 'مطعم البيت',
-              subtitle: 'مطاعم',
-              titleEn: 'Al-Bait Restaurant',
-              subtitleEn: 'Restaurants',
-              rating: 4.5,
-            ),
-          ],
-        ),
-      ],
-    );
-
-    return Padding(
-      padding: EdgeInsets.fromLTRB(20, 24, 20, 0),
-      child: isMobile(context)
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [mostVisited, SizedBox(height: 20), newest],
-            )
-          : Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(child: mostVisited),
-                SizedBox(width: 16),
-                Expanded(child: newest),
-              ],
-            ),
-    );
-  }
-}
-
 // صف بطاقات أماكن: يتمدد على الديسكتوب، ويصير قابل للتمرير الأفقي على الموبايل
-class _PlaceCardRow extends StatelessWidget {
+class PlaceCardRow extends StatelessWidget {
   final List<PlaceCard> cards;
-  const _PlaceCardRow({required this.cards});
+  const PlaceCardRow({super.key, required this.cards});
 
   @override
   Widget build(BuildContext context) {

@@ -26,6 +26,7 @@ enum AdminSchema {
   shoppingVenue,
   listing,
   news,
+  events,
 }
 
 // الأقسام اللي إلها موقع حقيقي على الخريطة يقدر الأدمن يحدده بالضغط (كل الأقسام
@@ -402,6 +403,30 @@ const _newsFields = [
   ),
 ];
 
+const _eventFields = [
+  _FieldConfig('titleAr', 'العنوان (عربي)', 'Title (Arabic)'),
+  _FieldConfig('titleEn', 'العنوان (إنجليزي)', 'Title (English)'),
+  _FieldConfig('venueAr', 'المكان (عربي)', 'Venue (Arabic)'),
+  _FieldConfig('venueEn', 'المكان (إنجليزي)', 'Venue (English)'),
+  _FieldConfig('day', 'اليوم (رقم)', 'Day (number)'),
+  _FieldConfig('monthAr', 'الشهر (عربي)', 'Month (Arabic)'),
+  _FieldConfig('monthEn', 'الشهر (إنجليزي)', 'Month (English)'),
+  _FieldConfig('timeAr', 'الوقت (عربي)', 'Time (Arabic)'),
+  _FieldConfig('timeEn', 'الوقت (إنجليزي)', 'Time (English)'),
+  _FieldConfig(
+    'aboutAr',
+    'وصف الفعالية (عربي)',
+    'Event description (Arabic)',
+    type: _FieldType.multiline,
+  ),
+  _FieldConfig(
+    'aboutEn',
+    'وصف الفعالية (إنجليزي)',
+    'Event description (English)',
+    type: _FieldType.multiline,
+  ),
+];
+
 List<_FieldConfig> _fieldsFor(AdminSchema schema) {
   switch (schema) {
     case AdminSchema.restaurant:
@@ -418,11 +443,15 @@ List<_FieldConfig> _fieldsFor(AdminSchema schema) {
       return _listingFields;
     case AdminSchema.news:
       return _newsFields;
+    case AdminSchema.events:
+      return _eventFields;
   }
 }
 
 String _titleFieldValue(Map<String, dynamic> item, AdminSchema schema) {
-  if (schema == AdminSchema.news) return item['titleAr'] ?? '';
+  if (schema == AdminSchema.news || schema == AdminSchema.events) {
+    return item['titleAr'] ?? '';
+  }
   return item['nameAr'] ?? '';
 }
 
@@ -440,6 +469,8 @@ String _subtitleFieldValue(Map<String, dynamic> item, AdminSchema schema) {
       return item['typeAr'] ?? '';
     case AdminSchema.news:
       return item['dateAr'] ?? '';
+    case AdminSchema.events:
+      return item['venueAr'] ?? '';
   }
 }
 
@@ -460,7 +491,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.restaurant,
       'color': AppColors.red,
       'schema': AdminSchema.restaurant,
-      'photoQuery': 'Nablus restaurant',
+      'photoQuery': 'restaurant food table Nablus',
     },
     {
       'boxName': 'hotels',
@@ -469,7 +500,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.hotel,
       'color': AppColors.purple,
       'schema': AdminSchema.hotel,
-      'photoQuery': 'Nablus hotel',
+      'photoQuery': 'hotel room bed Nablus',
     },
     {
       'boxName': 'attractions',
@@ -478,7 +509,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.mosque,
       'color': AppColors.gold,
       'schema': AdminSchema.attraction,
-      'photoQuery': 'Nablus old city',
+      'photoQuery': 'landmark old city alley Nablus',
     },
     {
       'boxName': 'shopping',
@@ -487,7 +518,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.shopping_bag,
       'color': AppColors.primary,
       'schema': AdminSchema.shoppingVenue,
-      'photoQuery': 'Nablus market',
+      'photoQuery': 'market shopping bags Nablus',
     },
     {
       'boxName': 'transport',
@@ -496,7 +527,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.directions_bus,
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
-      'photoQuery': 'Nablus street',
+      'photoQuery': 'bus station transport Nablus',
     },
     {
       'boxName': 'health',
@@ -505,7 +536,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.favorite,
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
-      'photoQuery': 'Nablus hospital',
+      'photoQuery': 'hospital medical cross Nablus',
     },
     {
       'boxName': 'pharmacies',
@@ -514,7 +545,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.local_pharmacy,
       'color': AppColors.primary,
       'schema': AdminSchema.pharmacy,
-      'photoQuery': 'Nablus pharmacy',
+      'photoQuery': 'pharmacy medicine shelves Nablus',
     },
     {
       'boxName': 'education',
@@ -523,7 +554,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.school,
       'color': AppColors.purple,
       'schema': AdminSchema.listing,
-      'photoQuery': 'An-Najah University campus',
+      'photoQuery': 'university campus Nablus',
     },
     {
       'boxName': 'banks',
@@ -532,7 +563,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.account_balance,
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
-      'photoQuery': 'Bank of Palestine',
+      'photoQuery': 'bank building Nablus',
     },
     {
       'boxName': 'entertainment',
@@ -541,7 +572,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.attractions,
       'color': AppColors.red,
       'schema': AdminSchema.listing,
-      'photoQuery': 'Nablus panorama',
+      'photoQuery': 'entertainment amusement park Nablus',
     },
     {
       'boxName': 'government',
@@ -550,7 +581,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'icon': Icons.apartment,
       'color': AppColors.gold,
       'schema': AdminSchema.listing,
-      'photoQuery': 'Nablus panorama',
+      'photoQuery': 'government building Nablus',
     },
     {
       'boxName': 'news',
@@ -560,6 +591,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.primary,
       'schema': AdminSchema.news,
       'photoQuery': 'Nablus panorama',
+    },
+    {
+      'boxName': 'events',
+      'titleAr': 'الفعاليات القادمة',
+      'titleEn': 'Upcoming Events',
+      'icon': Icons.event,
+      'color': AppColors.teal,
+      'schema': AdminSchema.events,
+      'photoQuery': 'street festival crowd',
     },
   ];
 

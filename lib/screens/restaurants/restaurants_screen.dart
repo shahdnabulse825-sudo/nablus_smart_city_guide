@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
 import '../../services/local_db_service.dart';
@@ -1715,12 +1716,12 @@ class _Banner extends StatelessWidget {
           GestureDetector(
             onTap: () => showImageZoom(
               context,
-              query: 'Nablus restaurant',
+              query: 'restaurant food table Nablus',
               fallbackSeed: 'nablus-restaurants-banner',
               fallbackIcon: Icons.restaurant,
             ),
             child: ThemedImage(
-              query: 'Nablus restaurant',
+              query: 'restaurant food table Nablus',
               fallbackSeed: 'nablus-restaurants-banner',
               height: 200,
             ),
@@ -2915,7 +2916,10 @@ class _DetailPanel extends StatelessWidget {
                     _actionIcon(
                       Icons.share,
                       app.t('المشاركة', 'Share'),
-                      () => onShowSnack(app.t('المشاركة', 'Share')),
+                      () => Share.share(
+                        '${app.isArabic ? r.nameAr : r.nameEn} '
+                        '(${r.rating}⭐) — ${app.isArabic ? r.locationAr : r.locationEn}',
+                      ),
                     ),
                     _actionIcon(
                       isFavorite ? Icons.favorite : Icons.favorite_border,

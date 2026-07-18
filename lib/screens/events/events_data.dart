@@ -16,6 +16,7 @@ class EventItem {
   final String photoQuery;
   final IconData icon;
   final Color color;
+  final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذه الفعالية تحديدًا
 
   const EventItem({
     required this.titleAr,
@@ -32,6 +33,7 @@ class EventItem {
     required this.photoQuery,
     required this.icon,
     required this.color,
+    this.customImageBase64,
   });
 }
 

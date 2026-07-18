@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'local_db_service.dart';
 
 /// طبقة مزامنة بين تطبيق Flutter وسيرفر الباك اند الحقيقي (backend/، Node + Prisma).
@@ -105,6 +106,35 @@ class ApiService {
 
   static Future<void> syncNews() => _syncBoxFromApi('news', 'news');
 
+  static Future<void> syncEvents() => _syncBoxFromApi('events', 'events');
+
+  /// يزيد عدّاد الزوار الحقيقي بالسيرفر مرة وحدة لكل فتحة تطبيق، ويرجّع الرقم
+  /// الجديد لو نجح (حتى نعرضه فورًا بدون الحاجة لطلب تاني). بيتجاهل الفشل بصمت
+  /// (بدون إنترنت/سيرفر مقفول) — نفس أسلوب باقي دوال المزامنة بهاد الملف.
+  static Future<int?> incrementVisitCount() async {
+    try {
+      final res = await http
+          .post(Uri.parse('$baseUrl/visits/increment'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? (decoded['count'] as num?)?.toInt() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<int?> getVisitCount() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/visits')).timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? (decoded['count'] as num?)?.toInt() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// يزامن أي صندوق بالاسم (تُستخدم من لوحة الأدمن بعد أي عملية كتابة ناجحة، بدون
   /// ما تحتاج تعرف مسبقًا إذا كان قسم غني أو قسم عام).
   static Future<void> syncBox(String boxName) {
@@ -121,6 +151,8 @@ class ApiService {
         return syncShopping();
       case 'news':
         return syncNews();
+      case 'events':
+        return syncEvents();
       default:
         return _syncBoxFromApi(boxName, 'listings?category=$boxName');
     }
@@ -168,6 +200,7 @@ class ApiService {
     'attractions',
     'shopping',
     'news',
+    'events',
   };
 
   /// الأقسام الغنية (فنادق/مطاعم/صيدليات/معالم/تسوق/أخبار) إلها مسار API خاص فيها،
@@ -175,6 +208,25 @@ class ApiService {
   /// مع حقل category = اسم الصندوق.
   static String _apiPathFor(String boxName) =>
       _richSections.contains(boxName) ? boxName : 'listings';
+
+  /// بيحدّد نوع MIME للصورة من امتداد اسم الملف — لازم نبعته صراحة لأن
+  /// [http.MultipartFile.fromBytes] بدون contentType بيبعت application/octet-stream
+  /// افتراضيًا، وسيرفر الباك اند بيرفض أي ملف مش image/* (upload.js).
+  static MediaType _imageContentType(String filename) {
+    final ext = filename.toLowerCase().split('.').last;
+    switch (ext) {
+      case 'png':
+        return MediaType('image', 'png');
+      case 'gif':
+        return MediaType('image', 'gif');
+      case 'webp':
+        return MediaType('image', 'webp');
+      case 'jpg':
+      case 'jpeg':
+      default:
+        return MediaType('image', 'jpeg');
+    }
+  }
 
   static Future<http.StreamedResponse?> _sendMultipart(
     String method,
@@ -195,11 +247,13 @@ class ApiService {
             : (value is List ? value.join(',') : value.toString());
       });
       if (imageBytes != null) {
+        final name = imageFilename ?? 'upload.jpg';
         request.files.add(
           http.MultipartFile.fromBytes(
             'image',
             imageBytes,
-            filename: imageFilename ?? 'upload.jpg',
+            filename: name,
+            contentType: _imageContentType(name),
           ),
         );
       }

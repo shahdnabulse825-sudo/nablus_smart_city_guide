@@ -7,6 +7,7 @@ import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/app_toggle_bar.dart';
+import '../../services/location_service.dart';
 
 // ==================== بيانات نقطة على الخريطة (إحداثيات حقيقية) ====================
 class MapPlace {
@@ -291,6 +292,9 @@ class _MapScreenState extends State<MapScreen> {
   late final List<MapPlace> _allPlaces;
   MapPlace? _focusPlace;
 
+  LatLng? _userLocation;
+  bool _locatingUser = false;
+
   @override
   void initState() {
     super.initState();
@@ -318,7 +322,62 @@ class _MapScreenState extends State<MapScreen> {
         _allPlaces.add(_focusPlace!);
       }
       selected = _focusPlace;
+    } else {
+      // ما في مكان محدّد سلفًا (فتحنا الخريطة مباشرة) — نطلب موقع المستخدم فورًا
+      // حتى نمركز الخريطة عليه ونقدر نلاقيلها أقرب مكان من كل نوع.
+      _requestUserLocation();
     }
+  }
+
+  Future<void> _requestUserLocation() async {
+    setState(() => _locatingUser = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      if (!mounted) return;
+      final point = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _userLocation = point;
+        _locatingUser = false;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _mapController.move(point, 15);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      // ما لازم نمنع استخدام الخريطة لو فشل تحديد الموقع (رفض إذن، خدمة الموقع
+      // مقفولة...) — بنكمل بالمركز الافتراضي، وبس بنعرض السبب بإشعار خفيف.
+      final message = e is String ? e : e.toString();
+      setState(() => _locatingUser = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  /// ألاقي أقرب مكان (من التصنيف الحالي المختار) لموقع المستخدم، وأركّز الخريطة عليه.
+  void _focusNearest(AppState app) {
+    if (_userLocation == null) {
+      _requestUserLocation();
+      return;
+    }
+    final candidates = _filtered;
+    if (candidates.isEmpty) return;
+    final nearest = findNearest<MapPlace>(
+      candidates,
+      _userLocation!,
+      (p) => p.point,
+    );
+    if (nearest == null) return;
+    _focusOn(nearest.item);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          app.t(
+            'أقرب مكان: ${nearest.item.nameAr} (${nearest.distanceKm.toStringAsFixed(1)} كم)',
+            'Nearest: ${nearest.item.nameEn} (${nearest.distanceKm.toStringAsFixed(1)} km)',
+          ),
+        ),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   List<MapPlace> get _filtered {
@@ -395,9 +454,33 @@ class _MapScreenState extends State<MapScreen> {
                       );
                     }).toList(),
                   ),
+                  if (_userLocation != null)
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _userLocation!,
+                          width: 22,
+                          height: 22,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blueAccent,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.blueAccent.withValues(alpha: 0.5),
+                                  blurRadius: 8,
+                                  spreadRadius: 2,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
-              // أزرار التكبير/التصغير
+              // أزرار التكبير/التصغير + تحديد موقعي + أقرب مكان
               Positioned(
                 top: 12,
                 right: 12,
@@ -416,6 +499,25 @@ class _MapScreenState extends State<MapScreen> {
                         _mapController.camera.zoom - 1,
                       );
                     }),
+                    SizedBox(height: 8),
+                    _locatingUser
+                        ? Container(
+                            width: 36,
+                            height: 36,
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.cardDark,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                              border: Border.all(color: AppColors.borderColor),
+                            ),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : _zoomButton(Icons.my_location_rounded, _requestUserLocation),
+                    SizedBox(height: 8),
+                    _zoomButton(Icons.near_me_rounded, () => _focusNearest(app)),
                   ],
                 ),
               ),

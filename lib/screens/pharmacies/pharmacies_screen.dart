@@ -12,6 +12,9 @@ import '../map/map_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../widgets/pagination_bar.dart';
+import '../../widgets/sort_toggle.dart';
+import 'package:share_plus/share_plus.dart';
 
 // ==================== بيانات الصيدلية ====================
 class PharmacyData {
@@ -185,6 +188,8 @@ final List<PharmacyData> pharmaciesSeedData = [
         'صيدلية داخل مستشفى النجاح الوطني الجامعي، تعمل على مدار الساعة لخدمة المرضى والأقسام المختلفة.',
     aboutEn:
         'A pharmacy inside An-Najah National University Hospital, operating around the clock to serve patients and departments.',
+    lat: 32.239066,
+    lng: 35.247876,
     image: 'assets/images/pharmaces/najah.jpeg',
     tags: ['nearHospital'],
     placeholderIcon: Icons.local_pharmacy,
@@ -268,6 +273,10 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
   final ScrollController _scrollController = ScrollController();
   String searchQuery = '';
   String quickFilter = ''; // فاضي = بدون فلتر (الكل)
+  double minRating = 0;
+  int sortMode = 0;
+  int currentPage = 0;
+  static const int perPage = 9;
 
   Position? _userPosition;
   bool _locating = false;
@@ -368,11 +377,16 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
         '' => true,
         _ => p.tags.contains(quickFilter),
       };
-      return matchesSearch && matchesFilter;
+      final matchesRating = p.rating >= minRating;
+      return matchesSearch && matchesFilter && matchesRating;
     }).toList();
 
     if (quickFilter == 'nearestToMe' && _userPosition != null) {
       list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+    } else if (sortMode == 1) {
+      list.sort((a, b) => b.reviews.compareTo(a.reviews));
+    } else if (sortMode == 2) {
+      list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
     } else {
       list.sort((a, b) {
         if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
@@ -380,6 +394,18 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
       });
     }
     return list;
+  }
+
+  List<PharmacyData> get _paged {
+    final list = _filtered;
+    final start = (currentPage * perPage).clamp(0, list.length);
+    final end = (start + perPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  int get _pageCount {
+    final len = _filtered.length;
+    return len == 0 ? 1 : ((len - 1) ~/ perPage) + 1;
   }
 
   void _openPharmacyDetail(BuildContext context, PharmacyData p) {
@@ -428,7 +454,10 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                         children: [
                           _SearchBar(
                             controller: searchController,
-                            onChanged: (v) => setState(() => searchQuery = v),
+                            onChanged: (v) => setState(() {
+                              searchQuery = v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 14),
                           _QuickFiltersRow(
@@ -443,11 +472,19 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                                 }
                                 return;
                               }
-                              setState(
-                                () =>
-                                    quickFilter = quickFilter == key ? '' : key,
-                              );
+                              setState(() {
+                                quickFilter = quickFilter == key ? '' : key;
+                                currentPage = 0;
+                              });
                             },
+                          ),
+                          SizedBox(height: 10),
+                          _RatingFiltersRow(
+                            minRating: minRating,
+                            onRatingTap: (v) => setState(() {
+                              minRating = minRating == v ? 0 : v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 22),
                           Row(
@@ -462,6 +499,15 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                                   fontSize: 12,
                                 ),
                               ),
+                              SizedBox(width: 12),
+                              if (quickFilter != 'nearestToMe')
+                                SortToggle(
+                                  activeIndex: sortMode,
+                                  labelsAr: const ['الأعلى تقييماً', 'الأكثر مراجعة', 'أبجدياً'],
+                                  labelsEn: const ['Top Rated', 'Most Reviewed', 'A–Z'],
+                                  isArabic: app.isArabic,
+                                  onChanged: (m) => setState(() => sortMode = m),
+                                ),
                               Spacer(),
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
@@ -515,7 +561,7 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                             GridView.builder(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
+                              itemCount: _paged.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: responsiveGridColumns(
@@ -528,7 +574,7 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                                     childAspectRatio: 0.72,
                                   ),
                               itemBuilder: (context, i) {
-                                final p = filtered[i];
+                                final p = _paged[i];
                                 return GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => _openPharmacyDetail(context, p),
@@ -548,7 +594,7 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                             )
                           else
                             Column(
-                              children: filtered
+                              children: _paged
                                   .map(
                                     (p) => Padding(
                                       padding: EdgeInsets.only(bottom: 12),
@@ -572,6 +618,14 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
                                   )
                                   .toList(),
                             ),
+                          if (filtered.isNotEmpty) ...[
+                            SizedBox(height: 18),
+                            PaginationBar(
+                              currentPage: currentPage,
+                              pageCount: _pageCount,
+                              onPageChange: (p) => setState(() => currentPage = p),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -738,6 +792,49 @@ class _SearchBar extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== فلتر التقييم ====================
+class _RatingFiltersRow extends StatelessWidget {
+  final double minRating;
+  final void Function(double) onRatingTap;
+  const _RatingFiltersRow({required this.minRating, required this.onRatingTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final r in [4.5, 4.0, 3.5])
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onRatingTap(r),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: minRating == r ? AppColors.primary : AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: minRating == r ? Colors.transparent : AppColors.borderColor,
+                    ),
+                  ),
+                  child: Text(
+                    '⭐ $r+',
+                    style: TextStyle(
+                      color: minRating == r ? Colors.white : AppColors.textWhite,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1570,6 +1667,31 @@ class PharmacyDetailScreen extends StatelessWidget {
                             ),
                             label: Text(
                               app.t('عرض على الخريطة', 'Show on Map'),
+                              style: AppTypography.label(AppColors.textWhite),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Share.share('$name (${p.rating}⭐) — $location'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.borderColor),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.share,
+                              size: 16,
+                              color: AppColors.textWhite,
+                            ),
+                            label: Text(
+                              app.t('مشاركة', 'Share'),
                               style: AppTypography.label(AppColors.textWhite),
                             ),
                           ),

@@ -210,3 +210,32 @@ model NewsArticle {
 
   @@index([categoryKey])
 }
+
+// ==================== الفعاليات القادمة ====================
+model Event {
+  id            String   @id @default(cuid())
+  titleAr       String
+  titleEn       String
+  venueAr       String   @default("")
+  venueEn       String   @default("")
+  day           String   @default("")
+  monthAr       String   @default("")
+  monthEn       String   @default("")
+  timeAr        String   @default("")
+  timeEn        String   @default("")
+  aboutAr       String   @default("")
+  aboutEn       String   @default("")
+  photoQuery    String   @default("nablus palestine city")
+  imageUrl      String?
+  iconCodePoint Int      @default(57918) // Icons.event (0xe23e)
+  colorValue    Int      @default(3946230) // 0x3B82F6
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ==================== عدّاد الزوار ====================
+// صف واحد ثابت (id = "main") بيتزاد رقمه كل ما حد يفتح التطبيق.
+model VisitCounter {
+  id    String @id @default("main")
+  count Int    @default(0)
+}

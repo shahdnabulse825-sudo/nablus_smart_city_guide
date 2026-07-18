@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
+import '../../services/location_service.dart' show findNearest;
 import '../../widgets/themed_image.dart';
 import '../../widgets/responsive.dart';
 import '../../services/local_db_service.dart';
@@ -14,6 +13,9 @@ import '../restaurants/restaurants_screen.dart';
 import '../hotels/hotels_screen.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../widgets/pagination_bar.dart';
+import '../../widgets/sort_toggle.dart';
+import 'package:share_plus/share_plus.dart';
 
 // ==================== بيانات المعلم السياحي ====================
 class AttractionData {
@@ -85,6 +87,8 @@ final List<AttractionData> attractionsSeedData = [
     placeholderIcon: Icons.account_balance,
     placeholderColor: Color(0xFFC9A227),
     isFeatured: true,
+    lat: 32.2202,
+    lng: 35.2588,
   ),
   AttractionData(
     nameAr: 'خان الوكالة',
@@ -126,6 +130,8 @@ final List<AttractionData> attractionsSeedData = [
     image: 'assets/images/landmark/برج الساعة.jpeg',
     placeholderIcon: Icons.access_time_filled,
     placeholderColor: Color(0xFFB5651D),
+    lat: 32.218889,
+    lng: 35.261389,
   ),
   AttractionData(
     nameAr: 'مصنع النابلسي للصابون',
@@ -224,6 +230,8 @@ final List<AttractionData> attractionsSeedData = [
     image: 'assets/images/landmark/جامع النصر.jpeg',
     placeholderIcon: Icons.mosque,
     placeholderColor: Color(0xFFB5651D),
+    lat: 32.218889,
+    lng: 35.261389,
   ),
   AttractionData(
     nameAr: 'جامع الخضر',
@@ -244,6 +252,8 @@ final List<AttractionData> attractionsSeedData = [
     image: 'assets/images/landmark/جامع الخضر.jpg',
     placeholderIcon: Icons.mosque,
     placeholderColor: Color(0xFFB5651D),
+    lat: 32.2123,
+    lng: 35.2709,
   ),
   AttractionData(
     nameAr: 'جبل جرزيم',
@@ -265,6 +275,8 @@ final List<AttractionData> attractionsSeedData = [
     placeholderIcon: Icons.terrain,
     placeholderColor: Color(0xFF4C8C4A),
     isFeatured: true,
+    lat: 32.2009,
+    lng: 35.2731,
   ),
   AttractionData(
     nameAr: 'مقام النبي يوسف',
@@ -281,6 +293,8 @@ final List<AttractionData> attractionsSeedData = [
     image: 'assets/images/landmark/مقام النبي يوسف.jpg',
     placeholderIcon: Icons.location_on,
     placeholderColor: Color(0xFF6C5CE7),
+    lat: 32.211389,
+    lng: 35.282222,
   ),
 
   // ---------- طبيعة وحدائق ----------
@@ -427,35 +441,6 @@ const Map<String, String> _attractionCategoryImages = {
   'oldCity': 'assets/images/landmark/old town.jpeg',
   'culture': 'assets/images/landmark/culture.jpeg',
 };
-
-// ==================== أقرب مكان (فندق/مطعم/كافيه) لنقطة معيّنة ====================
-class NearestResult<T> {
-  final T item;
-  final double distanceKm;
-  NearestResult(this.item, this.distanceKm);
-}
-
-NearestResult<T>? findNearest<T>(
-  List<T> candidates,
-  LatLng from,
-  LatLng Function(T) pointOf,
-) {
-  NearestResult<T>? best;
-  for (final c in candidates) {
-    final p = pointOf(c);
-    final meters = Geolocator.distanceBetween(
-      from.latitude,
-      from.longitude,
-      p.latitude,
-      p.longitude,
-    );
-    final km = meters / 1000;
-    if (best == null || km < best.distanceKm) {
-      best = NearestResult(c, km);
-    }
-  }
-  return best;
-}
 
 List<HotelData> _liveHotelsSync() => LocalDbService.instance
     .getAll('hotels')
@@ -1021,6 +1006,10 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   final ScrollController _scrollController = ScrollController();
   String searchQuery = '';
   late String categoryFilter;
+  double minRating = 0;
+  int sortMode = 0;
+  int currentPage = 0;
+  static const int perPage = 9;
 
   @override
   void initState() {
@@ -1061,13 +1050,32 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           a.locationEn.toLowerCase().contains(searchQuery.toLowerCase());
       final matchesFilter =
           categoryFilter.isEmpty || a.categories.contains(categoryFilter);
-      return matchesSearch && matchesFilter;
+      final matchesRating = a.rating >= minRating;
+      return matchesSearch && matchesFilter && matchesRating;
     }).toList();
-    list.sort((a, b) {
-      if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
-      return b.rating.compareTo(a.rating);
-    });
+    if (sortMode == 1) {
+      list.sort((a, b) => b.reviews.compareTo(a.reviews));
+    } else if (sortMode == 2) {
+      list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+    } else {
+      list.sort((a, b) {
+        if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
+        return b.rating.compareTo(a.rating);
+      });
+    }
     return list;
+  }
+
+  List<AttractionData> get _paged {
+    final list = _filtered;
+    final start = (currentPage * perPage).clamp(0, list.length);
+    final end = (start + perPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  int get _pageCount {
+    final len = _filtered.length;
+    return len == 0 ? 1 : ((len - 1) ~/ perPage) + 1;
   }
 
   void _openDetail(BuildContext context, AttractionData a) {
@@ -1119,7 +1127,10 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                         children: [
                           _AttractionsSearchBar(
                             controller: searchController,
-                            onChanged: (v) => setState(() => searchQuery = v),
+                            onChanged: (v) => setState(() {
+                              searchQuery = v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 14),
                           SingleChildScrollView(
@@ -1129,8 +1140,10 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                                 _CategoryChip(
                                   label: app.t('الكل', 'All'),
                                   selected: categoryFilter.isEmpty,
-                                  onTap: () =>
-                                      setState(() => categoryFilter = ''),
+                                  onTap: () => setState(() {
+                                    categoryFilter = '';
+                                    currentPage = 0;
+                                  }),
                                 ),
                                 ...attractionCategoryOrder.map((key) {
                                   final l = attractionCategoryLabels[key]!;
@@ -1139,13 +1152,23 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                                     child: _CategoryChip(
                                       label: app.t(l.$1, l.$2),
                                       selected: categoryFilter == key,
-                                      onTap: () =>
-                                          setState(() => categoryFilter = key),
+                                      onTap: () => setState(() {
+                                        categoryFilter = key;
+                                        currentPage = 0;
+                                      }),
                                     ),
                                   );
                                 }),
                               ],
                             ),
+                          ),
+                          SizedBox(height: 10),
+                          _RatingFiltersRow(
+                            minRating: minRating,
+                            onRatingTap: (v) => setState(() {
+                              minRating = minRating == v ? 0 : v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 22),
                           Row(
@@ -1159,6 +1182,14 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                                   color: AppColors.textGrey,
                                   fontSize: 12,
                                 ),
+                              ),
+                              SizedBox(width: 12),
+                              SortToggle(
+                                activeIndex: sortMode,
+                                labelsAr: const ['الأعلى تقييماً', 'الأكثر مراجعة', 'أبجدياً'],
+                                labelsEn: const ['Top Rated', 'Most Reviewed', 'A–Z'],
+                                isArabic: app.isArabic,
+                                onChanged: (m) => setState(() => sortMode = m),
                               ),
                               Spacer(),
                               GestureDetector(
@@ -1213,7 +1244,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                             GridView.builder(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
+                              itemCount: _paged.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: responsiveGridColumns(
@@ -1226,7 +1257,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                                     childAspectRatio: 0.75,
                                   ),
                               itemBuilder: (context, i) {
-                                final a = filtered[i];
+                                final a = _paged[i];
                                 return GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => _openDetail(context, a),
@@ -1245,7 +1276,7 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                             )
                           else
                             Column(
-                              children: filtered
+                              children: _paged
                                   .map(
                                     (a) => Padding(
                                       padding: EdgeInsets.only(bottom: 12),
@@ -1267,6 +1298,14 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                                   )
                                   .toList(),
                             ),
+                          if (filtered.isNotEmpty) ...[
+                            SizedBox(height: 18),
+                            PaginationBar(
+                              currentPage: currentPage,
+                              pageCount: _pageCount,
+                              onPageChange: (p) => setState(() => currentPage = p),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -1277,6 +1316,49 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+// ==================== فلتر التقييم ====================
+class _RatingFiltersRow extends StatelessWidget {
+  final double minRating;
+  final void Function(double) onRatingTap;
+  const _RatingFiltersRow({required this.minRating, required this.onRatingTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final r in [4.5, 4.0, 3.5])
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onRatingTap(r),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: minRating == r ? AppColors.primary : AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: minRating == r ? Colors.transparent : AppColors.borderColor,
+                    ),
+                  ),
+                  child: Text(
+                    '⭐ $r+',
+                    style: TextStyle(
+                      color: minRating == r ? Colors.white : AppColors.textWhite,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -2123,6 +2205,31 @@ class AttractionDetailScreen extends StatelessWidget {
                             ),
                             label: Text(
                               app.t('عرض على الخريطة', 'Show on Map'),
+                              style: AppTypography.label(AppColors.textWhite),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Share.share('$name (${a.rating}⭐) — $location'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.borderColor),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.share,
+                              size: 16,
+                              color: AppColors.textWhite,
+                            ),
+                            label: Text(
+                              app.t('مشاركة', 'Share'),
                               style: AppTypography.label(AppColors.textWhite),
                             ),
                           ),

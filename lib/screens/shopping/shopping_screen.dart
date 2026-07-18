@@ -13,6 +13,9 @@ import '../attractions/attractions_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../widgets/pagination_bar.dart';
+import '../../widgets/sort_toggle.dart';
+import 'package:share_plus/share_plus.dart';
 
 // ==================== بيانات مركز تجاري (مكان حقيقي) ====================
 class ShoppingVenueData {
@@ -98,10 +101,155 @@ final List<ShoppingVenueData> shoppingVenuesSeedData = [
     placeholderIcon: Icons.store,
     placeholderColor: Color(0xFFD4A017),
   ),
+  ShoppingVenueData(
+    nameAr: 'سوق البلدة القديمة',
+    nameEn: 'Old City Souq',
+    typeAr: 'سوق شعبي',
+    typeEn: 'Traditional Market',
+    locationAr: 'البلدة القديمة - نابلس',
+    locationEn: 'Old City - Nablus',
+    rating: 4.7,
+    reviews: 512,
+    hoursAr: 'يفتح 8ص - 8م',
+    hoursEn: 'Open 8AM - 8PM',
+    aboutAr:
+        'سوق تاريخي عريق داخل البلدة القديمة يبيع التوابل والحلويات النابلسية والصابون البلدي والمنتجات التقليدية.',
+    aboutEn:
+        'A historic market inside the Old City selling spices, Nabulsi sweets, traditional soap, and local handmade products.',
+    placeholderIcon: Icons.storefront,
+    placeholderColor: Color(0xFFB5651D),
+    isFeatured: true,
+  ),
+  ShoppingVenueData(
+    nameAr: 'سيتي مول نابلس',
+    nameEn: 'City Mall Nablus',
+    typeAr: 'مركز تسوق',
+    typeEn: 'Shopping Mall',
+    locationAr: 'شارع سفيان - نابلس',
+    locationEn: 'Sufyan St. - Nablus',
+    rating: 4.5,
+    reviews: 287,
+    hoursAr: 'يفتح 10ص - 11م',
+    hoursEn: 'Open 10AM - 11PM',
+    aboutAr: 'مركز تسوق حديث بعلامات تجارية عالمية، مطاعم، وسينما.',
+    aboutEn:
+        'A modern shopping mall with international brands, restaurants, and a cinema.',
+    placeholderIcon: Icons.shopping_bag,
+    placeholderColor: Color(0xFF6C5CE7),
+    isFeatured: true,
+  ),
+  ShoppingVenueData(
+    nameAr: 'مجمع رفيديا جاليريا',
+    nameEn: 'Rafidia Galleria',
+    typeAr: 'مجمع تجاري',
+    typeEn: 'Commercial Complex',
+    locationAr: 'شارع رفيديا - نابلس',
+    locationEn: 'Rafidia St. - Nablus',
+    rating: 4.2,
+    reviews: 133,
+    hoursAr: 'يفتح 9ص - 10م',
+    hoursEn: 'Open 9AM - 10PM',
+    aboutAr: 'محلات ملابس وأحذية وإكسسوارات لمختلف الأعمار.',
+    aboutEn: 'Clothing, footwear, and accessory stores for all ages.',
+    placeholderIcon: Icons.checkroom,
+    placeholderColor: Color(0xFFEF6F53),
+  ),
+  ShoppingVenueData(
+    nameAr: 'سوق الذهب النابلسي',
+    nameEn: 'Nablus Gold Souq',
+    typeAr: 'سوق مجوهرات',
+    typeEn: 'Jewelry Market',
+    locationAr: 'وسط البلد - نابلس',
+    locationEn: 'City Center - Nablus',
+    rating: 4.6,
+    reviews: 204,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'محلات مجوهرات وذهب تقليدية وحديثة بأسعار تنافسية.',
+    aboutEn: 'Traditional and modern gold and jewelry stores at competitive prices.',
+    placeholderIcon: Icons.diamond_outlined,
+    placeholderColor: Color(0xFFFBBF24),
+  ),
+  ShoppingVenueData(
+    nameAr: 'مركز الميدان للتسوق',
+    nameEn: 'Al-Maidan Shopping Center',
+    typeAr: 'مركز تسوق',
+    typeEn: 'Shopping Center',
+    locationAr: 'ميدان الشهداء - نابلس',
+    locationEn: 'Martyrs Square - Nablus',
+    rating: 4.1,
+    reviews: 98,
+    hoursAr: 'يفتح 10ص - 9م',
+    hoursEn: 'Open 10AM - 9PM',
+    aboutAr: 'محلات متنوعة للإلكترونيات والهدايا وسط المدينة.',
+    aboutEn: 'A variety of electronics and gift shops in the city center.',
+    placeholderIcon: Icons.devices_other,
+    placeholderColor: Color(0xFF14B8A6),
+  ),
+  ShoppingVenueData(
+    nameAr: 'سوق الخضار المركزي',
+    nameEn: 'Central Vegetable Market',
+    typeAr: 'سوق شعبي',
+    typeEn: 'Traditional Market',
+    locationAr: 'البلدة القديمة - نابلس',
+    locationEn: 'Old City - Nablus',
+    rating: 4.4,
+    reviews: 167,
+    hoursAr: 'يفتح 6ص - 6م',
+    hoursEn: 'Open 6AM - 6PM',
+    aboutAr: 'سوق شعبي للخضار والفواكه الطازجة والمنتجات المحلية.',
+    aboutEn: 'A traditional market for fresh produce and local goods.',
+    placeholderIcon: Icons.local_grocery_store,
+    placeholderColor: Color(0xFF22C55E),
+  ),
+  ShoppingVenueData(
+    nameAr: 'مجمع الجامعة التجاري',
+    nameEn: 'University Commercial Complex',
+    typeAr: 'مجمع تجاري',
+    typeEn: 'Commercial Complex',
+    locationAr: 'قرب الجامعة - نابلس',
+    locationEn: 'Near the University - Nablus',
+    rating: 4.0,
+    reviews: 76,
+    hoursAr: 'يفتح 9ص - 11م',
+    hoursEn: 'Open 9AM - 11PM',
+    aboutAr: 'مكتبات، قرطاسية، وكافيهات قريبة من الحرم الجامعي.',
+    aboutEn: 'Bookstores, stationery shops, and cafes near the university campus.',
+    placeholderIcon: Icons.school,
+    placeholderColor: Color(0xFF3B82F6),
+  ),
+  ShoppingVenueData(
+    nameAr: 'سوق الأقمشة القديم',
+    nameEn: 'Old Textile Market',
+    typeAr: 'سوق شعبي',
+    typeEn: 'Traditional Market',
+    locationAr: 'البلدة القديمة - نابلس',
+    locationEn: 'Old City - Nablus',
+    rating: 4.3,
+    reviews: 89,
+    hoursAr: 'يفتح 9ص - 7م',
+    hoursEn: 'Open 9AM - 7PM',
+    aboutAr: 'أقمشة تقليدية وحديثة ومستلزمات الخياطة.',
+    aboutEn: 'Traditional and modern fabrics and sewing supplies.',
+    placeholderIcon: Icons.content_cut,
+    placeholderColor: Color(0xFFD4A017),
+  ),
 ];
 
 // كلمة بحث إنجليزية مناسبة لصورة المركز التجاري، لما ما توجد صورة محلية.
-String shoppingVenuePhotoQuery(ShoppingVenueData v) => 'shopping mall interior';
+String shoppingVenuePhotoQuery(ShoppingVenueData v) {
+  final text = '${v.nameAr} ${v.nameEn} ${v.typeAr} ${v.typeEn}'.toLowerCase();
+  if (text.contains('سوق') ||
+      text.contains('بازار') ||
+      text.contains('bazaar') ||
+      text.contains('market')) {
+    return 'traditional market bazaar';
+  }
+  if (text.contains('مجمع') || text.contains('complex')) {
+    return 'shopping complex storefront';
+  }
+  return 'shopping mall interior';
+}
 
 // ==================== بطاقة دليل صنف (معلومات، مش مكان مخزّن) ====================
 class ShoppingProductGuide {
@@ -683,6 +831,10 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
   final TextEditingController searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String searchQuery = '';
+  double minRating = 0;
+  int sortMode = 0;
+  int currentPage = 0;
+  static const int perPage = 9;
 
   @override
   void initState() {
@@ -712,17 +864,36 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
 
   List<ShoppingVenueData> get _filtered {
     var list = _liveVenues.where((v) {
-      return searchQuery.isEmpty ||
+      final matchesSearch = searchQuery.isEmpty ||
           v.nameAr.contains(searchQuery) ||
           v.nameEn.toLowerCase().contains(searchQuery.toLowerCase()) ||
           v.locationAr.contains(searchQuery) ||
           v.locationEn.toLowerCase().contains(searchQuery.toLowerCase());
+      return matchesSearch && v.rating >= minRating;
     }).toList();
-    list.sort((a, b) {
-      if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
-      return b.rating.compareTo(a.rating);
-    });
+    if (sortMode == 1) {
+      list.sort((a, b) => b.reviews.compareTo(a.reviews));
+    } else if (sortMode == 2) {
+      list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+    } else {
+      list.sort((a, b) {
+        if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
+        return b.rating.compareTo(a.rating);
+      });
+    }
     return list;
+  }
+
+  List<ShoppingVenueData> get _paged {
+    final list = _filtered;
+    final start = (currentPage * perPage).clamp(0, list.length);
+    final end = (start + perPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  int get _pageCount {
+    final len = _filtered.length;
+    return len == 0 ? 1 : ((len - 1) ~/ perPage) + 1;
   }
 
   void _openDetail(BuildContext context, ShoppingVenueData v) {
@@ -790,8 +961,10 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                                 Expanded(
                                   child: TextField(
                                     controller: searchController,
-                                    onChanged: (v) =>
-                                        setState(() => searchQuery = v),
+                                    onChanged: (v) => setState(() {
+                                      searchQuery = v;
+                                      currentPage = 0;
+                                    }),
                                     style: AppTypography.body(
                                       AppColors.textWhite,
                                     ).copyWith(fontSize: 13),
@@ -811,6 +984,14 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                               ],
                             ),
                           ),
+                          SizedBox(height: 10),
+                          _RatingFiltersRow(
+                            minRating: minRating,
+                            onRatingTap: (v) => setState(() {
+                              minRating = minRating == v ? 0 : v;
+                              currentPage = 0;
+                            }),
+                          ),
                           SizedBox(height: 18),
                           Row(
                             children: [
@@ -823,6 +1004,14 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                                   color: AppColors.textGrey,
                                   fontSize: 12,
                                 ),
+                              ),
+                              SizedBox(width: 12),
+                              SortToggle(
+                                activeIndex: sortMode,
+                                labelsAr: const ['الأعلى تقييماً', 'الأكثر مراجعة', 'أبجدياً'],
+                                labelsEn: const ['Top Rated', 'Most Reviewed', 'A–Z'],
+                                isArabic: app.isArabic,
+                                onChanged: (m) => setState(() => sortMode = m),
                               ),
                               Spacer(),
                               GestureDetector(
@@ -890,7 +1079,7 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                                     childAspectRatio: 0.75,
                                   ),
                               itemBuilder: (context, i) {
-                                final v = filtered[i];
+                                final v = _paged[i];
                                 return GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => _openDetail(context, v),
@@ -909,7 +1098,7 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                             )
                           else
                             Column(
-                              children: filtered
+                              children: _paged
                                   .map(
                                     (v) => Padding(
                                       padding: EdgeInsets.only(bottom: 12),
@@ -931,6 +1120,14 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                                   )
                                   .toList(),
                             ),
+                          if (filtered.isNotEmpty) ...[
+                            SizedBox(height: 18),
+                            PaginationBar(
+                              currentPage: currentPage,
+                              pageCount: _pageCount,
+                              onPageChange: (p) => setState(() => currentPage = p),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -941,6 +1138,49 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+// ==================== فلتر التقييم ====================
+class _RatingFiltersRow extends StatelessWidget {
+  final double minRating;
+  final void Function(double) onRatingTap;
+  const _RatingFiltersRow({required this.minRating, required this.onRatingTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final r in [4.5, 4.0, 3.5])
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onRatingTap(r),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: minRating == r ? AppColors.primary : AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: minRating == r ? Colors.transparent : AppColors.borderColor,
+                    ),
+                  ),
+                  child: Text(
+                    '⭐ $r+',
+                    style: TextStyle(
+                      color: minRating == r ? Colors.white : AppColors.textWhite,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1549,6 +1789,31 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                             ),
                             label: Text(
                               app.t('عرض على الخريطة', 'Show on Map'),
+                              style: AppTypography.label(AppColors.textWhite),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Share.share('$name (${v.rating}⭐) — $location'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.borderColor),
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                            ),
+                            icon: Icon(
+                              Icons.share,
+                              size: 16,
+                              color: AppColors.textWhite,
+                            ),
+                            label: Text(
+                              app.t('مشاركة', 'Share'),
                               style: AppTypography.label(AppColors.textWhite),
                             ),
                           ),

@@ -20,10 +20,13 @@ class LocalDbService {
     'entertainment',
     'government',
     'news',
+    'events',
     'users',
     'session',
     'favorites',
     'feedback',
+    'activity',
+    'search_log',
   ];
 
   final Map<String, Box> _boxes = {};

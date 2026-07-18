@@ -20,7 +20,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': educationData,
       'subtitleAr': 'الجامعات والمدارس في نابلس',
       'subtitleEn': 'Universities and schools in Nablus',
-      'photoQuery': 'An-Najah University campus',
+      'photoQuery': 'university campus Nablus',
     },
     {
       'labelAr': 'بنوك وصرافة',
@@ -31,7 +31,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': banksData,
       'subtitleAr': 'البنوك ومحلات الصرافة',
       'subtitleEn': 'Banks and currency exchange shops',
-      'photoQuery': 'Bank of Palestine',
+      'photoQuery': 'bank building Nablus',
     },
     {
       'labelAr': 'ترفيه',
@@ -42,7 +42,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': entertainmentData,
       'subtitleAr': 'أماكن الترفيه والتسلية في المدينة',
       'subtitleEn': 'Entertainment and fun spots in the city',
-      'photoQuery': 'Nablus panorama',
+      'photoQuery': 'entertainment amusement park Nablus',
     },
     {
       'labelAr': 'خدمات حكومية',
@@ -53,7 +53,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'seedData': governmentData,
       'subtitleAr': 'الدوائر الرسمية والخدمات الحكومية',
       'subtitleEn': 'Official departments and government services',
-      'photoQuery': 'Nablus panorama',
+      'photoQuery': 'government building Nablus',
     },
   ];
 

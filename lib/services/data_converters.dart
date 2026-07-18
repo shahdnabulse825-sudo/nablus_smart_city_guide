@@ -6,6 +6,7 @@ import '../screens/attractions/attractions_screen.dart' show AttractionData;
 import '../screens/shopping/shopping_screen.dart' show ShoppingVenueData;
 import '../screens/category/category_data.dart' show ListingItem;
 import '../screens/news/news_screen.dart' show NewsArticle;
+import '../screens/events/events_data.dart' show EventItem;
 
 // ==================== المطاعم ====================
 Map<String, dynamic> restaurantToMap(RestaurantData r) => {
@@ -297,6 +298,10 @@ Map<String, dynamic> listingToMap(ListingItem it) => {
   'colorValue': it.placeholderColor.toARGB32(),
   'customImageBase64': it.customImageBase64,
   'isFeatured': it.isFeatured,
+  'image': it.image,
+  'lat': it.lat,
+  'lng': it.lng,
+  'subTypeKey': it.subTypeKey,
 };
 
 ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
@@ -321,6 +326,10 @@ ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
   placeholderColor: Color(m['colorValue'] ?? 0xFF3B82F6),
   customImageBase64: m['customImageBase64'],
   isFeatured: m['isFeatured'] ?? false,
+  image: m['image'],
+  lat: (m['lat'] as num?)?.toDouble(),
+  lng: (m['lng'] as num?)?.toDouble(),
+  subTypeKey: m['subTypeKey'],
 );
 
 // ==================== الأخبار ====================
@@ -351,5 +360,42 @@ NewsArticle mapToNews(Map<String, dynamic> m) => NewsArticle(
   summaryEn: m['summaryEn'] ?? '',
   bodyAr: m['bodyAr'] ?? '',
   bodyEn: m['bodyEn'] ?? '',
+  customImageBase64: m['customImageBase64'],
+);
+
+// ==================== الفعاليات القادمة ====================
+Map<String, dynamic> eventToMap(EventItem e) => {
+  'titleAr': e.titleAr,
+  'titleEn': e.titleEn,
+  'venueAr': e.venueAr,
+  'venueEn': e.venueEn,
+  'day': e.day,
+  'monthAr': e.monthAr,
+  'monthEn': e.monthEn,
+  'timeAr': e.timeAr,
+  'timeEn': e.timeEn,
+  'aboutAr': e.aboutAr,
+  'aboutEn': e.aboutEn,
+  'photoQuery': e.photoQuery,
+  'iconCodePoint': e.icon.codePoint,
+  'colorValue': e.color.toARGB32(),
+  'customImageBase64': e.customImageBase64,
+};
+
+EventItem mapToEvent(Map<String, dynamic> m) => EventItem(
+  titleAr: m['titleAr'] ?? '',
+  titleEn: m['titleEn'] ?? '',
+  venueAr: m['venueAr'] ?? '',
+  venueEn: m['venueEn'] ?? '',
+  day: m['day'] ?? '',
+  monthAr: m['monthAr'] ?? '',
+  monthEn: m['monthEn'] ?? '',
+  timeAr: m['timeAr'] ?? '',
+  timeEn: m['timeEn'] ?? '',
+  aboutAr: m['aboutAr'] ?? '',
+  aboutEn: m['aboutEn'] ?? '',
+  photoQuery: m['photoQuery'] ?? 'nablus palestine city',
+  icon: IconData(m['iconCodePoint'] ?? Icons.event.codePoint, fontFamily: 'MaterialIcons'),
+  color: Color(m['colorValue'] ?? 0xFF3B82F6),
   customImageBase64: m['customImageBase64'],
 );

@@ -12,6 +12,11 @@ import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../widgets/pagination_bar.dart';
+import '../../widgets/sort_toggle.dart';
+import '../../widgets/skeleton_card.dart';
+import '../../widgets/empty_state.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// شاشة عامة قابلة لإعادة الاستخدام لعرض أي تصنيف (فنادق، سياحة، تسوق، مواصلات، صحة، صيدليات)
 /// نفس التصميم بالضبط، بس البيانات والعنوان يختلفوا حسب التصنيف المُمرَّر.
@@ -45,6 +50,11 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   int selectedIndex = 0;
   String searchQuery = '';
   double minRating = 0;
+  bool isGridView = true;
+  int sortMode = 0; // 0 = الأعلى تقييماً، 1 = الأكثر مراجعة، 2 = أبجدياً
+  bool favoritesOnly = false;
+  int currentPage = 0;
+  static const int perPage = 10;
 
   bool _loaded = false;
   List<ListingItem> _liveItems = [];
@@ -64,7 +74,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   Future<void> _loadData() async {
     final db = LocalDbService.instance;
-    await db.seedIfEmpty(
+    await db.syncSeed(
       widget.boxName,
       widget.seedData.map(listingToMap).toList(),
     );
@@ -76,17 +86,39 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   }
 
   List<ListingItem> get _filtered {
-    return _liveItems.where((it) {
+    final list = _liveItems.where((it) {
       final matchesSearch =
           searchQuery.isEmpty ||
           it.nameAr.contains(searchQuery) ||
           it.nameEn.toLowerCase().contains(searchQuery.toLowerCase());
       final matchesRating = it.rating >= minRating;
-      return matchesSearch && matchesRating;
-    }).toList()..sort((a, b) {
-      if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
-      return b.rating.compareTo(a.rating);
-    });
+      final matchesFavorites =
+          !favoritesOnly || FavoritesService.instance.isFavorite(it.nameEn);
+      return matchesSearch && matchesRating && matchesFavorites;
+    }).toList();
+    if (sortMode == 1) {
+      list.sort((a, b) => b.reviews.compareTo(a.reviews));
+    } else if (sortMode == 2) {
+      list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+    } else {
+      list.sort((a, b) {
+        if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
+        return b.rating.compareTo(a.rating);
+      });
+    }
+    return list;
+  }
+
+  List<ListingItem> get _paged {
+    final list = _filtered;
+    final start = (currentPage * perPage).clamp(0, list.length);
+    final end = (start + perPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  int get _pageCount {
+    final len = _filtered.length;
+    return len == 0 ? 1 : ((len - 1) ~/ perPage) + 1;
   }
 
   void _openDetail(BuildContext context, ListingItem it) {
@@ -106,6 +138,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           locationAr: it.locationAr,
           locationEn: it.locationEn,
           customImageBase64: it.customImageBase64,
+          localAsset: it.image,
         ),
       ),
     );
@@ -119,8 +152,17 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _TopBar(titleAr: widget.titleAr, titleEn: widget.titleEn, icon: widget.icon),
+                Padding(
+                  padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
+                  child: SkeletonGrid(isGridView: isGridView),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -129,9 +171,10 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
       listenable: app,
       builder: (context, _) {
         final filtered = _filtered;
-        final selected = filtered.isEmpty
+        final paged = _paged;
+        final selected = paged.isEmpty
             ? null
-            : filtered[selectedIndex.clamp(0, filtered.length - 1)];
+            : paged[selectedIndex.clamp(0, paged.length - 1)];
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Scaffold(
@@ -163,16 +206,25 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 _FiltersSidebar(
-                                  onSearchChanged: (v) =>
-                                      setState(() => searchQuery = v),
+                                  onSearchChanged: (v) => setState(() {
+                                    searchQuery = v;
+                                    currentPage = 0;
+                                  }),
                                   minRating: minRating,
-                                  onRatingTap: (v) => setState(
-                                    () => minRating = minRating == v ? 0 : v,
-                                  ),
+                                  onRatingTap: (v) => setState(() {
+                                    minRating = minRating == v ? 0 : v;
+                                    currentPage = 0;
+                                  }),
+                                  favoritesOnly: favoritesOnly,
+                                  onFavoritesOnlyTap: () => setState(() {
+                                    favoritesOnly = !favoritesOnly;
+                                    currentPage = 0;
+                                  }),
                                 ),
                                 SizedBox(height: 16),
                                 _ResultsGrid(
-                                  items: filtered,
+                                  items: paged,
+                                  totalCount: filtered.length,
                                   selected: null,
                                   onSelect: (it) => _openDetail(context, it),
                                   onFavorite: (it) async {
@@ -180,6 +232,13 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                         .toggleFavorite(it.nameEn);
                                     setState(() {});
                                   },
+                                  isGridView: isGridView,
+                                  onToggleView: (v) => setState(() => isGridView = v),
+                                  sortMode: sortMode,
+                                  onSortChange: (m) => setState(() => sortMode = m),
+                                  currentPage: currentPage,
+                                  pageCount: _pageCount,
+                                  onPageChange: (p) => setState(() => currentPage = p),
                                 ),
                               ],
                             )
@@ -189,28 +248,43 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                 SizedBox(
                                   width: 240,
                                   child: _FiltersSidebar(
-                                    onSearchChanged: (v) =>
-                                        setState(() => searchQuery = v),
+                                    onSearchChanged: (v) => setState(() {
+                                      searchQuery = v;
+                                      currentPage = 0;
+                                    }),
                                     minRating: minRating,
-                                    onRatingTap: (v) => setState(
-                                      () => minRating = minRating == v ? 0 : v,
-                                    ),
+                                    onRatingTap: (v) => setState(() {
+                                      minRating = minRating == v ? 0 : v;
+                                      currentPage = 0;
+                                    }),
+                                    favoritesOnly: favoritesOnly,
+                                    onFavoritesOnlyTap: () => setState(() {
+                                      favoritesOnly = !favoritesOnly;
+                                      currentPage = 0;
+                                    }),
                                   ),
                                 ),
                                 SizedBox(width: 20),
                                 Expanded(
                                   child: _ResultsGrid(
-                                    items: filtered,
+                                    items: paged,
+                                    totalCount: filtered.length,
                                     selected: selected,
                                     onSelect: (it) => setState(
-                                      () =>
-                                          selectedIndex = filtered.indexOf(it),
+                                      () => selectedIndex = paged.indexOf(it),
                                     ),
                                     onFavorite: (it) async {
                                       await FavoritesService.instance
                                           .toggleFavorite(it.nameEn);
                                       setState(() {});
                                     },
+                                    isGridView: isGridView,
+                                    onToggleView: (v) => setState(() => isGridView = v),
+                                    sortMode: sortMode,
+                                    onSortChange: (m) => setState(() => sortMode = m),
+                                    currentPage: currentPage,
+                                    pageCount: _pageCount,
+                                    onPageChange: (p) => setState(() => currentPage = p),
                                   ),
                                 ),
                                 SizedBox(width: 20),
@@ -311,16 +385,16 @@ class _TopBar extends StatelessWidget {
 
 // كلمة بحث إنجليزية مناسبة لصورة بانر كل تصنيف
 final Map<String, String> _bannerQueryByBox = {
-  'hotels': 'Nablus hotel',
-  'attractions': 'Nablus old city',
-  'shopping': 'Nablus market',
-  'transport': 'Nablus street',
-  'health': 'Nablus hospital',
-  'pharmacies': 'Nablus pharmacy',
-  'education': 'An-Najah University campus',
-  'banks': 'Bank of Palestine',
-  'entertainment': 'Nablus panorama',
-  'government': 'Nablus panorama',
+  'hotels': 'hotel room bed Nablus',
+  'attractions': 'landmark old city alley Nablus',
+  'shopping': 'market shopping bags Nablus',
+  'transport': 'bus station transport Nablus',
+  'health': 'hospital medical cross Nablus',
+  'pharmacies': 'pharmacy medicine shelves Nablus',
+  'education': 'university campus Nablus',
+  'banks': 'bank building Nablus',
+  'entertainment': 'entertainment amusement park Nablus',
+  'government': 'government building Nablus',
 };
 
 // ==================== بانر عنوان الصفحة ====================
@@ -411,10 +485,14 @@ class _FiltersSidebar extends StatelessWidget {
   final void Function(String) onSearchChanged;
   final double minRating;
   final void Function(double) onRatingTap;
+  final bool favoritesOnly;
+  final VoidCallback onFavoritesOnlyTap;
   const _FiltersSidebar({
     required this.onSearchChanged,
     required this.minRating,
     required this.onRatingTap,
+    required this.favoritesOnly,
+    required this.onFavoritesOnlyTap,
   });
 
   @override
@@ -478,6 +556,26 @@ class _FiltersSidebar extends StatelessWidget {
           _ratingRow(4.5, minRating == 4.5, () => onRatingTap(4.5)),
           _ratingRow(4.0, minRating == 4.0, () => onRatingTap(4.0)),
           _ratingRow(3.5, minRating == 3.5, () => onRatingTap(3.5)),
+          SizedBox(height: 18),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onFavoritesOnlyTap,
+            child: Row(
+              children: [
+                Icon(
+                  favoritesOnly ? Icons.check_box : Icons.check_box_outline_blank,
+                  size: 18,
+                  color: favoritesOnly ? AppColors.primary : AppColors.textGrey,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  app.t('المفضلة فقط', 'Favorites only'),
+                  textDirection: app.dir,
+                  style: TextStyle(color: AppColors.textWhite, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -524,14 +622,30 @@ class _FiltersSidebar extends StatelessWidget {
 // ==================== شبكة النتائج ====================
 class _ResultsGrid extends StatelessWidget {
   final List<ListingItem> items;
+  final int totalCount;
   final ListingItem? selected;
   final void Function(ListingItem) onSelect;
   final void Function(ListingItem) onFavorite;
+  final bool isGridView;
+  final void Function(bool) onToggleView;
+  final int sortMode;
+  final void Function(int) onSortChange;
+  final int currentPage;
+  final int pageCount;
+  final void Function(int) onPageChange;
   const _ResultsGrid({
     required this.items,
+    required this.totalCount,
     required this.selected,
     required this.onSelect,
     required this.onFavorite,
+    required this.isGridView,
+    required this.onToggleView,
+    required this.sortMode,
+    required this.onSortChange,
+    required this.currentPage,
+    required this.pageCount,
+    required this.onPageChange,
   });
 
   @override
@@ -540,22 +654,59 @@ class _ResultsGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          app.t('${items.length} نتيجة', '${items.length} results'),
-          style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+        Row(
+          children: [
+            Text(
+              app.t('$totalCount نتيجة', '$totalCount results'),
+              style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+            ),
+            SizedBox(width: 12),
+            SortToggle(
+              activeIndex: sortMode,
+              labelsAr: const ['الأعلى تقييماً', 'الأكثر مراجعة', 'أبجدياً'],
+              labelsEn: const ['Top Rated', 'Most Reviewed', 'A–Z'],
+              isArabic: app.isArabic,
+              onChanged: onSortChange,
+            ),
+            Spacer(),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onToggleView(false),
+              child: Icon(
+                Icons.view_list,
+                size: 20,
+                color: isGridView ? AppColors.textGrey : AppColors.primary,
+              ),
+            ),
+            SizedBox(width: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onToggleView(true),
+              child: Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: isGridView ? AppColors.primary : Colors.transparent,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.grid_view,
+                  size: 16,
+                  color: isGridView ? Colors.white : AppColors.textGrey,
+                ),
+              ),
+            ),
+          ],
         ),
         SizedBox(height: 16),
         if (items.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 60),
-            child: Center(
-              child: Text(
-                app.t('لا توجد نتائج مطابقة', 'No matching results'),
-                style: TextStyle(color: AppColors.textGrey),
-              ),
-            ),
+          EmptyState(
+            icon: Icons.search_off_rounded,
+            titleAr: 'لا توجد نتائج مطابقة',
+            titleEn: 'No matching results',
+            subtitleAr: 'جرّب تغيير الفلاتر أو كلمة البحث',
+            subtitleEn: 'Try changing the filters or search term',
           )
-        else
+        else if (isGridView)
           GridView.builder(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
@@ -583,7 +734,35 @@ class _ResultsGrid extends StatelessWidget {
                 ),
               );
             },
+          )
+        else
+          Column(
+            children: items
+                .map(
+                  (it) => Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => onSelect(it),
+                      child: _ItemListTile(
+                        item: it,
+                        isFavorite: FavoritesService.instance.isFavorite(it.nameEn),
+                        isSelected: it == selected,
+                        onFavorite: () => onFavorite(it),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
+        if (totalCount > 0) ...[
+          SizedBox(height: 18),
+          PaginationBar(
+            currentPage: currentPage,
+            pageCount: pageCount,
+            onPageChange: onPageChange,
+          ),
+        ],
       ],
     );
   }
@@ -632,6 +811,7 @@ class _ItemCard extends StatelessWidget {
                   fallbackIcon: item.placeholderIcon,
                   fallbackColor: item.placeholderColor,
                   customImageBase64: item.customImageBase64,
+                  localAsset: item.image,
                 ),
                 Positioned(
                   bottom: 8,
@@ -775,6 +955,109 @@ class _ItemCard extends StatelessWidget {
   }
 }
 
+// ==================== كرت العنصر (List) ====================
+class _ItemListTile extends StatelessWidget {
+  final ListingItem item;
+  final bool isFavorite;
+  final bool isSelected;
+  final VoidCallback onFavorite;
+  const _ItemListTile({
+    required this.item,
+    required this.isFavorite,
+    required this.isSelected,
+    required this.onFavorite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final name = app.isArabic ? item.nameAr : item.nameEn;
+    final type = app.isArabic ? item.typeAr : item.typeEn;
+    final location = app.isArabic ? item.locationAr : item.locationEn;
+
+    return AppCard(
+      padding: EdgeInsets.all(10),
+      border: Border.all(
+        color: isSelected ? AppColors.primary : AppColors.borderColor,
+        width: isSelected ? 2 : 1,
+      ),
+      child: Row(
+        textDirection: TextDirection.rtl,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            child: ThemedImage(
+              query: item.photoQuery,
+              fallbackSeed: item.nameEn,
+              height: 64,
+              fallbackIcon: item.placeholderIcon,
+              fallbackColor: item.placeholderColor,
+              customImageBase64: item.customImageBase64,
+              localAsset: item.image,
+            ),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  name,
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label(AppColors.textWhite),
+                ),
+                Text(
+                  type,
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+                SizedBox(height: 3),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Icon(Icons.location_on, size: 11, color: AppColors.textGrey),
+                    SizedBox(width: 3),
+                    Expanded(
+                      child: Text(
+                        location,
+                        textDirection: app.dir,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.caption(AppColors.textGrey),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6),
+          Column(
+            children: [
+              Icon(Icons.star_rounded, size: 13, color: AppColors.gold),
+              Text('${item.rating}', style: AppTypography.label(AppColors.textWhite)),
+              SizedBox(height: 6),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onFavorite,
+                child: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  size: 16,
+                  color: isFavorite ? AppColors.red : AppColors.textGrey,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ==================== بانل التفاصيل ====================
 class _DetailPanel extends StatelessWidget {
   final ListingItem item;
@@ -811,6 +1094,7 @@ class _DetailPanel extends StatelessWidget {
                   fallbackIcon: it.placeholderIcon,
                   fallbackColor: it.placeholderColor,
                   customImageBase64: it.customImageBase64,
+                  localAsset: it.image,
                 ),
                 child: ThemedImage(
                   query: it.photoQuery,
@@ -819,6 +1103,7 @@ class _DetailPanel extends StatelessWidget {
                   fallbackIcon: it.placeholderIcon,
                   fallbackColor: it.placeholderColor,
                   customImageBase64: it.customImageBase64,
+                  localAsset: it.image,
                 ),
               ),
               Positioned(
@@ -947,6 +1232,8 @@ class _DetailPanel extends StatelessWidget {
                           nameEn: it.nameEn,
                           locationAr: it.locationAr,
                           locationEn: it.locationEn,
+                          lat: it.lat,
+                          lng: it.lng,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -966,6 +1253,7 @@ class _DetailPanel extends StatelessWidget {
                       context,
                       Icons.share,
                       app.t('المشاركة', 'Share'),
+                      onTap: () => Share.share('$name (${it.rating}⭐) — $location'),
                     ),
                   ],
                 ),
@@ -1009,6 +1297,8 @@ class _DetailPanel extends StatelessWidget {
                           nameEn: it.nameEn,
                           locationAr: it.locationAr,
                           locationEn: it.locationEn,
+                          lat: it.lat,
+                          lng: it.lng,
                         );
                         Navigator.of(context).push(
                           MaterialPageRoute(

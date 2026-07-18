@@ -11,6 +11,9 @@ import '../map/map_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../widgets/pagination_bar.dart';
+import '../../widgets/sort_toggle.dart';
+import 'package:share_plus/share_plus.dart';
 
 // ==================== بيانات الفندق ====================
 class HotelData {
@@ -404,6 +407,12 @@ class _HotelsScreenState extends State<HotelsScreen> {
   final ScrollController _scrollController = ScrollController();
   String searchQuery = '';
   String quickFilter = ''; // فاضي = بدون فلتر (الكل)
+  double minRating = 0;
+  String priceTier = 'all';
+  int sortMode = 0; // 0 = الأعلى تقييماً، 1 = الأرخص أولاً، 2 = أبجدياً
+  int currentPage = 0;
+  static const int perPage = 9;
+  static const _priceOrder = {'cheap': 0, 'medium': 1, 'high': 2};
 
   @override
   void initState() {
@@ -437,13 +446,35 @@ class _HotelsScreenState extends State<HotelsScreen> {
           h.locationAr.contains(searchQuery) ||
           h.locationEn.toLowerCase().contains(searchQuery.toLowerCase());
       final matchesFilter = quickFilter.isEmpty || h.tags.contains(quickFilter);
-      return matchesSearch && matchesFilter;
+      final matchesRating = h.rating >= minRating;
+      final matchesPrice = priceTier == 'all' || h.priceTier == priceTier;
+      return matchesSearch && matchesFilter && matchesRating && matchesPrice;
     }).toList();
-    list.sort((a, b) {
-      if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
-      return b.rating.compareTo(a.rating);
-    });
+    if (sortMode == 1) {
+      list.sort(
+        (a, b) => (_priceOrder[a.priceTier] ?? 1).compareTo(_priceOrder[b.priceTier] ?? 1),
+      );
+    } else if (sortMode == 2) {
+      list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
+    } else {
+      list.sort((a, b) {
+        if (a.isFeatured != b.isFeatured) return a.isFeatured ? -1 : 1;
+        return b.rating.compareTo(a.rating);
+      });
+    }
     return list;
+  }
+
+  List<HotelData> get _paged {
+    final list = _filtered;
+    final start = (currentPage * perPage).clamp(0, list.length);
+    final end = (start + perPage).clamp(0, list.length);
+    return list.sublist(start, end);
+  }
+
+  int get _pageCount {
+    final len = _filtered.length;
+    return len == 0 ? 1 : ((len - 1) ~/ perPage) + 1;
   }
 
   void _openHotelDetail(BuildContext context, HotelData h) {
@@ -490,14 +521,31 @@ class _HotelsScreenState extends State<HotelsScreen> {
                         children: [
                           _SearchBar(
                             controller: searchController,
-                            onChanged: (v) => setState(() => searchQuery = v),
+                            onChanged: (v) => setState(() {
+                              searchQuery = v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 14),
                           _QuickFiltersRow(
                             selected: quickFilter,
-                            onTap: (key) => setState(
-                              () => quickFilter = quickFilter == key ? '' : key,
-                            ),
+                            onTap: (key) => setState(() {
+                              quickFilter = quickFilter == key ? '' : key;
+                              currentPage = 0;
+                            }),
+                          ),
+                          SizedBox(height: 10),
+                          _RatingPriceFiltersRow(
+                            minRating: minRating,
+                            priceTier: priceTier,
+                            onRatingTap: (v) => setState(() {
+                              minRating = minRating == v ? 0 : v;
+                              currentPage = 0;
+                            }),
+                            onPriceTap: (v) => setState(() {
+                              priceTier = v;
+                              currentPage = 0;
+                            }),
                           ),
                           SizedBox(height: 22),
                           Row(
@@ -511,6 +559,14 @@ class _HotelsScreenState extends State<HotelsScreen> {
                                   color: AppColors.textGrey,
                                   fontSize: 12,
                                 ),
+                              ),
+                              SizedBox(width: 12),
+                              SortToggle(
+                                activeIndex: sortMode,
+                                labelsAr: const ['الأعلى تقييماً', 'الأقل سعراً', 'أبجدياً'],
+                                labelsEn: const ['Top Rated', 'Lowest Price', 'A–Z'],
+                                isArabic: app.isArabic,
+                                onChanged: (m) => setState(() => sortMode = m),
                               ),
                               Spacer(),
                               GestureDetector(
@@ -565,7 +621,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             GridView.builder(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
+                              itemCount: _paged.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: responsiveGridColumns(
@@ -578,7 +634,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                                     childAspectRatio: 0.72,
                                   ),
                               itemBuilder: (context, i) {
-                                final h = filtered[i];
+                                final h = _paged[i];
                                 return GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => _openHotelDetail(context, h),
@@ -597,7 +653,7 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             )
                           else
                             Column(
-                              children: filtered
+                              children: _paged
                                   .map(
                                     (h) => Padding(
                                       padding: EdgeInsets.only(bottom: 12),
@@ -620,6 +676,14 @@ class _HotelsScreenState extends State<HotelsScreen> {
                                   )
                                   .toList(),
                             ),
+                          if (filtered.isNotEmpty) ...[
+                            SizedBox(height: 18),
+                            PaginationBar(
+                              currentPage: currentPage,
+                              pageCount: _pageCount,
+                              onPageChange: (p) => setState(() => currentPage = p),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -708,12 +772,12 @@ class _HotelsBanner extends StatelessWidget {
           GestureDetector(
             onTap: () => showImageZoom(
               context,
-              query: 'Nablus hotel',
+              query: 'hotel room bed Nablus',
               fallbackSeed: 'nablus-hotels-banner',
               fallbackIcon: Icons.hotel,
             ),
             child: ThemedImage(
-              query: 'Nablus hotel',
+              query: 'hotel room bed Nablus',
               fallbackSeed: 'nablus-hotels-banner',
               height: 200,
             ),
@@ -783,6 +847,87 @@ class _SearchBar extends StatelessWidget {
                 hintStyle: AppTypography.caption(AppColors.textGrey),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== فلتر التقييم والسعر ====================
+class _RatingPriceFiltersRow extends StatelessWidget {
+  final double minRating;
+  final String priceTier;
+  final void Function(double) onRatingTap;
+  final void Function(String) onPriceTap;
+  const _RatingPriceFiltersRow({
+    required this.minRating,
+    required this.priceTier,
+    required this.onRatingTap,
+    required this.onPriceTap,
+  });
+
+  Widget _chip(String label, bool selected, VoidCallback onTap) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : AppColors.cardDark2,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: selected ? Colors.transparent : AppColors.borderColor,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textWhite,
+            fontSize: 11,
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final r in [4.5, 4.0, 3.5])
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: _chip(
+                '⭐ $r+',
+                minRating == r,
+                () => onRatingTap(r),
+              ),
+            ),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 4),
+            width: 1,
+            height: 20,
+            color: AppColors.borderColor,
+          ),
+          Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: _chip(app.t('كل الأسعار', 'All Prices'), priceTier == 'all', () => onPriceTap('all')),
+          ),
+          Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: _chip(app.t('رخيص', 'Cheap'), priceTier == 'cheap', () => onPriceTap('cheap')),
+          ),
+          Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: _chip(app.t('متوسط', 'Medium'), priceTier == 'medium', () => onPriceTap('medium')),
+          ),
+          Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: _chip(app.t('مرتفع', 'High'), priceTier == 'high', () => onPriceTap('high')),
           ),
         ],
       ),
@@ -1675,6 +1820,34 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                               ),
                               label: Text(
                                 app.t('عرض على الخريطة', 'Show on Map'),
+                                style: AppTypography.label(AppColors.textWhite),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => Share.share(
+                                '${app.isArabic ? h.nameAr : h.nameEn} '
+                                '(${h.rating}⭐) — ${app.isArabic ? h.locationAr : h.locationEn}',
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: AppColors.borderColor),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.share,
+                                size: 16,
+                                color: AppColors.textWhite,
+                              ),
+                              label: Text(
+                                app.t('مشاركة', 'Share'),
                                 style: AppTypography.label(AppColors.textWhite),
                               ),
                             ),

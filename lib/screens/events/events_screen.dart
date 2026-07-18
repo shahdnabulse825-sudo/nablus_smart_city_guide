@@ -4,10 +4,39 @@ import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import 'events_data.dart';
 import '../../theme/app_typography.dart';
+import '../../services/local_db_service.dart';
+import '../../services/data_converters.dart';
+import '../../services/api_service.dart';
 
-/// شاشة الفعاليات القادمة الكاملة بنابلس.
-class EventsScreen extends StatelessWidget {
+/// شاشة الفعاليات القادمة الكاملة بنابلس — بيانات حقيقية من قاعدة البيانات
+/// المحلية/السيرفر بدل قائمة ثابتة، تمامًا متل شاشة الأخبار.
+class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
+
+  @override
+  State<EventsScreen> createState() => _EventsScreenState();
+}
+
+class _EventsScreenState extends State<EventsScreen> {
+  bool _loaded = false;
+  List<EventItem> _liveEvents = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final db = LocalDbService.instance;
+    await db.seedIfEmpty('events', eventsData.map(eventToMap).toList());
+    await ApiService.syncEvents();
+    final entries = db.getAll('events');
+    setState(() {
+      _liveEvents = entries.map((e) => mapToEvent(e.value)).toList();
+      _loaded = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,12 +89,21 @@ class EventsScreen extends StatelessWidget {
                     ),
                   ),
                   Expanded(
-                    child: ListView.separated(
+                    child: !_loaded
+                        ? Center(child: CircularProgressIndicator(color: AppColors.primary))
+                        : _liveEvents.isEmpty
+                        ? Center(
+                            child: Text(
+                              app.t('لا توجد فعاليات قادمة حاليًا', 'No upcoming events right now'),
+                              style: AppTypography.body(AppColors.textGrey),
+                            ),
+                          )
+                        : ListView.separated(
                       padding: EdgeInsets.all(20),
-                      itemCount: eventsData.length,
+                      itemCount: _liveEvents.length,
                       separatorBuilder: (_, _) => SizedBox(height: 16),
                       itemBuilder: (context, i) {
-                        final e = eventsData[i];
+                        final e = _liveEvents[i];
                         final title = app.isArabic ? e.titleAr : e.titleEn;
                         final venue = app.isArabic ? e.venueAr : e.venueEn;
                         final month = app.isArabic ? e.monthAr : e.monthEn;
@@ -83,6 +121,7 @@ class EventsScreen extends StatelessWidget {
                                   descriptionAr: e.aboutAr,
                                   descriptionEn: e.aboutEn,
                                   extraInfo: '${e.day} $month • $time',
+                                  customImageBase64: e.customImageBase64,
                                 ),
                               ),
                             );
@@ -99,6 +138,7 @@ class EventsScreen extends StatelessWidget {
                                   height: 130,
                                   fallbackIcon: e.icon,
                                   fallbackColor: e.color,
+                                  customImageBase64: e.customImageBase64,
                                 ),
                               ),
                               Expanded(

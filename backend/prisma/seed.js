@@ -63,6 +63,16 @@ const news = [
   { titleAr: 'توسعة شبكة المواصلات العامة داخل المدينة', titleEn: 'Expansion of Public Transportation Network in the City', dateAr: '20 أبريل 2025', dateEn: 'April 20, 2025', categoryAr: 'تطوير', categoryEn: 'Development', categoryKey: 'development', summaryAr: 'خطوط جديدة للمواصلات العامة لتسهيل الوصول لمختلف أحياء المدينة.', summaryEn: 'New public transportation lines to facilitate access to different neighborhoods of the city.', bodyAr: 'أعلنت الجهات المختصة عن توسعة شبكة المواصلات العامة داخل نابلس بإضافة خطوط جديدة.', bodyEn: 'Authorities announced the expansion of the public transportation network within Nablus by adding new lines.' },
 ];
 
+// ==================== الفعاليات القادمة ====================
+const events = [
+  { titleAr: 'مهرجان التسوق السنوي', titleEn: 'Annual Shopping Festival', venueAr: 'مركز المدينة', venueEn: 'City Center', day: '15', monthAr: 'يونيو', monthEn: 'Jun', timeAr: '4:00م - 10:00م', timeEn: '4:00PM - 10:00PM', aboutAr: 'تخفيضات وعروض من محلات المدينة مع فقرات ترفيهية للعائلات طوال أيام المهرجان.', aboutEn: 'Discounts and offers from city shops with family entertainment throughout the festival.', photoQuery: 'shopping festival crowd', iconCodePoint: 0xe59a, colorValue: 0x3b82f6 },
+  { titleAr: 'معرض نابلس للكتاب', titleEn: 'Nablus Book Fair', venueAr: 'مركز المعارض', venueEn: 'Exhibition Center', day: '22', monthAr: 'يونيو', monthEn: 'Jun', timeAr: '10:00ص - 8:00م', timeEn: '10:00AM - 8:00PM', aboutAr: 'أكبر تجمع لدور النشر المحلية والعربية مع جلسات نقاش وتوقيع كتب.', aboutEn: 'The largest gathering of local and Arab publishers, with discussion panels and book signings.', photoQuery: 'book fair exhibition', iconCodePoint: 0xe3dd, colorValue: 0xc9a227 },
+  { titleAr: 'مهرجان الموسيقى التراثية', titleEn: 'Heritage Music Festival', venueAr: 'المسرح الوطني', venueEn: 'National Theater', day: '30', monthAr: 'يونيو', monthEn: 'Jun', timeAr: '7:00م - 11:00م', timeEn: '7:00PM - 11:00PM', aboutAr: 'أمسيات فنية تحيي التراث الموسيقي الفلسطيني بمشاركة فرق محلية.', aboutEn: 'Evenings celebrating Palestinian musical heritage with local performing groups.', photoQuery: 'traditional music concert', iconCodePoint: 0xe415, colorValue: 0x6c5ce7 },
+  { titleAr: 'مهرجان الطعام النابلسي', titleEn: 'Nablus Food Festival', venueAr: 'حديقة التعاون', venueEn: 'Al-Taawon Park', day: '6', monthAr: 'يوليو', monthEn: 'Jul', timeAr: '5:00م - 11:00م', timeEn: '5:00PM - 11:00PM', aboutAr: 'أشهى الأطباق النابلسية من أفضل المطاعم المحلية بأجواء عائلية في الهواء الطلق.', aboutEn: 'The finest Nabulsi dishes from the best local restaurants, in an outdoor family atmosphere.', photoQuery: 'street food festival', iconCodePoint: 0xe532, colorValue: 0xe85d5d },
+  { titleAr: 'ماراثون نابلس الخيري', titleEn: 'Nablus Charity Marathon', venueAr: 'شارع الجامعة', venueEn: 'University St.', day: '12', monthAr: 'يوليو', monthEn: 'Jul', timeAr: '7:00ص - 11:00ص', timeEn: '7:00AM - 11:00AM', aboutAr: 'سباق جري خيري لدعم مبادرات مجتمعية، مفتوح لجميع الأعمار.', aboutEn: 'A charity run supporting community initiatives, open to all ages.', photoQuery: 'marathon runners street', iconCodePoint: 0xe1dc, colorValue: 0x22c55e },
+  { titleAr: 'معرض الحرف اليدوية', titleEn: 'Handicrafts Exhibition', venueAr: 'خان الوكالة', venueEn: 'Khan Al-Wakala', day: '19', monthAr: 'يوليو', monthEn: 'Jul', timeAr: '11:00ص - 9:00م', timeEn: '11:00AM - 9:00PM', aboutAr: 'عرض وبيع منتجات الحرفيين المحليين من فخار ونسيج وصابون نابلسي.', aboutEn: 'Local artisans display and sell pottery, textiles, and Nabulsi soap.', photoQuery: 'handicraft market pottery', iconCodePoint: 0xe46b, colorValue: 0xb5651d },
+];
+
 function rgb(colorValue) {
   return colorValue & 0xffffff;
 }
@@ -197,6 +207,22 @@ async function main() {
     }
     console.log(`✅ تمت تعبئة المراكز التجارية بـ ${seedData.shoppingVenues.length} مركز`);
   }
+
+  // الفعاليات القادمة
+  const eventCount = await prisma.event.count();
+  if (eventCount === 0) {
+    for (const e of events) {
+      await prisma.event.create({ data: { ...e, colorValue: rgb(e.colorValue) } });
+    }
+    console.log(`✅ تمت تعبئة الفعاليات بـ ${events.length} فعالية`);
+  }
+
+  // عدّاد الزوار (يبدأ من صفر لو ما كان موجود)
+  await prisma.visitCounter.upsert({
+    where: { id: 'main' },
+    update: {},
+    create: { id: 'main', count: 0 },
+  });
 
   console.log('🎉 انتهت تعبئة قاعدة البيانات بنجاح');
 }

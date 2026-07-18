@@ -6,6 +6,8 @@ import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import '../places/all_places_screen.dart';
 import '../events/events_data.dart';
+import '../../services/local_db_service.dart';
+import '../../services/data_converters.dart';
 import '../../services/weather_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
@@ -107,7 +109,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     return list.take(count).toList();
   }
 
-  EventItem? _nextEvent() => eventsData.isEmpty ? null : eventsData.first;
+  List<EventItem> get _liveEvents => LocalDbService.instance
+      .getAll('events')
+      .map((e) => mapToEvent(e.value))
+      .toList();
+
+  EventItem? _nextEvent() {
+    final live = _liveEvents;
+    return live.isEmpty ? null : live.first;
+  }
 
   // ردود ذكية محلية مبنية على بيانات التطبيق الحقيقية (بدون اتصال خارجي)
   ChatMessage _generateReply(String input) {
@@ -198,8 +208,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     if (has(['صيدلية', 'صيدليات', 'دواء'], ['pharmacy', 'medicine'])) {
       final top = _topRated('pharmacy');
       return ChatMessage(
-        textAr: 'أقرب صيدلية مقترحة حاليًا:',
-        textEn: 'The best recommended pharmacy right now:',
+        textAr: top == null
+            ? 'ما لقيت صيدلية مسجّلة حاليًا بالتطبيق.'
+            : 'أقرب صيدلية مقترحة حاليًا: ${top.nameAr} (${top.rating}⭐).',
+        textEn: top == null
+            ? 'No pharmacy is registered in the app right now.'
+            : 'The best recommended pharmacy right now: ${top.nameEn} (${top.rating}⭐).',
         isUser: false,
         place: top,
       );
@@ -211,8 +225,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     )) {
       final top = _topRated('health');
       return ChatMessage(
-        textAr: 'أفضل مركز صحي مقترح:',
-        textEn: 'The best recommended health facility:',
+        textAr: top == null
+            ? 'ما لقيت مركز صحي مسجّل حاليًا بالتطبيق.'
+            : 'أفضل مركز صحي مقترح: ${top.nameAr} (${top.rating}⭐).',
+        textEn: top == null
+            ? 'No health facility is registered in the app right now.'
+            : 'The best recommended health facility: ${top.nameEn} (${top.rating}⭐).',
         isUser: false,
         place: top,
       );
@@ -224,8 +242,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     )) {
       final top = _topRated('transport');
       return ChatMessage(
-        textAr: 'من أفضل خيارات المواصلات بالمدينة:',
-        textEn: 'One of the best transport options in the city:',
+        textAr: top == null
+            ? 'ما لقيت خيار مواصلات مسجّل حاليًا بالتطبيق.'
+            : 'من أفضل خيارات المواصلات بالمدينة: ${top.nameAr} (${top.rating}⭐).',
+        textEn: top == null
+            ? 'No transport option is registered in the app right now.'
+            : 'One of the best transport options in the city: ${top.nameEn} (${top.rating}⭐).',
         isUser: false,
         place: top,
       );
@@ -249,8 +271,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     if (has(['فعالية', 'فعاليات', 'مهرجان', 'حدث'], ['event', 'festival'])) {
       final ev = _nextEvent();
       return ChatMessage(
-        textAr: 'أقرب فعالية قادمة بالمدينة:',
-        textEn: 'The nearest upcoming event in the city:',
+        textAr: ev == null
+            ? 'ما في فعاليات قادمة مسجّلة حاليًا بالتطبيق.'
+            : 'أقرب فعالية قادمة: "${ev.titleAr}" بـ${ev.venueAr} يوم ${ev.day} ${ev.monthAr}.',
+        textEn: ev == null
+            ? 'There are no upcoming events registered in the app right now.'
+            : 'The nearest upcoming event: "${ev.titleEn}" at ${ev.venueEn} on ${ev.day} ${ev.monthEn}.',
         isUser: false,
         event: ev,
       );
@@ -281,11 +307,17 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       ['مساعدة', 'ماذا تفعل', 'شو تقدر', 'قدراتك'],
       ['help', 'what can you do', 'capabilities'],
     )) {
+      final restaurantCount = allPlaces.where((p) => p.categoryKey == 'restaurant').length;
+      final hotelCount = allPlaces.where((p) => p.categoryKey == 'hotel').length;
+      final attractionCount = allPlaces.where((p) => p.categoryKey == 'attraction').length;
+      final eventCount = _liveEvents.length;
       return ChatMessage(
         textAr:
-            'بقدر أساعدك بـ: اقتراح مطاعم وفنادق ومعالم سياحية، إيجاد أقرب صيدلية أو مركز صحي، إخبارك بالفعاليات القادمة، وإرشادك لأفضل أماكن التسوق والمواصلات — كل هذا مبني على بيانات حقيقية داخل التطبيق.',
+            'بقدر أساعدك بـ: اقتراح مطاعم وفنادق ومعالم سياحية، إيجاد أقرب صيدلية أو مركز صحي، إخبارك بالفعاليات القادمة، وإرشادك لأفضل أماكن التسوق والمواصلات — كل هذا مبني على بيانات حقيقية داخل التطبيق '
+            '(حاليًا: $restaurantCount مطعم، $hotelCount فندق، $attractionCount معلم سياحي، $eventCount فعالية قادمة).',
         textEn:
-            'I can help you with: recommending restaurants, hotels, and landmarks, finding the nearest pharmacy or health center, telling you about upcoming events, and guiding you to the best shopping and transport spots — all based on real data inside the app.',
+            'I can help you with: recommending restaurants, hotels, and landmarks, finding the nearest pharmacy or health center, telling you about upcoming events, and guiding you to the best shopping and transport spots — all based on real data inside the app '
+            '(currently: $restaurantCount restaurants, $hotelCount hotels, $attractionCount landmarks, $eventCount upcoming events).',
         isUser: false,
       );
     }

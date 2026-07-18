@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
@@ -14,10 +15,13 @@ import '../places/all_places_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import '../../services/smart_search_service.dart';
+import '../../services/search_log_service.dart';
 
-/// شاشة استكشاف عامة: بحث سريع + كل التصنيفات + أفضل الأماكن تقييمًا بالمدينة.
+/// شاشة استكشاف عامة: بحث ذكي + كل التصنيفات + أفضل الأماكن تقييمًا بالمدينة.
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  final bool autofocusSearch;
+  const ExploreScreen({super.key, this.autofocusSearch = false});
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -26,11 +30,78 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   String searchQuery = '';
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  Timer? _searchLogDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.autofocusSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _searchFocusNode.requestFocus();
+      });
+    }
+  }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _searchLogDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => searchQuery = value);
+    _searchLogDebounce?.cancel();
+    _searchLogDebounce = Timer(const Duration(milliseconds: 800), () {
+      SearchLogService.instance.logSearch(value);
+    });
+  }
+
+  void _applyPopularSearch(String term) {
+    _searchController.text = term;
+    _onSearchChanged(term);
+  }
+
+  Widget _filterChip(AppState app, (String, String) label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        app.isArabic ? label.$1 : label.$2,
+        style: AppTypography.caption(AppColors.primary),
+      ),
+    );
+  }
+
+  Widget _popularSearchChip(AppState app, String term) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _applyPopularSearch(term),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark2,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: AppColors.borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.trending_up_rounded, size: 12, color: AppColors.textGrey),
+            SizedBox(width: 4),
+            Text(term, style: AppTypography.caption(AppColors.textWhite)),
+          ],
+        ),
+      ),
+    );
   }
 
   late final List<Map<String, dynamic>> _categories = [
@@ -128,16 +199,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
     },
   ];
 
-  List<UniversalPlace> get _searchResults {
-    if (searchQuery.isEmpty) return [];
-    return allPlaces
-        .where(
-          (p) =>
-              p.nameAr.contains(searchQuery) ||
-              p.nameEn.toLowerCase().contains(searchQuery.toLowerCase()),
-        )
-        .toList();
+  SmartSearchResult get _searchResult {
+    if (searchQuery.isEmpty) {
+      return const SmartSearchResult(places: [], intent: SearchIntent());
+    }
+    return smartSearch(searchQuery, allPlaces);
   }
+
+  List<String> get _popularSearches => SearchLogService.instance.getTopSearchTerms(limit: 8);
 
   List<UniversalPlace> get _topRated {
     final list = List.of(allPlaces)
@@ -151,7 +220,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
-        final results = _searchResults;
+        final searchResult = _searchResult;
+        final results = searchResult.places;
+        final intentChips = searchResult.intent.describe();
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Scaffold(
@@ -249,8 +320,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   SizedBox(width: 10),
                                   Expanded(
                                     child: TextField(
-                                      onChanged: (v) =>
-                                          setState(() => searchQuery = v),
+                                      controller: _searchController,
+                                      focusNode: _searchFocusNode,
+                                      onChanged: _onSearchChanged,
                                       style: AppTypography.body(
                                         AppColors.textWhite,
                                       ),
@@ -258,8 +330,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                         isCollapsed: true,
                                         border: InputBorder.none,
                                         hintText: app.t(
-                                          'ابحث عن مكان، مطعم، فندق، معلم...',
-                                          'Search for a place, restaurant, hotel...',
+                                          'جرّبي: "أفضل مطاعم"، "صيدلية 24 ساعة"...',
+                                          'Try: "best restaurants", "24 hour pharmacy"...',
                                         ),
                                         hintStyle: AppTypography.body(
                                           AppColors.textGrey,
@@ -279,6 +351,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   AppColors.textWhite,
                                 ).copyWith(fontSize: 16),
                               ),
+                              if (intentChips.isNotEmpty) ...[
+                                SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: intentChips
+                                      .map((c) => _filterChip(app, c))
+                                      .toList(),
+                                ),
+                              ],
                               SizedBox(height: 12),
                               if (results.isEmpty)
                                 Padding(
@@ -300,6 +382,24 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                   (p) => _placeRow(context, app, p),
                                 ),
                             ] else ...[
+                              if (_popularSearches.isNotEmpty) ...[
+                                SizedBox(height: 20),
+                                Text(
+                                  app.t('عمليات بحث رائجة', 'Popular Searches'),
+                                  textDirection: app.dir,
+                                  style: AppTypography.headline(
+                                    AppColors.textWhite,
+                                  ).copyWith(fontSize: 16),
+                                ),
+                                SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: _popularSearches
+                                      .map((t) => _popularSearchChip(app, t))
+                                      .toList(),
+                                ),
+                              ],
                               SizedBox(height: 24),
                               Text(
                                 app.t('التصنيفات', 'Categories'),

@@ -5,6 +5,7 @@ import '../map/map_screen.dart';
 import '../../widgets/themed_image.dart';
 import '../info/contact_us_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../services/recent_activity_service.dart';
 
 /// شاشة تفاصيل عامة تُستخدم لأي كرت (مكان مفضل، خبر، فعالية...) عند الضغط عليه.
 /// كل الحقول اختيارية ما عدا العنوان، فتقدر تستخدمها لأي نوع محتوى.
@@ -44,7 +45,9 @@ class DetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    return ListenableBuilder(
+    return _ViewTracker(
+      nameEn: titleEn,
+      child: ListenableBuilder(
       listenable: app,
       builder: (context, _) {
         final title = app.isArabic ? titleAr : titleEn;
@@ -330,6 +333,30 @@ class DetailScreen extends StatelessWidget {
           ),
         );
       },
+      ),
     );
   }
+}
+
+/// يسجّل "مشاهدة" للمكان مرة وحدة فقط لما الشاشة تُفتح (initState)، بدل ما
+/// يتكرر مع كل rebuild (تبديل الثيم/اللغة مثلًا). نقطة تتبّع مركزية وحيدة —
+/// كل شاشات التطبيق بتفتح DetailScreen، فمفيش داعي لتعديل أي مكان تاني.
+class _ViewTracker extends StatefulWidget {
+  final String nameEn;
+  final Widget child;
+  const _ViewTracker({required this.nameEn, required this.child});
+
+  @override
+  State<_ViewTracker> createState() => _ViewTrackerState();
+}
+
+class _ViewTrackerState extends State<_ViewTracker> {
+  @override
+  void initState() {
+    super.initState();
+    RecentActivityService.instance.recordView(widget.nameEn);
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
