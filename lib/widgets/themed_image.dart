@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../services/unsplash_service.dart';
-import '../services/wikimedia_service.dart';
+import '../services/api_service.dart';
 
 /// يفتح الصورة بحجم كامل مع إمكانية التكبير/التصغير باللمس، ويُغلق بالضغط
 /// على الخلفية أو زر الإغلاق. استخدميها بأي مكان عندك فيه ThemedImage رئيسية
@@ -12,6 +11,7 @@ void showImageZoom(
   required String fallbackSeed,
   String? customImageBase64,
   String? localAsset,
+  String? serverImageUrl,
   IconData fallbackIcon = Icons.image,
   Color fallbackColor = const Color(0xFF6C5CE7),
 }) {
@@ -26,6 +26,7 @@ void showImageZoom(
           fallbackSeed: fallbackSeed,
           customImageBase64: customImageBase64,
           localAsset: localAsset,
+          serverImageUrl: serverImageUrl,
           fallbackIcon: fallbackIcon,
           fallbackColor: fallbackColor,
         ),
@@ -39,6 +40,7 @@ class _ImageZoomScreen extends StatelessWidget {
   final String fallbackSeed;
   final String? customImageBase64;
   final String? localAsset;
+  final String? serverImageUrl;
   final IconData fallbackIcon;
   final Color fallbackColor;
   const _ImageZoomScreen({
@@ -46,6 +48,7 @@ class _ImageZoomScreen extends StatelessWidget {
     required this.fallbackSeed,
     this.customImageBase64,
     this.localAsset,
+    this.serverImageUrl,
     required this.fallbackIcon,
     required this.fallbackColor,
   });
@@ -73,6 +76,7 @@ class _ImageZoomScreen extends StatelessWidget {
                       height: MediaQuery.sizeOf(context).height,
                       customImageBase64: customImageBase64,
                       localAsset: localAsset,
+                      serverImageUrl: serverImageUrl,
                       fallbackIcon: fallbackIcon,
                       fallbackColor: fallbackColor,
                     ),
@@ -117,6 +121,7 @@ class ThemedImage extends StatefulWidget {
   final Color fallbackColor;
   final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
   final String? localAsset; // مسار صورة محلية جاهزة بالمشروع (assets/...)
+  final String? serverImageUrl; // مسار صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
 
   const ThemedImage({
     super.key,
@@ -128,6 +133,7 @@ class ThemedImage extends StatefulWidget {
     this.fallbackColor = const Color(0xFF6C5CE7),
     this.customImageBase64,
     this.localAsset,
+    this.serverImageUrl,
   });
 
   @override
@@ -135,30 +141,6 @@ class ThemedImage extends StatefulWidget {
 }
 
 class _ThemedImageState extends State<ThemedImage> {
-  String? _url;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.customImageBase64 == null || widget.customImageBase64!.isEmpty) {
-      _load();
-    } else {
-      _loading = false;
-    }
-  }
-
-  Future<void> _load() async {
-    var url = await UnsplashService.instance.getPhotoUrl(widget.query);
-    url ??= await WikimediaService.instance.getPhotoUrl(widget.query);
-    if (mounted) {
-      setState(() {
-        _url = url;
-        _loading = false;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     Widget content;
@@ -169,7 +151,7 @@ class _ThemedImageState extends State<ThemedImage> {
         height: widget.height,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => _relatedPhotoFallback(),
+        errorBuilder: (context, error, stack) => _iconFallback(),
       );
     } else if (widget.localAsset != null && widget.localAsset!.isNotEmpty) {
       content = Image.asset(
@@ -177,10 +159,18 @@ class _ThemedImageState extends State<ThemedImage> {
         height: widget.height,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => _networkOrFallback(),
+        errorBuilder: (context, error, stack) => _iconFallback(),
+      );
+    } else if (widget.serverImageUrl != null && widget.serverImageUrl!.isNotEmpty) {
+      content = Image.network(
+        '${ApiService.baseUrl.replaceAll('/api', '')}${widget.serverImageUrl}',
+        height: widget.height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => _iconFallback(),
       );
     } else {
-      content = _networkOrFallback();
+      content = _iconFallback();
     }
 
     if (widget.borderRadius != null) {
@@ -189,75 +179,23 @@ class _ThemedImageState extends State<ThemedImage> {
     return content;
   }
 
-  Widget _networkOrFallback() {
-    if (_loading) {
-      return Container(
-        height: widget.height,
-        color: const Color(0xFF17233B),
-        child: const Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
-    }
-    if (_url != null) {
-      return Image.network(
-        _url!,
-        height: widget.height,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stack) => _relatedPhotoFallback(),
-      );
-    }
-    return _relatedPhotoFallback();
-  }
-
-  /// محاولة أخيرة قبل Picsum: LoremFlickr بكلمة وحيدة فقط (أكثر استقرارًا بكثير من
-  /// عدة كلمات معًا، اللي بيرجّع خطأ من خادمهم بمعظم الأحيان).
-  Widget _relatedPhotoFallback() {
-    final firstWord = widget.query
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9 ]'), '')
-        .trim()
-        .split(RegExp(r'\s+'))
-        .firstWhere((t) => t.isNotEmpty, orElse: () => '');
-    if (firstWord.isEmpty) return _picsumFallback();
-    final lock = widget.fallbackSeed.hashCode.abs() % 100000;
-    final url =
-        'https://loremflickr.com/640/480/${Uri.encodeComponent(firstWord)}?lock=$lock';
-    return Image.network(
-      url,
+  /// ما في محاولة جلب صورة عشوائية من الإنترنت — لو ما رفع الأدمن صورة يدوية
+  /// (أو صورة محلية جاهزة بالمشروع)، بيظهر أيقونة ولون مميز بدل صورة غير مرتبطة.
+  Widget _iconFallback() {
+    return Container(
       height: widget.height,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stack) => _picsumFallback(),
-    );
-  }
-
-  Widget _picsumFallback() {
-    return Image.network(
-      'https://picsum.photos/seed/${Uri.encodeComponent(widget.fallbackSeed)}/500/400',
-      height: widget.height,
-      width: double.infinity,
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stack) => Container(
-        height: widget.height,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              widget.fallbackColor,
-              widget.fallbackColor.withValues(alpha: 0.7),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            widget.fallbackColor,
+            widget.fallbackColor.withValues(alpha: 0.7),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Center(
-          child: Icon(widget.fallbackIcon, color: Colors.white, size: 36),
-        ),
+      ),
+      child: Center(
+        child: Icon(widget.fallbackIcon, color: Colors.white, size: 36),
       ),
     );
   }

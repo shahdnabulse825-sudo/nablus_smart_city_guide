@@ -45,6 +45,8 @@ class RestaurantData {
   final double?
   lat; // إحداثيات دقيقة حدّدها الأدمن بالضغط على الخريطة (لو موجودة)
   final double? lng;
+  final String?
+  serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
 
   RestaurantData({
     required this.nameAr,
@@ -69,6 +71,7 @@ class RestaurantData {
     this.phone = '',
     this.lat,
     this.lng,
+    this.serverImageUrl,
   });
 }
 
@@ -910,6 +913,7 @@ class _RestaurantImage extends StatelessWidget {
       fallbackIcon: data.placeholderIcon,
       fallbackColor: data.placeholderColor,
       customImageBase64: data.customImageBase64,
+      serverImageUrl: data.serverImageUrl,
       localAsset: data.image,
     );
   }
@@ -1055,6 +1059,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           locationAr: r.locationAr,
           locationEn: r.locationEn,
           customImageBase64: r.customImageBase64,
+          serverImageUrl: r.serverImageUrl,
           localAsset: r.image,
           phone: r.phone,
         ),
@@ -2783,6 +2788,7 @@ class _DetailPanel extends StatelessWidget {
                   fallbackIcon: r.placeholderIcon,
                   fallbackColor: r.placeholderColor,
                   customImageBase64: r.customImageBase64,
+                  serverImageUrl: r.serverImageUrl,
                   localAsset: r.image,
                 ),
                 child: _RestaurantImage(data: r, height: 170),

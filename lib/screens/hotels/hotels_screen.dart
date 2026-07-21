@@ -44,6 +44,7 @@ class HotelData {
   final bool isFeatured;
   final double? lat;
   final double? lng;
+  final String? serverImageUrl;
 
   HotelData({
     required this.nameAr,
@@ -72,6 +73,7 @@ class HotelData {
     this.isFeatured = false,
     this.lat,
     this.lng,
+    this.serverImageUrl,
   });
 }
 
@@ -1052,6 +1054,7 @@ class _HotelCard extends StatelessWidget {
                   fallbackIcon: h.placeholderIcon,
                   fallbackColor: h.placeholderColor,
                   customImageBase64: h.customImageBase64,
+                  serverImageUrl: h.serverImageUrl,
                   localAsset: h.image,
                 ),
                 Positioned(
@@ -1236,6 +1239,7 @@ class _HotelListTile extends StatelessWidget {
               fallbackIcon: h.placeholderIcon,
               fallbackColor: h.placeholderColor,
               customImageBase64: h.customImageBase64,
+              serverImageUrl: h.serverImageUrl,
               localAsset: h.image,
             ),
           ),
@@ -1398,6 +1402,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                       customImageBase64: i == 0
                                           ? h.customImageBase64
                                           : null,
+                                      serverImageUrl: i == 0
+                                          ? h.serverImageUrl
+                                          : null,
                                       localAsset: images[i],
                                     ),
                                     child: ThemedImage(
@@ -1408,6 +1415,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                       fallbackColor: h.placeholderColor,
                                       customImageBase64: i == 0
                                           ? h.customImageBase64
+                                          : null,
+                                      serverImageUrl: i == 0
+                                          ? h.serverImageUrl
                                           : null,
                                       localAsset: images[i],
                                     ),
@@ -1421,6 +1431,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                     fallbackIcon: h.placeholderIcon,
                                     fallbackColor: h.placeholderColor,
                                     customImageBase64: h.customImageBase64,
+                                    serverImageUrl: h.serverImageUrl,
                                     localAsset: h.image,
                                   ),
                                   child: ThemedImage(
@@ -1430,6 +1441,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                     fallbackIcon: h.placeholderIcon,
                                     fallbackColor: h.placeholderColor,
                                     customImageBase64: h.customImageBase64,
+                                    serverImageUrl: h.serverImageUrl,
                                     localAsset: h.image,
                                   ),
                                 ),

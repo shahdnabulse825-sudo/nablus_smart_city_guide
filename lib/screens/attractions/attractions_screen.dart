@@ -40,6 +40,7 @@ class AttractionData {
   final bool isFeatured;
   final double? lat;
   final double? lng;
+  final String? serverImageUrl;
 
   AttractionData({
     required this.nameAr,
@@ -62,6 +63,7 @@ class AttractionData {
     this.isFeatured = false,
     this.lat,
     this.lng,
+    this.serverImageUrl,
   });
 }
 
@@ -1442,6 +1444,7 @@ class _AttractionCard extends StatelessWidget {
                   fallbackIcon: a.placeholderIcon,
                   fallbackColor: a.placeholderColor,
                   customImageBase64: a.customImageBase64,
+                  serverImageUrl: a.serverImageUrl,
                   localAsset: a.image,
                 ),
                 Positioned(
@@ -1604,6 +1607,7 @@ class _AttractionListTile extends StatelessWidget {
               fallbackIcon: a.placeholderIcon,
               fallbackColor: a.placeholderColor,
               customImageBase64: a.customImageBase64,
+              serverImageUrl: a.serverImageUrl,
               localAsset: a.image,
             ),
           ),
@@ -1837,6 +1841,7 @@ class AttractionDetailScreen extends StatelessWidget {
                           fallbackIcon: a.placeholderIcon,
                           fallbackColor: a.placeholderColor,
                           customImageBase64: a.customImageBase64,
+                          serverImageUrl: a.serverImageUrl,
                           localAsset: a.image,
                         ),
                         child: ThemedImage(
@@ -1846,6 +1851,7 @@ class AttractionDetailScreen extends StatelessWidget {
                           fallbackIcon: a.placeholderIcon,
                           fallbackColor: a.placeholderColor,
                           customImageBase64: a.customImageBase64,
+                          serverImageUrl: a.serverImageUrl,
                           localAsset: a.image,
                         ),
                       ),
@@ -2871,6 +2877,7 @@ class _TourStopCard extends StatelessWidget {
                 fallbackIcon: a.placeholderIcon,
                 fallbackColor: a.placeholderColor,
                 customImageBase64: a.customImageBase64,
+                serverImageUrl: a.serverImageUrl,
                 localAsset: a.image,
               ),
             ),

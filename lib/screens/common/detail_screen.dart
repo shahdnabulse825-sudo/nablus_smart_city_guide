@@ -23,6 +23,7 @@ class DetailScreen extends StatelessWidget {
   final String? locationEn;
   final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
   final String? localAsset; // مسار صورة محلية جاهزة بالمشروع (assets/...)
+  final String? serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
   final String? phone; // رقم هاتف للاتصال المباشر (اختياري)
 
   const DetailScreen({
@@ -39,6 +40,7 @@ class DetailScreen extends StatelessWidget {
     this.locationEn,
     this.customImageBase64,
     this.localAsset,
+    this.serverImageUrl,
     this.phone,
   });
 
@@ -75,6 +77,7 @@ class DetailScreen extends StatelessWidget {
                           fallbackSeed: titleEn,
                           customImageBase64: customImageBase64,
                           localAsset: localAsset,
+                          serverImageUrl: serverImageUrl,
                         ),
                         child: ThemedImage(
                           query: guessPhotoQuery(subtitleAr ?? '', titleAr),
@@ -82,6 +85,7 @@ class DetailScreen extends StatelessWidget {
                           height: 260,
                           customImageBase64: customImageBase64,
                           localAsset: localAsset,
+                          serverImageUrl: serverImageUrl,
                         ),
                       ),
                       Container(

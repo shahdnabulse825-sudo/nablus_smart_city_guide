@@ -39,6 +39,7 @@ class PharmacyData {
   final bool isFeatured;
   final double? lat;
   final double? lng;
+  final String? serverImageUrl;
 
   PharmacyData({
     required this.nameAr,
@@ -62,6 +63,7 @@ class PharmacyData {
     this.isFeatured = false,
     this.lat,
     this.lng,
+    this.serverImageUrl,
   });
 }
 
@@ -996,6 +998,7 @@ class _PharmacyCard extends StatelessWidget {
                   fallbackIcon: p.placeholderIcon,
                   fallbackColor: p.placeholderColor,
                   customImageBase64: p.customImageBase64,
+                  serverImageUrl: p.serverImageUrl,
                   localAsset: p.image,
                 ),
                 Positioned(
@@ -1189,6 +1192,7 @@ class _PharmacyListTile extends StatelessWidget {
               fallbackIcon: p.placeholderIcon,
               fallbackColor: p.placeholderColor,
               customImageBase64: p.customImageBase64,
+              serverImageUrl: p.serverImageUrl,
               localAsset: p.image,
             ),
           ),
@@ -1319,6 +1323,7 @@ class PharmacyDetailScreen extends StatelessWidget {
                           fallbackIcon: p.placeholderIcon,
                           fallbackColor: p.placeholderColor,
                           customImageBase64: p.customImageBase64,
+                          serverImageUrl: p.serverImageUrl,
                           localAsset: p.image,
                         ),
                         child: ThemedImage(
@@ -1328,6 +1333,7 @@ class PharmacyDetailScreen extends StatelessWidget {
                           fallbackIcon: p.placeholderIcon,
                           fallbackColor: p.placeholderColor,
                           customImageBase64: p.customImageBase64,
+                          serverImageUrl: p.serverImageUrl,
                           localAsset: p.image,
                         ),
                       ),

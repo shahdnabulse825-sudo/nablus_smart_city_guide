@@ -32,6 +32,7 @@ Map<String, dynamic> restaurantToMap(RestaurantData r) => {
   'phone': r.phone,
   'lat': r.lat,
   'lng': r.lng,
+  'serverImageUrl': r.serverImageUrl,
 };
 
 RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
@@ -60,6 +61,7 @@ RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
   phone: m['phone'] ?? '',
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== الفنادق ====================
@@ -90,6 +92,7 @@ Map<String, dynamic> hotelToMap(HotelData h) => {
   'isFeatured': h.isFeatured,
   'lat': h.lat,
   'lng': h.lng,
+  'serverImageUrl': h.serverImageUrl,
 };
 
 HotelData mapToHotel(Map<String, dynamic> m) => HotelData(
@@ -124,6 +127,7 @@ HotelData mapToHotel(Map<String, dynamic> m) => HotelData(
   isFeatured: m['isFeatured'] ?? false,
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== الصيدليات ====================
@@ -149,6 +153,7 @@ Map<String, dynamic> pharmacyToMap(PharmacyData p) => {
   'isFeatured': p.isFeatured,
   'lat': p.lat,
   'lng': p.lng,
+  'serverImageUrl': p.serverImageUrl,
 };
 
 PharmacyData mapToPharmacy(Map<String, dynamic> m) => PharmacyData(
@@ -176,6 +181,7 @@ PharmacyData mapToPharmacy(Map<String, dynamic> m) => PharmacyData(
   isFeatured: m['isFeatured'] ?? false,
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== المعالم السياحية ====================
@@ -200,6 +206,7 @@ Map<String, dynamic> attractionToMap(AttractionData a) => {
   'isFeatured': a.isFeatured,
   'lat': a.lat,
   'lng': a.lng,
+  'serverImageUrl': a.serverImageUrl,
 };
 
 AttractionData mapToAttraction(Map<String, dynamic> m) => AttractionData(
@@ -226,6 +233,7 @@ AttractionData mapToAttraction(Map<String, dynamic> m) => AttractionData(
   isFeatured: m['isFeatured'] ?? false,
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== المراكز التجارية (تسوق) ====================
@@ -250,6 +258,7 @@ Map<String, dynamic> shoppingVenueToMap(ShoppingVenueData v) => {
   'isFeatured': v.isFeatured,
   'lat': v.lat,
   'lng': v.lng,
+  'serverImageUrl': v.serverImageUrl,
 };
 
 ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueData(
@@ -276,6 +285,7 @@ ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueDat
   isFeatured: m['isFeatured'] ?? false,
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== العناصر العامة (سياحة/تسوق/مواصلات/صحة) ====================
@@ -302,6 +312,7 @@ Map<String, dynamic> listingToMap(ListingItem it) => {
   'lat': it.lat,
   'lng': it.lng,
   'subTypeKey': it.subTypeKey,
+  'serverImageUrl': it.serverImageUrl,
 };
 
 ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
@@ -330,6 +341,7 @@ ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   subTypeKey: m['subTypeKey'],
+  serverImageUrl: m['serverImageUrl'],
 );
 
 // ==================== الأخبار ====================

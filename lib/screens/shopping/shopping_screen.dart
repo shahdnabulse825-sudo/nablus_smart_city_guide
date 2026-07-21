@@ -39,6 +39,7 @@ class ShoppingVenueData {
   final bool isFeatured;
   final double? lat;
   final double? lng;
+  final String? serverImageUrl;
 
   ShoppingVenueData({
     required this.nameAr,
@@ -61,6 +62,7 @@ class ShoppingVenueData {
     this.isFeatured = false,
     this.lat,
     this.lng,
+    this.serverImageUrl,
   });
 }
 
@@ -1066,7 +1068,7 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                             GridView.builder(
                               shrinkWrap: true,
                               physics: NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
+                              itemCount: _paged.length,
                               gridDelegate:
                                   SliverGridDelegateWithFixedCrossAxisCount(
                                     crossAxisCount: responsiveGridColumns(
@@ -1222,6 +1224,7 @@ class _ShoppingVenueCard extends StatelessWidget {
                   fallbackIcon: v.placeholderIcon,
                   fallbackColor: v.placeholderColor,
                   customImageBase64: v.customImageBase64,
+                  serverImageUrl: v.serverImageUrl,
                   localAsset: v.image,
                 ),
                 Positioned(
@@ -1384,6 +1387,7 @@ class _ShoppingVenueListTile extends StatelessWidget {
               fallbackIcon: v.placeholderIcon,
               fallbackColor: v.placeholderColor,
               customImageBase64: v.customImageBase64,
+              serverImageUrl: v.serverImageUrl,
               localAsset: v.image,
             ),
           ),
@@ -1506,6 +1510,7 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                           fallbackIcon: v.placeholderIcon,
                           fallbackColor: v.placeholderColor,
                           customImageBase64: v.customImageBase64,
+                          serverImageUrl: v.serverImageUrl,
                           localAsset: v.image,
                         ),
                         child: ThemedImage(
@@ -1515,6 +1520,7 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                           fallbackIcon: v.placeholderIcon,
                           fallbackColor: v.placeholderColor,
                           customImageBase64: v.customImageBase64,
+                          serverImageUrl: v.serverImageUrl,
                           localAsset: v.image,
                         ),
                       ),

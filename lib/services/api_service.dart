@@ -228,7 +228,10 @@ class ApiService {
     }
   }
 
-  static Future<http.StreamedResponse?> _sendMultipart(
+  /// بيرجّع كود حالة HTTP الحقيقي لو وصل رد من السيرفر (حتى لو فشل، مثل 401/500)،
+  /// أو -1 لو فشل الاتصال نفسه (سيرفر مقفول/لا يوجد إنترنت) — حتى نقدر نميّز بلوحة
+  /// الأدمن بين "الجلسة منتهية" و"السيرفر مش شغال" بدل رسالة عامة واحدة مضلّلة.
+  static Future<int> _sendMultipart(
     String method,
     String url,
     String token,
@@ -260,17 +263,16 @@ class ApiService {
       final streamed = await request.send().timeout(
         const Duration(seconds: 20),
       );
-      if (streamed.statusCode < 200 || streamed.statusCode >= 300) return null;
-      return streamed;
+      return streamed.statusCode;
     } catch (_) {
-      return null;
+      return -1;
     }
   }
 
   /// يضيف عنصر جديد لقسم [boxName]. [fields] خريطة الحقول النصية/الرقمية (قوائم
-  /// زي tags بتنبعت تلقائيًا كنص مفصول بفواصل). يرجّع true لو نجح الحفظ فعليًا
-  /// بقاعدة البيانات.
-  static Future<bool> createItem(
+  /// زي tags بتنبعت تلقائيًا كنص مفصول بفواصل). يرجّع كود حالة HTTP (201 لو نجح)،
+  /// أو -1 لو فشل الاتصال بالسيرفر نفسه.
+  static Future<int> createItem(
     String token,
     String boxName,
     Map<String, dynamic> fields, {
@@ -280,7 +282,7 @@ class ApiService {
     final path = _apiPathFor(boxName);
     final f = Map<String, dynamic>.from(fields);
     if (path == 'listings') f['category'] = boxName;
-    final res = await _sendMultipart(
+    return _sendMultipart(
       'POST',
       '$baseUrl/$path',
       token,
@@ -288,10 +290,9 @@ class ApiService {
       imageBytes: imageBytes,
       imageFilename: imageFilename,
     );
-    return res != null;
   }
 
-  static Future<bool> updateItem(
+  static Future<int> updateItem(
     String token,
     String boxName,
     String apiId,
@@ -302,7 +303,7 @@ class ApiService {
     final path = _apiPathFor(boxName);
     final f = Map<String, dynamic>.from(fields);
     if (path == 'listings') f['category'] = boxName;
-    final res = await _sendMultipart(
+    return _sendMultipart(
       'PUT',
       '$baseUrl/$path/$apiId',
       token,
@@ -310,7 +311,6 @@ class ApiService {
       imageBytes: imageBytes,
       imageFilename: imageFilename,
     );
-    return res != null;
   }
 
   static Future<bool> deleteItem(

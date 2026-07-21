@@ -24,6 +24,7 @@ class ListingItem {
   final double? lat; // إحداثيات دقيقة حقيقية (لو موجودة) بدل التقريب حسب الحي
   final double? lng;
   final String? subTypeKey; // مفتاح التصنيف الفرعي (مثلاً taxiOffices/busStations) لشاشات الاختيار الفرعي
+  final String? serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
 
   ListingItem({
     required this.nameAr,
@@ -48,6 +49,7 @@ class ListingItem {
     this.lat,
     this.lng,
     this.subTypeKey,
+    this.serverImageUrl,
   });
 }
 

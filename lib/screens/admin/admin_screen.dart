@@ -492,6 +492,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.red,
       'schema': AdminSchema.restaurant,
       'photoQuery': 'restaurant food table Nablus',
+      'localAsset': 'assets/images/category_icons/restaurants.jpg',
     },
     {
       'boxName': 'hotels',
@@ -501,6 +502,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.purple,
       'schema': AdminSchema.hotel,
       'photoQuery': 'hotel room bed Nablus',
+      'localAsset': 'assets/images/category_icons/hotels.jpg',
     },
     {
       'boxName': 'attractions',
@@ -510,6 +512,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.gold,
       'schema': AdminSchema.attraction,
       'photoQuery': 'landmark old city alley Nablus',
+      'localAsset': 'assets/images/category_icons/attractions.jpg',
     },
     {
       'boxName': 'shopping',
@@ -519,6 +522,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.primary,
       'schema': AdminSchema.shoppingVenue,
       'photoQuery': 'market shopping bags Nablus',
+      'localAsset': 'assets/images/category_icons/shopping.avif',
     },
     {
       'boxName': 'transport',
@@ -528,6 +532,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
       'photoQuery': 'bus station transport Nablus',
+      'localAsset': 'assets/images/category_icons/transport.png',
     },
     {
       'boxName': 'health',
@@ -537,6 +542,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
       'photoQuery': 'hospital medical cross Nablus',
+      'localAsset': 'assets/images/category_icons/health.png',
     },
     {
       'boxName': 'pharmacies',
@@ -546,6 +552,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.primary,
       'schema': AdminSchema.pharmacy,
       'photoQuery': 'pharmacy medicine shelves Nablus',
+      'localAsset': 'assets/images/category_icons/pharmacies.png',
     },
     {
       'boxName': 'education',
@@ -564,6 +571,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.teal,
       'schema': AdminSchema.listing,
       'photoQuery': 'bank building Nablus',
+      'localAsset': 'assets/images/category_icons/banks.jpg',
     },
     {
       'boxName': 'entertainment',
@@ -573,6 +581,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.red,
       'schema': AdminSchema.listing,
       'photoQuery': 'entertainment amusement park Nablus',
+      'localAsset': 'assets/images/category_icons/entertainment.webp',
     },
     {
       'boxName': 'government',
@@ -582,6 +591,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.gold,
       'schema': AdminSchema.listing,
       'photoQuery': 'government building Nablus',
+      'localAsset': 'assets/images/category_icons/government.png',
     },
     {
       'boxName': 'news',
@@ -591,6 +601,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.primary,
       'schema': AdminSchema.news,
       'photoQuery': 'Nablus panorama',
+      'localAsset': 'assets/images/category_icons/news.jpg',
     },
     {
       'boxName': 'events',
@@ -600,6 +611,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'color': AppColors.teal,
       'schema': AdminSchema.events,
       'photoQuery': 'street festival crowd',
+      'localAsset': 'assets/images/category_icons/events.webp',
     },
   ];
 
@@ -624,6 +636,80 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _checkServer() async {
     final ok = await ApiService.isServerReachable();
     if (mounted) setState(() => _serverOk = ok);
+  }
+
+  bool _syncingAll = false;
+
+  /// بينشئ على السيرفر أي عنصر موجود محليًا بس (عليه أيقونة الغيمة المشطوبة —
+  /// apiId فاضي) بكل الأقسام دفعة وحدة، حتى يصير الكل متزامن ومقدور تعديله
+  /// بشكل صحيح (تحديث حقيقي مش نسخة جديدة كل مرة).
+  Future<void> _syncAllLocalToServer(BuildContext context) async {
+    final app = AppState.instance;
+    final token = AuthService.instance.adminToken;
+    if (token == null) {
+      _showSnack(
+        context,
+        app.t(
+          'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+          'Session expired — please log in as admin again',
+        ),
+      );
+      return;
+    }
+    setState(() => _syncingAll = true);
+    int created = 0;
+    int failed = 0;
+    for (final s in _sections) {
+      final boxName = s['boxName'] as String;
+      // نجيب أحدث نسخة من السيرفر أول شي حتى ما ننشئ عنصر موجود أصلًا بس
+      // بأسماء مختلفة شوي (نفس منطق _refresh).
+      await ApiService.syncBox(boxName);
+      final items = LocalDbService.instance.getAll(boxName);
+      for (final entry in items) {
+        final apiId = entry.value['apiId'] as String?;
+        if (apiId != null) continue; // متزامن أصلًا
+        final fields = Map<String, dynamic>.from(entry.value)
+          ..remove('apiId')
+          ..remove('serverImageUrl')
+          ..remove('customImageBase64')
+          ..remove('image')
+          ..remove('lat')
+          ..remove('lng')
+          ..remove('subTypeKey');
+        final status = await ApiService.createItem(token, boxName, fields);
+        if (status >= 200 && status < 300) {
+          created++;
+        } else {
+          failed++;
+        }
+      }
+      // نعيد المزامنة حتى العناصر يلي انضافت هلأ تاخد apiId الحقيقي محليًا
+      await ApiService.syncBox(boxName);
+    }
+    if (!mounted) return;
+    setState(() {
+      _syncingAll = false;
+      _serverOk = true;
+    });
+    if (context.mounted) {
+      _showSnack(
+        context,
+        app.t(
+          'تمت المزامنة: أُضيف $created عنصر جديد للسيرفر${failed > 0 ? ' (فشل $failed)' : ''}',
+          'Sync complete: $created new items added to the server${failed > 0 ? ' ($failed failed)' : ''}',
+        ),
+        isError: failed > 0,
+      );
+    }
+  }
+
+  void _showSnack(BuildContext context, String message, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.red : AppColors.teal,
+      ),
+    );
   }
 
   int _countFor(String boxName) =>
@@ -884,6 +970,48 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                 ),
                               ],
                             ),
+                            SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _syncingAll
+                                    ? null
+                                    : () => _syncAllLocalToServer(context),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: AppColors.borderColor),
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                                  ),
+                                ),
+                                icon: _syncingAll
+                                    ? SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.primary,
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.cloud_upload_rounded,
+                                        size: 16,
+                                        color: AppColors.primary,
+                                      ),
+                                label: Text(
+                                  _syncingAll
+                                      ? app.t(
+                                          'جارِ المزامنة...',
+                                          'Syncing...',
+                                        )
+                                      : app.t(
+                                          'مزامنة كل العناصر المحلية مع السيرفر',
+                                          'Sync all local-only items to the server',
+                                        ),
+                                  style: TextStyle(color: AppColors.textWhite),
+                                ),
+                              ),
+                            ),
                             SizedBox(height: 24),
                             Container(
                               height: 44,
@@ -1066,6 +1194,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                         children: [
                                           ThemedImage(
                                             query: s['photoQuery'] as String,
+                                            localAsset: s['localAsset'] as String?,
                                             fallbackSeed:
                                                 s['boxName'] as String,
                                             height: double.infinity,
@@ -1457,7 +1586,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
       return;
     }
     setState(() => _saving = true);
-    final ok = existingApiId != null
+    final status = existingApiId != null
         ? await ApiService.updateItem(
             token,
             widget.boxName,
@@ -1475,13 +1604,30 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
           );
     if (!mounted) return;
     setState(() => _saving = false);
-    if (!ok) {
-      _showMessage(
-        app.t(
-          'فشل الحفظ — تأكدي إنه السيرفر شغال',
-          'Save failed — make sure the server is running',
-        ),
-      );
+    if (status < 200 || status >= 300) {
+      if (status == 401 || status == 403) {
+        AuthService.instance.adminToken = null;
+        _showMessage(
+          app.t(
+            'انتهت جلسة الدخول — سجّلي خروج ودخول أدمن من جديد',
+            'Session expired — please log out and log back in as admin',
+          ),
+        );
+      } else if (status == -1) {
+        _showMessage(
+          app.t(
+            'تعذّر الوصول للسيرفر — تأكدي إنه شغال (npm run dev)',
+            'Could not reach the server — make sure it is running (npm run dev)',
+          ),
+        );
+      } else {
+        _showMessage(
+          app.t(
+            'فشل الحفظ — خطأ من السيرفر (كود $status)',
+            'Save failed — server error (code $status)',
+          ),
+        );
+      }
       return;
     }
     _showMessage(app.t('تم الحفظ بنجاح', 'Saved successfully'), isError: false);

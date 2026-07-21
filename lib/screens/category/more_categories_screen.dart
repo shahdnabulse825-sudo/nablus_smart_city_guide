@@ -32,6 +32,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'subtitleAr': 'البنوك ومحلات الصرافة',
       'subtitleEn': 'Banks and currency exchange shops',
       'photoQuery': 'bank building Nablus',
+      'localAsset': 'assets/images/category_icons/banks.jpg',
     },
     {
       'labelAr': 'ترفيه',
@@ -43,6 +44,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'subtitleAr': 'أماكن الترفيه والتسلية في المدينة',
       'subtitleEn': 'Entertainment and fun spots in the city',
       'photoQuery': 'entertainment amusement park Nablus',
+      'localAsset': 'assets/images/category_icons/entertainment.webp',
     },
     {
       'labelAr': 'خدمات حكومية',
@@ -54,6 +56,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'subtitleAr': 'الدوائر الرسمية والخدمات الحكومية',
       'subtitleEn': 'Official departments and government services',
       'photoQuery': 'government building Nablus',
+      'localAsset': 'assets/images/category_icons/government.png',
     },
   ];
 
@@ -138,6 +141,7 @@ class MoreCategoriesScreen extends StatelessWidget {
                               children: [
                                 ThemedImage(
                                   query: item['photoQuery'] as String,
+                                  localAsset: item['localAsset'] as String?,
                                   fallbackSeed: item['boxName'] as String,
                                   height: double.infinity,
                                   fallbackIcon: item['icon'],

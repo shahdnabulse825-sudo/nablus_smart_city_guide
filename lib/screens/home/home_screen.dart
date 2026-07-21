@@ -1501,6 +1501,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.restaurant_rounded,
       'color': AppColors.red,
       'photoQuery': 'restaurant food table Nablus',
+      'localAsset': 'assets/images/category_icons/restaurants.jpg',
     },
     {
       'labelAr': 'فنادق',
@@ -1508,6 +1509,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.bed_rounded,
       'color': AppColors.purple,
       'photoQuery': 'hotel room bed Nablus',
+      'localAsset': 'assets/images/category_icons/hotels.jpg',
     },
     {
       'labelAr': 'سياحة ومعالم',
@@ -1515,6 +1517,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.mosque_rounded,
       'color': AppColors.gold,
       'photoQuery': 'landmark old city alley Nablus',
+      'localAsset': 'assets/images/category_icons/attractions.jpg',
     },
     {
       'labelAr': 'تسوق',
@@ -1522,6 +1525,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.shopping_bag_rounded,
       'color': AppColors.primary,
       'photoQuery': 'market shopping bags Nablus',
+      'localAsset': 'assets/images/category_icons/shopping.avif',
     },
     {
       'labelAr': 'مواصلات',
@@ -1529,6 +1533,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.directions_bus_rounded,
       'color': AppColors.teal,
       'photoQuery': 'bus station transport Nablus',
+      'localAsset': 'assets/images/category_icons/transport.png',
     },
     {
       'labelAr': 'صحة',
@@ -1536,6 +1541,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.favorite_rounded,
       'color': AppColors.teal,
       'photoQuery': 'hospital medical cross Nablus',
+      'localAsset': 'assets/images/category_icons/health.png',
     },
     {
       'labelAr': 'صيدليات',
@@ -1543,6 +1549,7 @@ class CategoriesSection extends StatelessWidget {
       'icon': Icons.local_pharmacy_rounded,
       'color': AppColors.primary,
       'photoQuery': 'pharmacy medicine shelves Nablus',
+      'localAsset': 'assets/images/category_icons/pharmacies.png',
     },
     {
       'labelAr': 'المزيد',
@@ -1581,6 +1588,7 @@ class CategoriesSection extends StatelessWidget {
                               icon: item['icon'],
                               color: item['color'],
                               photoQuery: item['photoQuery'],
+                              localAsset: item['localAsset'],
                               onTap: () => _onCategoryTap(
                                 context,
                                 item['labelAr'] as String,
@@ -1601,6 +1609,7 @@ class CategoriesSection extends StatelessWidget {
                             icon: item['icon'],
                             color: item['color'],
                             photoQuery: item['photoQuery'],
+                            localAsset: item['localAsset'],
                             onTap: () => _onCategoryTap(
                               context,
                               item['labelAr'] as String,
@@ -1678,6 +1687,7 @@ class CategoryTile extends StatefulWidget {
   final IconData icon;
   final Color color;
   final String? photoQuery;
+  final String? localAsset; // صورة ثابتة رفعها الأدمن يدويًا — لو موجودة ما تتغيّر ديناميكيًا
   final VoidCallback? onTap;
   const CategoryTile({
     super.key,
@@ -1686,6 +1696,7 @@ class CategoryTile extends StatefulWidget {
     required this.icon,
     required this.color,
     this.photoQuery,
+    this.localAsset,
     this.onTap,
   });
 
@@ -1727,9 +1738,10 @@ class _CategoryTileState extends State<CategoryTile> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (widget.photoQuery != null)
+                    if (widget.localAsset != null || widget.photoQuery != null)
                       ThemedImage(
-                        query: widget.photoQuery!,
+                        query: widget.photoQuery ?? 'nablus palestine city',
+                        localAsset: widget.localAsset,
                         fallbackSeed: widget.labelEn,
                         height: 66,
                         fallbackIcon: widget.icon,
