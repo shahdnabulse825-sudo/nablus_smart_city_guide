@@ -57,10 +57,11 @@ class LocalDbService {
     }
   }
 
-  /// تعبئة/تحديث صندوق بحيث تضل بيانات الكود (seedData) هي المرجع دائمًا:
-  /// - لو العنصر مش موجود (حسب nameEn) بيتضاف.
-  /// - لو موجود بس بيانات قديمة مخزّنة عنده (صورة/هاتف/ساعات...) بتختلف عن الكود، بيتحدّث تلقائيًا.
-  /// هيك تعديلات الكود (زي إضافة صورة أو تصحيح رقم هاتف) بتوصل للتطبيق فورًا بدون مسح بيانات التطبيق يدويًا.
+  /// تعبئة/تحديث صندوق بحيث تنضاف عناصر seedData الجديدة وتتحدّث القديمة منها
+  /// (صورة/هاتف/ساعات...) — بس بدون حذف أي شي موجود بالصندوق وغير موجود بـ seedData.
+  /// هاي مهمة لأنها نفس الدالة اللي بتُستخدم لدمج ردّ الـ API (اللي ممكن يكون جزئي
+  /// أو مؤقتًا أقل من بيانات الكود) — حذف تلقائي هون كان رح يمسح عناصر صحيحة موجودة
+  /// محليًا بس مش راجعة بالردّ الحالي. للحذف الفعلي حسب بيانات الكود استخدمي [syncSeedExact].
   Future<void> syncSeed(String boxName, List<Map<String, dynamic>> seedData) async {
     final box = _box(boxName);
     final existing = getAll(boxName);
@@ -75,6 +76,41 @@ class LocalDbService {
         await box.add(Map<String, dynamic>.from(item));
       } else if (!_mapsEqual(match.value, item)) {
         await box.put(match.key, Map<String, dynamic>.from(item));
+      }
+    }
+  }
+
+  /// زي [syncSeed] بالضبط (إضافة/تحديث)، وبالإضافة إلها بتحذف من الصندوق أي عنصر
+  /// موجود محليًا وغير موجود بـ seedData — تُستخدم فقط لما seedData يكون المصدر
+  /// الكامل والموثوق (قائمة الكود الثابتة بـ category_data.dart)، مش ردّ API جزئي.
+  Future<void> syncSeedExact(
+    String boxName,
+    List<Map<String, dynamic>> seedData,
+  ) async {
+    await syncSeed(boxName, seedData);
+    final box = _box(boxName);
+    final currentNames = {
+      for (final item in seedData)
+        if ((item['nameEn'] as String?)?.isNotEmpty == true) item['nameEn'] as String,
+    };
+    for (final entry in getAll(boxName)) {
+      final nameEn = entry.value['nameEn'] as String?;
+      if (nameEn != null && nameEn.isNotEmpty && !currentNames.contains(nameEn)) {
+        await box.delete(entry.key);
+      }
+    }
+  }
+
+  /// تحذف من صندوق معيّن أي عنصر اسمه (nameEn) موجود بمجموعة أسماء متروكة —
+  /// تُستخدم لتنظيف بيانات وهمية/قديمة استُبدلت بمحتوى حقيقي، بدون التأثير
+  /// على عناصر أخرى (مثل عناصر أضافها الأدمن عبر السيرفر) بعكس [syncSeedExact].
+  Future<void> purgeByName(String boxName, Set<String> namesEn) async {
+    if (namesEn.isEmpty) return;
+    final box = _box(boxName);
+    for (final entry in getAll(boxName)) {
+      final nameEn = entry.value['nameEn'] as String?;
+      if (nameEn != null && namesEn.contains(nameEn)) {
+        await box.delete(entry.key);
       }
     }
   }

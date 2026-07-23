@@ -14,6 +14,9 @@ import '../../widgets/keyboard_scrollable.dart';
 import '../../widgets/pagination_bar.dart';
 import '../../widgets/sort_toggle.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../services/location_service.dart';
+import '../../widgets/nearest_to_me_chip.dart';
 
 // ==================== بيانات الفندق ====================
 class HotelData {
@@ -416,11 +419,43 @@ class _HotelsScreenState extends State<HotelsScreen> {
   static const int perPage = 9;
   static const _priceOrder = {'cheap': 0, 'medium': 1, 'high': 2};
 
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
+
   @override
   void initState() {
     super.initState();
     _loadData();
   }
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(HotelData h) => distanceKmFromUser(
+    _userPosition,
+    nameAr: h.nameAr,
+    nameEn: h.nameEn,
+    locationAr: h.locationAr,
+    locationEn: h.locationEn,
+    lat: h.lat,
+    lng: h.lng,
+  );
 
   @override
   void dispose() {
@@ -452,6 +487,10 @@ class _HotelsScreenState extends State<HotelsScreen> {
       final matchesPrice = priceTier == 'all' || h.priceTier == priceTier;
       return matchesSearch && matchesFilter && matchesRating && matchesPrice;
     }).toList();
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+      return list;
+    }
     if (sortMode == 1) {
       list.sort(
         (a, b) => (_priceOrder[a.priceTier] ?? 1).compareTo(_priceOrder[b.priceTier] ?? 1),
@@ -529,12 +568,30 @@ class _HotelsScreenState extends State<HotelsScreen> {
                             }),
                           ),
                           SizedBox(height: 14),
-                          _QuickFiltersRow(
-                            selected: quickFilter,
-                            onTap: (key) => setState(() {
-                              quickFilter = quickFilter == key ? '' : key;
-                              currentPage = 0;
-                            }),
+                          Row(
+                            children: [
+                              NearestToMeChip(
+                                active: _nearestActive,
+                                loading: _locating,
+                                onTap: () async {
+                                  if (_nearestActive) {
+                                    setState(() => _nearestActive = false);
+                                  } else {
+                                    await _activateNearestToMe();
+                                  }
+                                },
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: _QuickFiltersRow(
+                                  selected: quickFilter,
+                                  onTap: (key) => setState(() {
+                                    quickFilter = quickFilter == key ? '' : key;
+                                    currentPage = 0;
+                                  }),
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 10),
                           _RatingPriceFiltersRow(

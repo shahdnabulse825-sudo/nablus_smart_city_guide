@@ -21,6 +21,7 @@ class MoreCategoriesScreen extends StatelessWidget {
       'subtitleAr': 'الجامعات والمدارس في نابلس',
       'subtitleEn': 'Universities and schools in Nablus',
       'photoQuery': 'university campus Nablus',
+      'localAsset': 'assets/images/education/تعليم.jpeg',
     },
     {
       'labelAr': 'بنوك وصرافة',

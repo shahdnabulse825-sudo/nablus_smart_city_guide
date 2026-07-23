@@ -259,6 +259,8 @@ Map<String, dynamic> shoppingVenueToMap(ShoppingVenueData v) => {
   'lat': v.lat,
   'lng': v.lng,
   'serverImageUrl': v.serverImageUrl,
+  'subCategory': v.subCategory,
+  'website': v.website,
 };
 
 ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueData(
@@ -286,6 +288,8 @@ ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueDat
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   serverImageUrl: m['serverImageUrl'],
+  subCategory: m['subCategory'] ?? '',
+  website: m['website'] ?? '',
 );
 
 // ==================== العناصر العامة (سياحة/تسوق/مواصلات/صحة) ====================

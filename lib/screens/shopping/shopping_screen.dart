@@ -16,6 +16,10 @@ import '../../widgets/keyboard_scrollable.dart';
 import '../../widgets/pagination_bar.dart';
 import '../../widgets/sort_toggle.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:geolocator/geolocator.dart';
+import '../ai_assistant/ai_assistant_screen.dart';
+import '../../services/location_service.dart';
+import '../../widgets/nearest_to_me_chip.dart';
 
 // ==================== بيانات مركز تجاري (مكان حقيقي) ====================
 class ShoppingVenueData {
@@ -40,6 +44,8 @@ class ShoppingVenueData {
   final double? lat;
   final double? lng;
   final String? serverImageUrl;
+  final String subCategory; // fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
+  final String website; // رابط الموقع أو صفحة التواصل الاجتماعي (اختياري)
 
   ShoppingVenueData({
     required this.nameAr,
@@ -63,45 +69,87 @@ class ShoppingVenueData {
     this.lat,
     this.lng,
     this.serverImageUrl,
+    this.subCategory = '',
+    this.website = '',
   });
 }
 
+// فلاتر أقسام المراكز التجارية — تُستخدم بشاشة "المراكز التجارية" لتصفية المحلات.
+const List<(String, String, String, String)> shoppingSubCategories = [
+  ('fashion', '🛍️', 'أزياء', 'Fashion'),
+  ('shoes', '👟', 'أحذية', 'Shoes'),
+  ('electronics', '📱', 'إلكترونيات', 'Electronics'),
+  ('cosmetics', '💄', 'مستحضرات تجميل', 'Cosmetics'),
+  ('jewelry', '💍', 'مجوهرات', 'Jewelry'),
+  ('books', '📚', 'مكتبات', 'Bookstores'),
+  ('entertainment', '🎮', 'ترفيه', 'Entertainment'),
+];
+
+// أسماء عناصر كانت وهمية/تقريبية بجولة سابقة واستُبدلت بمحلات حقيقية موثّقة —
+// تُستخدم فقط لتنظيف أي نسخة محلية قديمة مخزّنة على جهاز المستخدم (انظر
+// [purgeByName] بالأسفل)، وليست جزءًا من البيانات الحالية.
+const Set<String> retiredShoppingVenueNames = {
+  'Rafidia Commercial Complex',
+  'Rafidia Galleria',
+  'Al-Maidan Shopping Center',
+  'Central Vegetable Market',
+  'University Commercial Complex',
+  'Old Textile Market',
+  'Hanna Style Fashion',
+  'Al-Lamsa Elegant Boutique',
+  'Golden Shoes Gallery',
+  'Modern Footwear House',
+  'Modern Electronics Showroom',
+  'Mobile Point',
+  'Beauty & Perfumes Center',
+  'Royal Cosmetics Shop',
+  'Al-Amana Jewelry',
+  'Luxury Gold Gallery',
+  'Al-Furqan Bookstore',
+  'Modern Knowledge Bookstore',
+  'Fun Zone Arcade',
+  'City Indoor Playland',
+  'Ce Line Fashion',
+  'Balena Shoes',
+  'Ahmad Khanfar Telecom',
+  'Assid Telecom',
+  'Hamzawi Cosmetics',
+  'Al-Kharouf Trading',
+  'Mamlakat Al-Otoor',
+  'Al-Nujoom Gallery',
+  'Fetyan Library',
+  'Al-Arabiya Library',
+  'Al-Furqan Library',
+  'Star Toys',
+  'Nablus Mall',
+  'Nablus Gold Souq',
+  'Al-Taj Jewelry',
+};
+
+// كل المحلات بالأسفل حقيقية وموجودة فعليًا بنابلس (تم التحقق من الاسم والموقع
+// ورقم الهاتف حيث توفّر عبر أدلة أعمال فلسطينية: يلو بيجز، شوبدك، نابلس سيتي...
+// رقم الهاتف يُترك فارغًا لو ما انأكد من مصدر موثوق بدل اختلاقه).
 final List<ShoppingVenueData> shoppingVenuesSeedData = [
+  // ---------- مراكز ومجمّعات تجارية معروفة ----------
   ShoppingVenueData(
-    nameAr: 'نابلس مول',
-    nameEn: 'Nablus Mall',
+    nameAr: 'سيتي مول نابلس',
+    nameEn: 'City Mall Nablus',
     typeAr: 'مركز تسوق',
     typeEn: 'Shopping Mall',
-    locationAr: 'شارع رفيديا - نابلس',
-    locationEn: 'Rafidia St. - Nablus',
-    rating: 4.4,
-    reviews: 340,
-    hoursAr: 'يفتح 10ص - 10م',
-    hoursEn: 'Open 10AM - 10PM',
-    aboutAr:
-        'أكبر مركز تسوق بالمدينة يضم محلات أزياء عالمية ومحلية، مطاعم، وصالة ألعاب للأطفال.',
+    locationAr: 'آخر شارع سفيان، خلف بنك فلسطين - نابلس',
+    locationEn: 'End of Sufyan St., behind Palestine Bank - Nablus',
+    rating: 4.5,
+    reviews: 287,
+    hoursAr: 'يفتح 10ص - 11م',
+    hoursEn: 'Open 10AM - 11PM',
+    aboutAr: 'أكبر مول بفلسطين، بعلامات تجارية عالمية، مطاعم، وسينما.',
     aboutEn:
-        'The largest shopping mall in the city, featuring international and local fashion stores, restaurants, and a kids\' game arcade.',
+        'The largest mall in Palestine, with international brands, restaurants, and a cinema.',
+    website: 'https://www.facebook.com/CityMallPS/',
+    image: 'assets/images/shopping/سيتي مول.jpeg',
     placeholderIcon: Icons.shopping_bag,
-    placeholderColor: Color(0xFF3B82F6),
+    placeholderColor: Color(0xFF6C5CE7),
     isFeatured: true,
-  ),
-  ShoppingVenueData(
-    nameAr: 'مجمع رفيديا التجاري',
-    nameEn: 'Rafidia Commercial Complex',
-    typeAr: 'مجمع تجاري',
-    typeEn: 'Commercial Complex',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.3,
-    reviews: 190,
-    hoursAr: 'يفتح 9ص - 9م',
-    hoursEn: 'Open 9AM - 9PM',
-    aboutAr: 'مجمع تجاري حديث يضم محلات إلكترونيات، ملابس، وأجهزة منزلية.',
-    aboutEn:
-        'A modern commercial complex featuring electronics, clothing, and home appliance stores.',
-    placeholderIcon: Icons.store,
-    placeholderColor: Color(0xFFD4A017),
   ),
   ShoppingVenueData(
     nameAr: 'سوق البلدة القديمة',
@@ -120,121 +168,452 @@ final List<ShoppingVenueData> shoppingVenuesSeedData = [
         'A historic market inside the Old City selling spices, Nabulsi sweets, traditional soap, and local handmade products.',
     placeholderIcon: Icons.storefront,
     placeholderColor: Color(0xFFB5651D),
+    image: 'assets/images/shopping/سوق البلدة القديمة1.jpg',
     isFeatured: true,
   ),
+
+  // ---------- 🛍️ أزياء ----------
   ShoppingVenueData(
-    nameAr: 'سيتي مول نابلس',
-    nameEn: 'City Mall Nablus',
-    typeAr: 'مركز تسوق',
-    typeEn: 'Shopping Mall',
-    locationAr: 'شارع سفيان - نابلس',
-    locationEn: 'Sufyan St. - Nablus',
-    rating: 4.5,
-    reviews: 287,
-    hoursAr: 'يفتح 10ص - 11م',
-    hoursEn: 'Open 10AM - 11PM',
-    aboutAr: 'مركز تسوق حديث بعلامات تجارية عالمية، مطاعم، وسينما.',
-    aboutEn:
-        'A modern shopping mall with international brands, restaurants, and a cinema.',
-    placeholderIcon: Icons.shopping_bag,
-    placeholderColor: Color(0xFF6C5CE7),
-    isFeatured: true,
-  ),
-  ShoppingVenueData(
-    nameAr: 'مجمع رفيديا جاليريا',
-    nameEn: 'Rafidia Galleria',
-    typeAr: 'مجمع تجاري',
-    typeEn: 'Commercial Complex',
-    locationAr: 'شارع رفيديا - نابلس',
-    locationEn: 'Rafidia St. - Nablus',
-    rating: 4.2,
-    reviews: 133,
-    hoursAr: 'يفتح 9ص - 10م',
-    hoursEn: 'Open 9AM - 10PM',
-    aboutAr: 'محلات ملابس وأحذية وإكسسوارات لمختلف الأعمار.',
-    aboutEn: 'Clothing, footwear, and accessory stores for all ages.',
-    placeholderIcon: Icons.checkroom,
-    placeholderColor: Color(0xFFEF6F53),
-  ),
-  ShoppingVenueData(
-    nameAr: 'سوق الذهب النابلسي',
-    nameEn: 'Nablus Gold Souq',
-    typeAr: 'سوق مجوهرات',
-    typeEn: 'Jewelry Market',
-    locationAr: 'وسط البلد - نابلس',
-    locationEn: 'City Center - Nablus',
-    rating: 4.6,
-    reviews: 204,
-    hoursAr: 'يفتح 9ص - 8م',
-    hoursEn: 'Open 9AM - 8PM',
-    aboutAr: 'محلات مجوهرات وذهب تقليدية وحديثة بأسعار تنافسية.',
-    aboutEn: 'Traditional and modern gold and jewelry stores at competitive prices.',
-    placeholderIcon: Icons.diamond_outlined,
-    placeholderColor: Color(0xFFFBBF24),
-  ),
-  ShoppingVenueData(
-    nameAr: 'مركز الميدان للتسوق',
-    nameEn: 'Al-Maidan Shopping Center',
-    typeAr: 'مركز تسوق',
-    typeEn: 'Shopping Center',
-    locationAr: 'ميدان الشهداء - نابلس',
-    locationEn: 'Martyrs Square - Nablus',
-    rating: 4.1,
-    reviews: 98,
+    nameAr: 'ريد روز فاشن',
+    nameEn: 'Red Rose Fashion',
+    typeAr: 'محل أزياء نسائية',
+    typeEn: "Women's Fashion Store",
+    locationAr: 'شارع رفيديا، قرب بيتزا العطعوط - نابلس',
+    locationEn: 'Rafidia St., near Pizza Al-Ataout - Nablus',
+    rating: 4.3,
+    reviews: 58,
     hoursAr: 'يفتح 10ص - 9م',
     hoursEn: 'Open 10AM - 9PM',
-    aboutAr: 'محلات متنوعة للإلكترونيات والهدايا وسط المدينة.',
-    aboutEn: 'A variety of electronics and gift shops in the city center.',
-    placeholderIcon: Icons.devices_other,
-    placeholderColor: Color(0xFF14B8A6),
+    aboutAr: 'محل أزياء نسائية معروف على شارع رفيديا الرئيسي بنابلس.',
+    aboutEn: "A well-known women's fashion store on Rafidia's main street in Nablus.",
+    phone: '+970 56 901 1000',
+    website: 'https://www.facebook.com/RedRoseNablus/',
+    image: 'assets/images/shopping/ريد روز.jpg',
+    placeholderIcon: Icons.checkroom,
+    placeholderColor: Color(0xFFEF6F53),
+    subCategory: 'fashion',
   ),
   ShoppingVenueData(
-    nameAr: 'سوق الخضار المركزي',
-    nameEn: 'Central Vegetable Market',
-    typeAr: 'سوق شعبي',
-    typeEn: 'Traditional Market',
-    locationAr: 'البلدة القديمة - نابلس',
-    locationEn: 'Old City - Nablus',
-    rating: 4.4,
-    reviews: 167,
-    hoursAr: 'يفتح 6ص - 6م',
-    hoursEn: 'Open 6AM - 6PM',
-    aboutAr: 'سوق شعبي للخضار والفواكه الطازجة والمنتجات المحلية.',
-    aboutEn: 'A traditional market for fresh produce and local goods.',
-    placeholderIcon: Icons.local_grocery_store,
-    placeholderColor: Color(0xFF22C55E),
-  ),
-  ShoppingVenueData(
-    nameAr: 'مجمع الجامعة التجاري',
-    nameEn: 'University Commercial Complex',
-    typeAr: 'مجمع تجاري',
-    typeEn: 'Commercial Complex',
-    locationAr: 'قرب الجامعة - نابلس',
-    locationEn: 'Near the University - Nablus',
-    rating: 4.0,
-    reviews: 76,
-    hoursAr: 'يفتح 9ص - 11م',
-    hoursEn: 'Open 9AM - 11PM',
-    aboutAr: 'مكتبات، قرطاسية، وكافيهات قريبة من الحرم الجامعي.',
-    aboutEn: 'Bookstores, stationery shops, and cafes near the university campus.',
-    placeholderIcon: Icons.school,
-    placeholderColor: Color(0xFF3B82F6),
-  ),
-  ShoppingVenueData(
-    nameAr: 'سوق الأقمشة القديم',
-    nameEn: 'Old Textile Market',
-    typeAr: 'سوق شعبي',
-    typeEn: 'Traditional Market',
-    locationAr: 'البلدة القديمة - نابلس',
-    locationEn: 'Old City - Nablus',
+    nameAr: 'السيد للألبسة',
+    nameEn: 'Al-Sayed Fashion',
+    typeAr: 'محل أزياء رجالية ونسائية',
+    typeEn: "Men's & Women's Fashion Store",
+    locationAr: 'شارع سفيان، عمارة الشنار - نابلس',
+    locationEn: 'Sufyan St., Al-Shannar Building - Nablus',
     rating: 4.3,
-    reviews: 89,
+    reviews: 40,
+    hoursAr: 'يفتح 10ص - 9م',
+    hoursEn: 'Open 10AM - 9PM',
+    aboutAr: 'محل أزياء رجالية ونسائية، بفرعين: شارع سفيان (عمارة الشنار) ورفيديا قرب مسجد الروضة.',
+    aboutEn: "Men's and women's fashion store, with two branches: Sufyan St. (Al-Shannar Building) and Rafidia near Al-Rawda Mosque.",
+    website: 'https://www.facebook.com/ALSayedfashion/',
+    image: 'assets/images/shopping/السيد.jpg',
+    placeholderIcon: Icons.checkroom,
+    placeholderColor: Color(0xFF6C5CE7),
+    subCategory: 'fashion',
+  ),
+  ShoppingVenueData(
+    nameAr: 'شوك فاشن',
+    nameEn: 'SOK Fashion',
+    typeAr: 'محل أزياء نسائية',
+    typeEn: "Women's Fashion Store",
+    locationAr: 'رفيديا - رمزون البدوي - نابلس',
+    locationEn: 'Rafidia - Ramzon Al-Badawi - Nablus',
+    rating: 4.1,
+    reviews: 27,
+    hoursAr: 'يفتح 10ص - 9م',
+    hoursEn: 'Open 10AM - 9PM',
+    aboutAr: 'محل أزياء نسائية عصرية بمنطقة رفيديا، مع توصيل لعدة مدن.',
+    aboutEn: "A modern women's fashion store in Rafidia, with delivery to several cities.",
+    website: 'https://www.instagram.com/sok_fashion_ps/',
+    image: 'assets/images/shopping/شوك.jpg',
+    placeholderIcon: Icons.checkroom,
+    placeholderColor: Color(0xFFD4A017),
+    subCategory: 'fashion',
+  ),
+
+  // ---------- 👟 أحذية ----------
+  ShoppingVenueData(
+    nameAr: 'ميلانو للأحذية والحقائب',
+    nameEn: 'Milano Shoes',
+    typeAr: 'محل أحذية وحقائب',
+    typeEn: 'Shoes & Bags Store',
+    locationAr: 'شارع غرناطة، قرب المسلماني للمكسرات - نابلس',
+    locationEn: 'Gharnatah St., near Al-Muslimani Nuts - Nablus',
+    rating: 4.2,
+    reviews: 48,
+    hoursAr: 'يفتح 10ص - 9م',
+    hoursEn: 'Open 10AM - 9PM',
+    aboutAr: 'محل أحذية وحقائب على شارع غرناطة بنابلس، بخبرة تمتد لأكثر من 60 عامًا.',
+    aboutEn: 'A shoes and bags store on Gharnatah St. in Nablus, with over 60 years of experience.',
+    website: 'https://www.facebook.com/milano.shoes.nablus0/',
+    image: 'assets/images/shopping/milano.jpg',
+    placeholderIcon: Icons.directions_walk,
+    placeholderColor: Color(0xFF3B82F6),
+    subCategory: 'shoes',
+  ),
+  ShoppingVenueData(
+    nameAr: 'لايكي شوز',
+    nameEn: 'Layki Shoes',
+    typeAr: 'محل أحذية طبية',
+    typeEn: 'Medical Shoe Store',
+    locationAr: 'المعاجين، قرب جامعة القدس المفتوحة - نابلس',
+    locationEn: "Al-Ma'ajin, near Al-Quds Open University - Nablus",
+    rating: 4.4,
+    reviews: 45,
     hoursAr: 'يفتح 9ص - 7م',
     hoursEn: 'Open 9AM - 7PM',
-    aboutAr: 'أقمشة تقليدية وحديثة ومستلزمات الخياطة.',
-    aboutEn: 'Traditional and modern fabrics and sewing supplies.',
-    placeholderIcon: Icons.content_cut,
+    aboutAr: 'أحذية طبية وعادية، فرع نابلس بمنطقة المعاجين.',
+    aboutEn: "Medical and everyday shoes, Nablus branch in the Al-Ma'ajin area.",
+    phone: '+970 56 960 0634',
+    website: 'https://www.laykishoes.ps/',
+    image: 'assets/images/shopping/لايكي.jpg',
+    placeholderIcon: Icons.directions_walk,
+    placeholderColor: Color(0xFF14B8A6),
+    subCategory: 'shoes',
+  ),
+  ShoppingVenueData(
+    nameAr: 'بيبلوس للأحذية والشنط',
+    nameEn: 'Peploes Shoes & Bags',
+    typeAr: 'محل أحذية وشنط',
+    typeEn: 'Shoes & Bags Store',
+    locationAr: 'نابلس، الدوار، عمارة فيضي، دخلة واصف الخياط',
+    locationEn: 'Nablus, Al-Dawwar, Feidi Building, Wassef Al-Khayat entrance',
+    rating: 4.0,
+    reviews: 29,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'أحذية وشنط نسائية ورجالية قرب الدوار بوسط نابلس، لصاحبه تيسير لبادة وأولاده.',
+    aboutEn: "Men's and women's shoes and bags near Al-Dawwar in central Nablus.",
+    phone: '+970 9 237 4824',
+    website: 'https://www.facebook.com/peploes.shoes/',
+    image: 'assets/images/shopping/بيبلوس.jpg',
+    placeholderIcon: Icons.directions_walk,
+    placeholderColor: Color(0xFFEF6F53),
+    subCategory: 'shoes',
+  ),
+  ShoppingVenueData(
+    nameAr: 'جيوكس - بيت الرياضة',
+    nameEn: 'Geox - Sport House',
+    typeAr: 'محل أحذية',
+    typeEn: 'Shoe Store',
+    locationAr: 'شارع حيفا - نابلس',
+    locationEn: 'Haifa St. - Nablus',
+    rating: 4.3,
+    reviews: 22,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'أحذية جيوكس الإيطالية الأصلية، عبر معرض بيت الرياضة على شارع حيفا.',
+    aboutEn: 'Genuine Italian Geox shoes, via the Sport House showroom on Haifa St.',
+    image: 'assets/images/shopping/geox.jpeg',
+    placeholderIcon: Icons.directions_walk,
+    placeholderColor: Color(0xFF22C55E),
+    subCategory: 'shoes',
+  ),
+
+  // ---------- 📱 إلكترونيات ----------
+  ShoppingVenueData(
+    nameAr: 'يا هلا للاتصالات',
+    nameEn: 'Ya Hala Telecom',
+    typeAr: 'محل اتصالات وهواتف',
+    typeEn: 'Telecom & Mobile Store',
+    locationAr: 'شارع الشهداء، قرب المسجد العمري - نابلس',
+    locationEn: 'Al-Shuhada St., near Al-Omari Mosque - Nablus',
+    rating: 4.2,
+    reviews: 33,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'هواتف وخطوط اتصال وإكسسوارات موبايل.',
+    aboutEn: 'Phones, telecom lines, and mobile accessories.',
+    phone: '+970 9 258 4322',
+    image: 'assets/images/shopping/يا هلا.jpg',
+    placeholderIcon: Icons.smartphone,
+    placeholderColor: Color(0xFF3B82F6),
+    subCategory: 'electronics',
+  ),
+  ShoppingVenueData(
+    nameAr: 'أبو زهرة الكترونيك',
+    nameEn: 'Abu Zahra Electronic (AtoZ)',
+    typeAr: 'محل إلكترونيات واتصالات',
+    typeEn: 'Electronics & Telecom Store',
+    locationAr: 'شارع سفيان، عمارة يعيش، الطابق السابع - نابلس',
+    locationEn: 'Sufyan St., Yaeesh Building, 7th Floor - Nablus',
+    rating: 4.5,
+    reviews: 96,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'شركة رائدة بالإلكترونيات والاتصالات بفلسطين، تأسست 1988، بعدة فروع بنابلس ورام الله.',
+    aboutEn: 'A leading electronics and telecom company in Palestine, founded in 1988, with several branches in Nablus and Ramallah.',
+    website: 'https://www.facebook.com/ABU.ZAHRA.ELECTRONICS/',
+    image: 'assets/images/shopping/ابو زهرة الكترونيك.jpg',
+    placeholderIcon: Icons.smartphone,
+    placeholderColor: Color(0xFF22C55E),
+    subCategory: 'electronics',
+  ),
+  ShoppingVenueData(
+    nameAr: 'تكنولاب',
+    nameEn: 'TechnoLab Electronics',
+    typeAr: 'محل قطع إلكترونية وحلول تقنية',
+    typeEn: 'Electronic Components & Tech Solutions',
+    locationAr: 'نابلس',
+    locationEn: 'Nablus',
+    rating: 4.2,
+    reviews: 17,
+    hoursAr: 'يفتح 9ص - 6م',
+    hoursEn: 'Open 9AM - 6PM',
+    aboutAr: 'قطع إلكترونية وحلول تقنية للمشاريع البرمجية والتقنية، وخدمات طباعة ثلاثية الأبعاد.',
+    aboutEn: 'Electronic components and technical solutions for tech projects, plus 3D printing services.',
+    website: 'https://www.facebook.com/technolab.electronics/',
+    image: 'assets/images/shopping/تكنو لاب.jpg',
+    placeholderIcon: Icons.smartphone,
+    placeholderColor: Color(0xFF14B8A6),
+    subCategory: 'electronics',
+  ),
+
+  // ---------- 💄 مستحضرات تجميل ----------
+  ShoppingVenueData(
+    nameAr: 'محلات نبالشي التجارية',
+    nameEn: 'Nibalshi Stores',
+    typeAr: 'محل عطور ومستحضرات تجميل',
+    typeEn: 'Perfumes & Cosmetics Store',
+    locationAr: 'شارع سفيان، سوق الحميدية التجاري - نابلس',
+    locationEn: 'Sufyan St., Al-Hamidiyah Commercial Market - Nablus',
+    rating: 4.4,
+    reviews: 52,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'محلات معروفة بمستحضرات التجميل والعطور ولوازم الصالونات، بعدة فروع بنابلس.',
+    aboutEn: 'A well-known chain for cosmetics, perfumes, and salon supplies, with several branches in Nablus.',
+    phone: '+970 9 233 3202',
+    website: 'https://www.facebook.com/nibalshi/',
+    image: 'assets/images/shopping/نبالشي.jpg',
+    placeholderIcon: Icons.spa,
+    placeholderColor: Color(0xFFEF6F53),
+    subCategory: 'cosmetics',
+  ),
+  ShoppingVenueData(
+    nameAr: 'فلورمار',
+    nameEn: 'Flormar',
+    typeAr: 'محل مستحضرات تجميل',
+    typeEn: 'Cosmetics Store',
+    locationAr: 'سيتي مول نابلس، شارع سفيان - نابلس',
+    locationEn: 'City Mall Nablus, Sufyan St. - Nablus',
+    rating: 4.3,
+    reviews: 35,
+    hoursAr: 'يفتح 10ص - 10م',
+    hoursEn: 'Open 10AM - 10PM',
+    aboutAr: 'ماركة مستحضرات تجميل تركية عالمية، فرع نابلس داخل سيتي مول.',
+    aboutEn: 'A global Turkish cosmetics brand, Nablus branch inside City Mall.',
+    website: 'https://www.instagram.com/flormar_ps/',
+    image: 'assets/images/shopping/flormar.jpeg',
+    placeholderIcon: Icons.face_retouching_natural,
+    placeholderColor: Color(0xFFFBBF24),
+    subCategory: 'cosmetics',
+  ),
+  ShoppingVenueData(
+    nameAr: 'لايف ستايل',
+    nameEn: 'Life Style',
+    typeAr: 'محل عطور ومستحضرات تجميل',
+    typeEn: 'Perfumes & Cosmetics Store',
+    locationAr: 'العنبتاوي، شارع حطين - نابلس',
+    locationEn: 'Al-Anbatawi, Hattin St. - Nablus',
+    rating: 4.2,
+    reviews: 20,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'وكيل معتمد لماركات عطور ومستحضرات تجميل وعناية بالبشرة عالمية بفلسطين.',
+    aboutEn: 'An authorized agent for international perfume, cosmetics, and skincare brands in Palestine.',
+    website: 'https://lifestyle.ps/',
+    image: 'assets/images/shopping/life style.jpg',
+    // إحداثيات دقيقة (مؤكّدة عبر Nominatim: سوبر ماركت العنبتاوي، شارع حطين) —
+    // نفس منطقة "الأنباطاوي" المذكورة كموقع الفرع.
+    lat: 32.2197,
+    lng: 35.2628,
+    placeholderIcon: Icons.spa,
     placeholderColor: Color(0xFFD4A017),
+    subCategory: 'cosmetics',
+  ),
+  ShoppingVenueData(
+    nameAr: 'بيرفيومري سامي الشكعة',
+    nameEn: 'Perfumery Sami',
+    typeAr: 'محل عطور ومستحضرات تجميل',
+    typeEn: 'Perfumes & Cosmetics Store',
+    locationAr: 'شارع رفيديا، مقابل مدخل مبنى الاتصالات - نابلس',
+    locationEn: 'Rafidia St., opposite the telecom building entrance - Nablus',
+    rating: 4.4,
+    reviews: 31,
+    hoursAr: 'يفتح 10ص - 9م',
+    hoursEn: 'Open 10AM - 9PM',
+    aboutAr: 'عطور ومستحضرات تجميل على شارع رفيديا الرئيسي.',
+    aboutEn: "Perfumes and cosmetics on Rafidia's main street.",
+    website: 'https://www.instagram.com/perfumerysami/',
+    image: 'assets/images/shopping/sami perfurem.webp',
+    placeholderIcon: Icons.spa,
+    placeholderColor: Color(0xFF6C5CE7),
+    subCategory: 'cosmetics',
+  ),
+
+  // ---------- 💍 مجوهرات ----------
+  ShoppingVenueData(
+    nameAr: 'مجوهرات حواء',
+    nameEn: 'Hawwa Jewelry',
+    typeAr: 'محل مجوهرات',
+    typeEn: 'Jewelry Store',
+    locationAr: 'الدوار، المركز التجاري - نابلس',
+    locationEn: 'Al-Dawwar, Commercial Center - Nablus',
+    rating: 4.3,
+    reviews: 40,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'ذهب ومجوهرات بالمركز التجاري بنابلس.',
+    aboutEn: 'Gold and jewelry at the Commercial Center in Nablus.',
+    phone: '+970 9 238 6415',
+    website: 'https://www.facebook.com/hawwa.jewelry/',
+    image: 'assets/images/shopping/مجوهرات حوا.jpg',
+    placeholderIcon: Icons.diamond_outlined,
+    placeholderColor: Color(0xFFD4A017),
+    subCategory: 'jewelry',
+  ),
+  ShoppingVenueData(
+    nameAr: 'دايموند سنتر للمجوهرات',
+    nameEn: 'Diamond Center Jewelry',
+    typeAr: 'محل مجوهرات',
+    typeEn: 'Jewelry Store',
+    locationAr: 'سوق الذهب، الدوار، المركز التجاري - نابلس',
+    locationEn: 'Gold Souq, Al-Dawwar, Commercial Center - Nablus',
+    rating: 4.3,
+    reviews: 24,
+    hoursAr: 'يفتح 9ص - 8م',
+    hoursEn: 'Open 9AM - 8PM',
+    aboutAr: 'ذهب ومجوهرات بسوق الذهب النابلسي.',
+    aboutEn: 'Gold and jewelry in the Nablus Gold Souq.',
+    website: 'https://www.instagram.com/diamond_center17/',
+    image: 'assets/images/shopping/iomand.jpg',
+    placeholderIcon: Icons.diamond_outlined,
+    placeholderColor: Color(0xFFB5651D),
+    subCategory: 'jewelry',
+  ),
+
+  // ---------- 📚 مكتبات ----------
+  ShoppingVenueData(
+    nameAr: 'مكتبة النصر - الحجاوي',
+    nameEn: 'An-Nasr - Al-Hijjawi Stationery',
+    typeAr: 'مكتبة وقرطاسية',
+    typeEn: 'Bookstore & Stationery',
+    locationAr: 'المركز التجاري، شارع العدل - نابلس',
+    locationEn: 'Commercial Center, Al-Adel St. - Nablus',
+    rating: 4.4,
+    reviews: 47,
+    hoursAr: 'يفتح 8ص - 7م',
+    hoursEn: 'Open 8AM - 7PM',
+    aboutAr: 'شركة رائدة بتجارة الورق والقرطاسية بفلسطين، تأسست 1935.',
+    aboutEn: 'A leading paper and stationery trading company in Palestine, founded in 1935.',
+    phone: '+970 9 231 1867',
+    website: 'https://www.alhijjawi.ps/',
+    image: 'assets/images/shopping/مكتبة نصر.jpg',
+    placeholderIcon: Icons.menu_book,
+    placeholderColor: Color(0xFF3B82F6),
+    subCategory: 'books',
+  ),
+  ShoppingVenueData(
+    nameAr: 'مكتبة الكمال',
+    nameEn: 'Al-Kamal Library',
+    typeAr: 'مكتبة وقرطاسية',
+    typeEn: 'Bookstore & Stationery',
+    locationAr: 'شارع فلسطين - وسط البلد - نابلس',
+    locationEn: 'Falastin St. - Downtown - Nablus',
+    rating: 4.2,
+    reviews: 29,
+    hoursAr: 'يفتح 8ص - 7م',
+    hoursEn: 'Open 8AM - 7PM',
+    aboutAr: 'كتب وقرطاسية بشارع فلسطين بوسط نابلس.',
+    aboutEn: 'Books and stationery on Falastin St. in downtown Nablus.',
+    phone: '+970 9 234 1665',
+    website: 'https://www.facebook.com/alkamal.bookshop/',
+    image: 'assets/images/shopping/مكتبة الكمال.jpg',
+    placeholderIcon: Icons.menu_book,
+    placeholderColor: Color(0xFF6C5CE7),
+    subCategory: 'books',
+  ),
+  ShoppingVenueData(
+    nameAr: 'مكتبة الإتحاد',
+    nameEn: 'Al-Ittihad Bookshop',
+    typeAr: 'مكتبة وقرطاسية',
+    typeEn: 'Bookstore & Stationery',
+    locationAr: 'شارع فلسطين - نابلس',
+    locationEn: 'Falastin St. - Nablus',
+    rating: 4.3,
+    reviews: 33,
+    hoursAr: 'يفتح 8ص - 7م',
+    hoursEn: 'Open 8AM - 7PM',
+    aboutAr: 'مكتبة وقرطاسية وخدمات طباعة على شارع فلسطين بنابلس.',
+    aboutEn: 'Bookstore, stationery, and printing services on Falastin St. in Nablus.',
+    phone: '+970 9 237 0117',
+    website: 'https://www.facebook.com/AL.ITIHAD.BOOKSHOP/',
+    image: 'assets/images/shopping/مكتبة الاتحاد.jpg',
+    placeholderIcon: Icons.menu_book,
+    placeholderColor: Color(0xFFD4A017),
+    subCategory: 'books',
+  ),
+
+  // ---------- 🎮 ترفيه ----------
+  ShoppingVenueData(
+    nameAr: 'مدفع لاند',
+    nameEn: "Madfa' Land",
+    typeAr: 'مدينة ألعاب داخلية',
+    typeEn: 'Indoor Amusement City',
+    locationAr: 'شارع بيت إيبا الرئيسي - نابلس',
+    locationEn: 'Beit Iba Main St. - Nablus',
+    rating: 4.4,
+    reviews: 210,
+    hoursAr: 'يفتح 11ص - 11م',
+    hoursEn: 'Open 11AM - 11PM',
+    aboutAr: 'من أكبر مدن الألعاب الترفيهية الداخلية بفلسطين، على شارع بيت إيبا.',
+    aboutEn: 'One of the largest indoor amusement cities in Palestine, on Beit Iba St.',
+    website: 'https://www.facebook.com/MadfaaLand/',
+    image: 'assets/images/shopping/مدفع لاند.jpg',
+    placeholderIcon: Icons.videogame_asset,
+    placeholderColor: Color(0xFF6C5CE7),
+    subCategory: 'entertainment',
+  ),
+  ShoppingVenueData(
+    nameAr: 'لالا لاند',
+    nameEn: 'LaLaLand',
+    typeAr: 'مركز ألعاب أطفال',
+    typeEn: "Kids' Entertainment Center",
+    locationAr: 'دوار زواتة، قرب LC Waikiki - نابلس',
+    locationEn: 'Zawata Roundabout, near LC Waikiki - Nablus',
+    rating: 4.2,
+    reviews: 88,
+    hoursAr: 'يفتح 11ص - 10م',
+    hoursEn: 'Open 11AM - 10PM',
+    aboutAr: 'مركز ألعاب وترفيه للأطفال عند دوار زواتة.',
+    aboutEn: "A kids' games and entertainment center at Zawata Roundabout.",
+    website: 'https://www.facebook.com/kids.lalaland/',
+    image: 'assets/images/shopping/لالا لاند.jpg',
+    placeholderIcon: Icons.attractions,
+    placeholderColor: Color(0xFFEF6F53),
+    subCategory: 'entertainment',
+  ),
+  ShoppingVenueData(
+    nameAr: 'جابر لاند',
+    nameEn: 'Jaber Land',
+    typeAr: 'مدينة ألعاب ترفيهية',
+    typeEn: 'Amusement Park',
+    locationAr: 'رفيديا، شارع تونس - نابلس',
+    locationEn: 'Rafidia, Tunisia St. - Nablus',
+    rating: 4.3,
+    reviews: 66,
+    hoursAr: 'يفتح 11ص - 11م',
+    hoursEn: 'Open 11AM - 11PM',
+    aboutAr: 'من أكبر مراكز الترفيه بمدينة نابلس لمختلف الأعمار، مع كافيتريا وجلسات خارجية.',
+    aboutEn: "One of the largest entertainment centers in Nablus for all ages, with a cafeteria and outdoor seating.",
+    phone: '+970 59 970 2690',
+    website: 'https://www.facebook.com/JaberLandNablus/',
+    image: 'assets/images/shopping/جابر لاند.jpg',
+    placeholderIcon: Icons.videogame_asset,
+    placeholderColor: Color(0xFF3B82F6),
+    subCategory: 'entertainment',
   ),
 ];
 
@@ -251,6 +630,17 @@ String shoppingVenuePhotoQuery(ShoppingVenueData v) {
     return 'shopping complex storefront';
   }
   return 'shopping mall interior';
+}
+
+// سؤال جاهز يُرسل تلقائيًا للمساعد الذكي عند الضغط على "اسأل الذكاء الاصطناعي عن هذا المحل"،
+// مبني على قسم المحل (subCategory) حتى يتعرف المساعد على القسم ويقترح محلات مشابهة/قريبة.
+String aiQueryForShoppingVenue(ShoppingVenueData v) {
+  final sub = shoppingSubCategories.where((c) => c.$1 == v.subCategory);
+  if (sub.isEmpty) {
+    return 'اقترحلي محلات مشابهة لـ ${v.nameAr} بالمراكز التجارية';
+  }
+  final labelAr = sub.first.$3;
+  return 'اقترحلي محلات $labelAr مشابهة لـ ${v.nameAr}';
 }
 
 // ==================== بطاقة دليل صنف (معلومات، مش مكان مخزّن) ====================
@@ -401,6 +791,12 @@ const List<(String, String, String)> shoppingCategoryOrder = [
   ('commercial', '🏬 المراكز التجارية', '🏬 Commercial Centers'),
 ];
 
+const Map<String, String> shoppingCategoryImages = {
+  'heritage': 'assets/images/shopping/تراث وهدايا.jpg',
+  'localProducts': 'assets/images/shopping/منتجات نابلس المحلية.jpg',
+  'commercial': 'assets/images/shopping/مراكز تجارية.jpeg',
+};
+
 // ==================== شاشة التصنيفات (نقطة الدخول) ====================
 class ShoppingCategoriesScreen extends StatefulWidget {
   const ShoppingCategoriesScreen({super.key});
@@ -434,6 +830,9 @@ class _ShoppingCategoriesScreenState extends State<ShoppingCategoriesScreen> {
       shoppingVenuesSeedData.map(shoppingVenueToMap).toList(),
     );
     await ApiService.syncShopping();
+    // لازم تُنفَّذ بعد المزامنة مع السيرفر (مش قبلها)، وإلا أي عنصر متقاعد لسا
+    // موجود بقاعدة بيانات السيرفر رح يرجع يتزامن محليًا فورًا بعد الحذف.
+    await db.purgeByName('shopping', retiredShoppingVenueNames);
     final entries = db.getAll('shopping');
     setState(() {
       _liveVenues = entries.map((e) => mapToShoppingVenue(e.value)).toList();
@@ -499,6 +898,7 @@ class _ShoppingCategoriesScreenState extends State<ShoppingCategoriesScreen> {
                             titleAr: def.$2,
                             titleEn: def.$3,
                             count: count,
+                            imageAsset: shoppingCategoryImages[key],
                             onTap: () {
                               if (key == 'commercial') {
                                 Navigator.of(context).push(
@@ -538,11 +938,13 @@ class _ShoppingCategoryCard extends StatelessWidget {
   final String titleEn;
   final int count;
   final VoidCallback onTap;
+  final String? imageAsset;
   const _ShoppingCategoryCard({
     required this.titleAr,
     required this.titleEn,
     required this.count,
     required this.onTap,
+    this.imageAsset,
   });
 
   @override
@@ -552,31 +954,63 @@ class _ShoppingCategoryCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: AppColors.sidebarDark,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.borderColor),
         ),
-        padding: EdgeInsets.all(14),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
+          fit: StackFit.expand,
           children: [
-            Text(
-              app.t(titleAr, titleEn),
-              textAlign: TextAlign.center,
-              textDirection: app.dir,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.textWhite,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
+            if (imageAsset != null)
+              Image.asset(
+                imageAsset!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) => const SizedBox(),
               ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              app.t('$count', '$count'),
-              style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+            if (imageAsset != null)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.15),
+                      Colors.black.withValues(alpha: 0.65),
+                    ],
+                  ),
+                ),
+              ),
+            Padding(
+              padding: EdgeInsets.all(14),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    app.t(titleAr, titleEn),
+                    textAlign: TextAlign.center,
+                    textDirection: app.dir,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    app.t('$count', '$count'),
+                    style: TextStyle(
+                      color: imageAsset != null
+                          ? Colors.white70
+                          : AppColors.textGrey,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -836,13 +1270,46 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
   double minRating = 0;
   int sortMode = 0;
   int currentPage = 0;
+  String selectedSubCategory = 'all';
   static const int perPage = 9;
+
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
   }
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(ShoppingVenueData v) => distanceKmFromUser(
+    _userPosition,
+    nameAr: v.nameAr,
+    nameEn: v.nameEn,
+    locationAr: v.locationAr,
+    locationEn: v.locationEn,
+    lat: v.lat,
+    lng: v.lng,
+  );
 
   @override
   void dispose() {
@@ -857,6 +1324,9 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
       shoppingVenuesSeedData.map(shoppingVenueToMap).toList(),
     );
     await ApiService.syncShopping();
+    // لازم تُنفَّذ بعد المزامنة مع السيرفر (مش قبلها)، وإلا أي عنصر متقاعد لسا
+    // موجود بقاعدة بيانات السيرفر رح يرجع يتزامن محليًا فورًا بعد الحذف.
+    await db.purgeByName('shopping', retiredShoppingVenueNames);
     final entries = db.getAll('shopping');
     setState(() {
       _liveVenues = entries.map((e) => mapToShoppingVenue(e.value)).toList();
@@ -871,9 +1341,13 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
           v.nameEn.toLowerCase().contains(searchQuery.toLowerCase()) ||
           v.locationAr.contains(searchQuery) ||
           v.locationEn.toLowerCase().contains(searchQuery.toLowerCase());
-      return matchesSearch && v.rating >= minRating;
+      final matchesSubCategory =
+          selectedSubCategory == 'all' || v.subCategory == selectedSubCategory;
+      return matchesSearch && matchesSubCategory && v.rating >= minRating;
     }).toList();
-    if (sortMode == 1) {
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+    } else if (sortMode == 1) {
       list.sort((a, b) => b.reviews.compareTo(a.reviews));
     } else if (sortMode == 2) {
       list.sort((a, b) => a.nameEn.toLowerCase().compareTo(b.nameEn.toLowerCase()));
@@ -986,22 +1460,54 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(height: 10),
-                          _RatingFiltersRow(
-                            minRating: minRating,
-                            onRatingTap: (v) => setState(() {
-                              minRating = minRating == v ? 0 : v;
+                          SizedBox(height: 12),
+                          _SubCategoryFiltersRow(
+                            selected: selectedSubCategory,
+                            onTap: (key) => setState(() {
+                              selectedSubCategory =
+                                  selectedSubCategory == key ? 'all' : key;
                               currentPage = 0;
                             }),
+                          ),
+                          SizedBox(height: 10),
+                          Row(
+                            children: [
+                              NearestToMeChip(
+                                active: _nearestActive,
+                                loading: _locating,
+                                onTap: () async {
+                                  if (_nearestActive) {
+                                    setState(() => _nearestActive = false);
+                                  } else {
+                                    await _activateNearestToMe();
+                                  }
+                                },
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: _RatingFiltersRow(
+                                  minRating: minRating,
+                                  onRatingTap: (v) => setState(() {
+                                    minRating = minRating == v ? 0 : v;
+                                    currentPage = 0;
+                                  }),
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 18),
                           Row(
                             children: [
                               Text(
-                                app.t(
-                                  '${filtered.length} مركز',
-                                  '${filtered.length} centers',
-                                ),
+                                selectedSubCategory == 'all'
+                                    ? app.t(
+                                        '${filtered.length} مركز',
+                                        '${filtered.length} centers',
+                                      )
+                                    : app.t(
+                                        '${filtered.length} محل',
+                                        '${filtered.length} shops',
+                                      ),
                                 style: TextStyle(
                                   color: AppColors.textGrey,
                                   fontSize: 12,
@@ -1140,6 +1646,57 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+// ==================== فلتر أقسام المحلات (أزياء، أحذية، إلكترونيات...) ====================
+class _SubCategoryFiltersRow extends StatelessWidget {
+  final String selected;
+  final void Function(String) onTap;
+  const _SubCategoryFiltersRow({required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final c in shoppingSubCategories)
+            Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onTap(c.$1),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: selected == c.$1
+                        ? AppColors.primary
+                        : AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    border: Border.all(
+                      color: selected == c.$1
+                          ? Colors.transparent
+                          : AppColors.borderColor,
+                    ),
+                  ),
+                  child: Text(
+                    '${c.$2} ${app.t(c.$3, c.$4)}',
+                    textDirection: app.dir,
+                    style: TextStyle(
+                      color: selected == c.$1
+                          ? Colors.white
+                          : AppColors.textWhite,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -1467,14 +2024,21 @@ class _ShoppingVenueListTile extends StatelessWidget {
 }
 
 // ==================== شاشة تفاصيل المركز التجاري ====================
-class ShoppingVenueDetailScreen extends StatelessWidget {
+class ShoppingVenueDetailScreen extends StatefulWidget {
   final ShoppingVenueData venue;
   const ShoppingVenueDetailScreen({super.key, required this.venue});
 
   @override
+  State<ShoppingVenueDetailScreen> createState() =>
+      _ShoppingVenueDetailScreenState();
+}
+
+class _ShoppingVenueDetailScreenState
+    extends State<ShoppingVenueDetailScreen> {
+  @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    final v = venue;
+    final v = widget.venue;
     final name = app.isArabic ? v.nameAr : v.nameEn;
     final type = app.isArabic ? v.typeAr : v.typeEn;
     final location = app.isArabic ? v.locationAr : v.locationEn;
@@ -1556,6 +2120,41 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                             child: Icon(
                               Icons.arrow_back_rounded,
                               color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 44,
+                        right: 16,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () async {
+                            await FavoritesService.instance.toggleFavorite(
+                              v.nameEn,
+                            );
+                            setState(() {});
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Icon(
+                              FavoritesService.instance.isFavorite(v.nameEn)
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: FavoritesService.instance.isFavorite(
+                                v.nameEn,
+                              )
+                                  ? AppColors.red
+                                  : Colors.white,
                               size: 18,
                             ),
                           ),
@@ -1799,6 +2398,42 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (v.website.isNotEmpty) ...[
+                          SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => launchUrl(
+                                Uri.parse(
+                                  v.website.startsWith('http')
+                                      ? v.website
+                                      : 'https://${v.website}',
+                                ),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: AppColors.borderColor),
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.language,
+                                size: 16,
+                                color: AppColors.textWhite,
+                              ),
+                              label: Text(
+                                app.t('الموقع الإلكتروني', 'Website'),
+                                style: AppTypography.label(
+                                  AppColors.textWhite,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                         SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
@@ -1821,6 +2456,53 @@ class ShoppingVenueDetailScreen extends StatelessWidget {
                             label: Text(
                               app.t('مشاركة', 'Share'),
                               style: AppTypography.label(AppColors.textWhite),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [AppColors.purple, AppColors.primary],
+                              ),
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                              boxShadow: AppColors.glowShadow,
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (context) => AiAssistantScreen(
+                                    initialQuery: aiQueryForShoppingVenue(v),
+                                  ),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              label: Text(
+                                app.t(
+                                  'اسأل الذكاء الاصطناعي عن هذا المحل',
+                                  'Ask AI about this store',
+                                ),
+                                style: AppTypography.title(
+                                  Colors.white,
+                                ).copyWith(fontSize: 13),
+                              ),
                             ),
                           ),
                         ),

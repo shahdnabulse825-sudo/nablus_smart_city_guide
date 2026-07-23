@@ -62,6 +62,8 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       isFeatured: boolField(b.isFeatured, false),
       lat: optCoord(b.lat),
       lng: optCoord(b.lng),
+      subCategory: b.subCategory || '',
+      website: b.website || '',
     },
   });
   res.status(201).json(item);
@@ -106,6 +108,8 @@ router.put('/:id', requireAuth, requireAdmin, upload.single('image'), async (req
       imageUrl,
       lat: optCoordUpdate(b.lat, existing.lat),
       lng: optCoordUpdate(b.lng, existing.lng),
+      subCategory: b.subCategory ?? existing.subCategory,
+      website: b.website ?? existing.website,
     },
   });
   res.json(item);

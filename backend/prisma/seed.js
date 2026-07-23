@@ -47,7 +47,6 @@ const entertainment = [
 
 const government = [
   { nameAr: 'بلدية نابلس', nameEn: 'Nablus Municipality', typeAr: 'دائرة حكومية', typeEn: 'Government Office', locationAr: 'وسط البلد - نابلس', locationEn: 'Downtown - Nablus', rating: 4.0, reviews: 160, infoLabelAr: 'الدوام 8ص - 3م', infoLabelEn: 'Hours 8AM - 3PM', aboutAr: 'المقر الرئيسي لبلدية نابلس، يقدم خدمات الترخيص والمعاملات البلدية.', aboutEn: 'The main office of Nablus Municipality, providing licensing and municipal services.', photoQuery: 'municipality government building', colorValue: 0xff3b82f6 },
-  { nameAr: 'دائرة الأحوال المدنية', nameEn: 'Civil Affairs Department', typeAr: 'دائرة حكومية', typeEn: 'Government Office', locationAr: 'شارع فيصل - نابلس', locationEn: 'Faisal St. - Nablus', rating: 3.9, reviews: 120, infoLabelAr: 'الدوام 8ص - 2:30م', infoLabelEn: 'Hours 8AM - 2:30PM', aboutAr: 'إصدار وتجديد الهويات ووثائق الأحوال المدنية.', aboutEn: 'Issuing and renewing IDs and civil status documents.', photoQuery: 'government office', colorValue: 0xff9c6b30 },
   { nameAr: 'مكتب البريد المركزي', nameEn: 'Central Post Office', typeAr: 'بريد', typeEn: 'Post Office', locationAr: 'وسط البلد - نابلس', locationEn: 'Downtown - Nablus', rating: 4.0, reviews: 70, infoLabelAr: 'الدوام 8ص - 3م', infoLabelEn: 'Hours 8AM - 3PM', aboutAr: 'خدمات البريد والطرود والتحويلات المالية.', aboutEn: 'Postal, parcel, and money transfer services.', photoQuery: 'post office', colorValue: 0xffc9a227 },
 ];
 

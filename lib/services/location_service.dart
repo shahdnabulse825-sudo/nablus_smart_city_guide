@@ -1,6 +1,7 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../screens/home/home_screen.dart' show AppState;
+import '../screens/map/map_screen.dart' show resolveMapPoint;
 
 /// يوحّد تدفّق إذن/تحديد الموقع الموجود أصلًا بشاشة الصيدليات (pharmacies_screen.dart)
 /// بمكان واحد قابل لإعادة الاستخدام من أي شاشة (زي "الأماكن القريبة"). بيرمي
@@ -65,6 +66,36 @@ class NearestResult<T> {
   final T item;
   final double distanceKm;
   NearestResult(this.item, this.distanceKm);
+}
+
+/// يحسب المسافة (كم) من موقع المستخدم الحالي لأي مكان (مطعم/فندق/صيدلية/معلم/
+/// محل...) اعتمادًا على نفس الحقول المشتركة بين كل نماذج البيانات بالتطبيق —
+/// حتى تقدر أي شاشة تستخدمه مباشرة بدل ما تعيد كتابة نفس المنطق.
+double? distanceKmFromUser(
+  Position? userPosition, {
+  required String nameAr,
+  required String nameEn,
+  required String locationAr,
+  required String locationEn,
+  double? lat,
+  double? lng,
+}) {
+  if (userPosition == null) return null;
+  final point = resolveMapPoint(
+    nameAr: nameAr,
+    nameEn: nameEn,
+    locationAr: locationAr,
+    locationEn: locationEn,
+    lat: lat,
+    lng: lng,
+  );
+  final meters = Geolocator.distanceBetween(
+    userPosition.latitude,
+    userPosition.longitude,
+    point.latitude,
+    point.longitude,
+  );
+  return meters / 1000;
 }
 
 NearestResult<T>? findNearest<T>(

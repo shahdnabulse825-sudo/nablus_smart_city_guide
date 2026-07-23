@@ -157,6 +157,8 @@ model ShoppingVenue {
   isFeatured    Boolean  @default(false)
   lat           Float?
   lng           Float?
+  subCategory   String   @default("") // fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
+  website       String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }

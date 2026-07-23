@@ -17,6 +17,9 @@ import '../../services/recommendation_service.dart';
 import '../../widgets/responsive.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../services/location_service.dart';
+import '../../widgets/nearest_to_me_chip.dart';
 
 /// عنصر موحّد يمثل أي مكان (مطعم، فندق، معلم، محل تسوق...) لعرضه بشاشة واحدة.
 class UniversalPlace {
@@ -41,6 +44,7 @@ class UniversalPlace {
   final double? lng;
   final String? priceTier; // 'cheap' | 'medium' | 'high' | null (not all categories have a price tier)
   final bool is24Hours;
+  final String? subCategory; // فقط لأماكن التسوق: fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
 
   UniversalPlace({
     required this.nameAr,
@@ -64,6 +68,7 @@ class UniversalPlace {
     this.lng,
     this.priceTier,
     this.is24Hours = false,
+    this.subCategory,
   });
 }
 
@@ -162,6 +167,7 @@ UniversalPlace _fromShoppingVenue(ShoppingVenueData v) => UniversalPlace(
   image: v.image,
   lat: v.lat,
   lng: v.lng,
+  subCategory: v.subCategory,
 );
 
 UniversalPlace _fromPharmacy(PharmacyData p) => UniversalPlace(
@@ -335,11 +341,43 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
   String searchQuery = '';
   final ScrollController _scrollController = ScrollController();
 
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
+
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
   }
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(UniversalPlace p) => distanceKmFromUser(
+    _userPosition,
+    nameAr: p.nameAr,
+    nameEn: p.nameEn,
+    locationAr: p.locationAr,
+    locationEn: p.locationEn,
+    lat: p.lat,
+    lng: p.lng,
+  );
 
   List<UniversalPlace> get _baseList {
     switch (widget.sortMode) {
@@ -364,7 +402,7 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
   }
 
   List<UniversalPlace> get _filtered {
-    return _baseList.where((p) {
+    final list = _baseList.where((p) {
       final matchesCategory =
           categoryFilter == 'all' || p.categoryKey == categoryFilter;
       final matchesSearch =
@@ -373,6 +411,10 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
           p.nameEn.toLowerCase().contains(searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     }).toList();
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+    }
+    return list;
   }
 
   @override
@@ -485,6 +527,23 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: NearestToMeChip(
+                        active: _nearestActive,
+                        loading: _locating,
+                        onTap: () async {
+                          if (_nearestActive) {
+                            setState(() => _nearestActive = false);
+                          } else {
+                            await _activateNearestToMe();
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(16, 10, 16, 0),
                     child: SizedBox(
                       height: 34,
                       child: ListView(
