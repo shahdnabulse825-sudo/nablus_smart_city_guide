@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../services/api_service.dart';
 import 'category_list_screen.dart';
 import 'category_data.dart';
 import '../../theme/app_typography.dart';
@@ -118,6 +119,9 @@ class MoreCategoriesScreen extends StatelessWidget {
                       ),
                       itemBuilder: (context, i) {
                         final item = _items[i];
+                        final customImageUrl = ApiService.categoryImageUrl(
+                          item['boxName'] as String,
+                        );
                         return AppCard(
                           padding: EdgeInsets.zero,
                           radius: AppRadius.lg,
@@ -141,7 +145,10 @@ class MoreCategoriesScreen extends StatelessWidget {
                               children: [
                                 ThemedImage(
                                   query: item['photoQuery'] as String,
-                                  localAsset: item['localAsset'] as String?,
+                                  localAsset: customImageUrl == null
+                                      ? item['localAsset'] as String?
+                                      : null,
+                                  serverImageUrl: customImageUrl,
                                   fallbackSeed: item['boxName'] as String,
                                   height: double.infinity,
                                   fallbackIcon: item['icon'],

@@ -21,6 +21,7 @@ class LocalDbService {
     'government',
     'news',
     'events',
+    'category_images',
     'users',
     'session',
     'favorites',
@@ -118,6 +119,10 @@ class LocalDbService {
 
   Future<void> delete(String boxName, dynamic key) async {
     await _box(boxName).delete(key);
+  }
+
+  Future<void> clearBox(String boxName) async {
+    await _box(boxName).clear();
   }
 
   /// حذف كل شي وإعادة التعبئة من جديد (لو حابة ترجعي للبيانات الافتراضية)

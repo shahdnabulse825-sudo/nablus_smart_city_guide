@@ -1502,6 +1502,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.red,
       'photoQuery': 'restaurant food table Nablus',
       'localAsset': 'assets/images/category_icons/restaurants.jpg',
+      'boxName': 'restaurants',
     },
     {
       'labelAr': 'فنادق',
@@ -1510,6 +1511,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.purple,
       'photoQuery': 'hotel room bed Nablus',
       'localAsset': 'assets/images/category_icons/hotels.jpg',
+      'boxName': 'hotels',
     },
     {
       'labelAr': 'سياحة ومعالم',
@@ -1518,6 +1520,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.gold,
       'photoQuery': 'landmark old city alley Nablus',
       'localAsset': 'assets/images/category_icons/attractions.jpg',
+      'boxName': 'attractions',
     },
     {
       'labelAr': 'تسوق',
@@ -1526,6 +1529,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.primary,
       'photoQuery': 'market shopping bags Nablus',
       'localAsset': 'assets/images/category_icons/shopping.avif',
+      'boxName': 'shopping',
     },
     {
       'labelAr': 'مواصلات',
@@ -1534,6 +1538,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.teal,
       'photoQuery': 'bus station transport Nablus',
       'localAsset': 'assets/images/category_icons/transport.png',
+      'boxName': 'transport',
     },
     {
       'labelAr': 'صحة',
@@ -1542,6 +1547,7 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.teal,
       'photoQuery': 'hospital medical cross Nablus',
       'localAsset': 'assets/images/category_icons/health.png',
+      'boxName': 'health',
     },
     {
       'labelAr': 'صيدليات',
@@ -1550,12 +1556,14 @@ class CategoriesSection extends StatelessWidget {
       'color': AppColors.primary,
       'photoQuery': 'pharmacy medicine shelves Nablus',
       'localAsset': 'assets/images/category_icons/pharmacies.png',
+      'boxName': 'pharmacies',
     },
     {
       'labelAr': 'المزيد',
       'labelEn': 'More',
       'icon': Icons.grid_view_rounded,
       'color': AppColors.textGrey,
+      'boxName': 'more',
     },
   ];
 
@@ -1589,6 +1597,9 @@ class CategoriesSection extends StatelessWidget {
                               color: item['color'],
                               photoQuery: item['photoQuery'],
                               localAsset: item['localAsset'],
+                              serverImageUrl: ApiService.categoryImageUrl(
+                                item['boxName'] as String,
+                              ),
                               onTap: () => _onCategoryTap(
                                 context,
                                 item['labelAr'] as String,
@@ -1610,6 +1621,9 @@ class CategoriesSection extends StatelessWidget {
                             color: item['color'],
                             photoQuery: item['photoQuery'],
                             localAsset: item['localAsset'],
+                            serverImageUrl: ApiService.categoryImageUrl(
+                              item['boxName'] as String,
+                            ),
                             onTap: () => _onCategoryTap(
                               context,
                               item['labelAr'] as String,
@@ -1688,6 +1702,7 @@ class CategoryTile extends StatefulWidget {
   final Color color;
   final String? photoQuery;
   final String? localAsset; // صورة ثابتة رفعها الأدمن يدويًا — لو موجودة ما تتغيّر ديناميكيًا
+  final String? serverImageUrl; // صورة تصنيف رفعها الأدمن من لوحة التحكم — لها الأولوية على الافتراضية
   final VoidCallback? onTap;
   const CategoryTile({
     super.key,
@@ -1697,6 +1712,7 @@ class CategoryTile extends StatefulWidget {
     required this.color,
     this.photoQuery,
     this.localAsset,
+    this.serverImageUrl,
     this.onTap,
   });
 
@@ -1738,10 +1754,15 @@ class _CategoryTileState extends State<CategoryTile> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (widget.localAsset != null || widget.photoQuery != null)
+                    if (widget.serverImageUrl != null ||
+                        widget.localAsset != null ||
+                        widget.photoQuery != null)
                       ThemedImage(
                         query: widget.photoQuery ?? 'nablus palestine city',
-                        localAsset: widget.localAsset,
+                        localAsset: widget.serverImageUrl == null
+                            ? widget.localAsset
+                            : null,
+                        serverImageUrl: widget.serverImageUrl,
                         fallbackSeed: widget.labelEn,
                         height: 66,
                         fallbackIcon: widget.icon,

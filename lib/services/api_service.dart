@@ -108,6 +108,39 @@ class ApiService {
 
   static Future<void> syncEvents() => _syncBoxFromApi('events', 'events');
 
+  /// يجيب صور التصنيفات يلي رفعها الأدمن (خريطة categoryKey → رابط) ويخزّنها
+  /// محليًا مباشرة بمفتاح categoryKey نفسه (مش زي باقي الأقسام يلي بتتوزّع
+  /// بمفاتيح Hive تلقائية) — حتى نقدر نقرأها فورًا بـ [categoryImageUrl] بدون
+  /// حاجة لأي مطابقة بالاسم.
+  static Future<void> syncCategoryImages() async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/category-images'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) return;
+      final db = LocalDbService.instance;
+      // السيرفر هو المرجع الوحيد هون (مافي تعديلات محلية لازم نحافظ عليها) —
+      // نمسح الصندوق كامل ونعبّيه من جديد، حتى صورة انحذفت بالسيرفر تختفي محليًا
+      // كمان بدل ما تضل عالقة إلى الأبد.
+      await db.clearBox('category_images');
+      for (final entry in decoded.entries) {
+        await db.update('category_images', entry.key, {
+          'imageUrl': entry.value,
+        });
+      }
+    } catch (_) {}
+  }
+
+  /// الرابط الحالي لصورة تصنيف مخصّصة (لو رفعها الأدمن)، أو null لو ما في —
+  /// وقتها الشاشة يلي بتستدعيها بترجع للصورة الافتراضية الجاهزة بالتطبيق.
+  static String? categoryImageUrl(String categoryKey) {
+    final v = LocalDbService.instance.get('category_images', categoryKey);
+    final url = v?['imageUrl'] as String?;
+    return (url != null && url.isNotEmpty) ? url : null;
+  }
+
   /// يزيد عدّاد الزوار الحقيقي بالسيرفر مرة وحدة لكل فتحة تطبيق، ويرجّع الرقم
   /// الجديد لو نجح (حتى نعرضه فورًا بدون الحاجة لطلب تاني). بيتجاهل الفشل بصمت
   /// (بدون إنترنت/سيرفر مقفول) — نفس أسلوب باقي دوال المزامنة بهاد الملف.
@@ -322,6 +355,38 @@ class ApiService {
       final res = await http
           .delete(
             Uri.parse('$baseUrl/${_apiPathFor(boxName)}/$apiId'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+      return res.statusCode >= 200 && res.statusCode < 300;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// يرفع/يستبدل صورة تصنيف كامل (مطاعم/صحة/...) — يرجّع كود حالة HTTP.
+  static Future<int> uploadCategoryImage(
+    String token,
+    String categoryKey,
+    List<int> imageBytes,
+    String imageFilename,
+  ) {
+    return _sendMultipart(
+      'PUT',
+      '$baseUrl/category-images/$categoryKey',
+      token,
+      const {},
+      imageBytes: imageBytes,
+      imageFilename: imageFilename,
+    );
+  }
+
+  /// يحذف صورة تصنيف مخصّصة ويرجّعها للصورة الافتراضية الجاهزة بالتطبيق.
+  static Future<bool> deleteCategoryImage(String token, String categoryKey) async {
+    try {
+      final res = await http
+          .delete(
+            Uri.parse('$baseUrl/category-images/$categoryKey'),
             headers: {'Authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 10));

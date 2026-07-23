@@ -239,3 +239,15 @@ model VisitCounter {
   id    String @id @default("main")
   count Int    @default(0)
 }
+
+// ==================== صور أيقونات التصنيفات ====================
+// صورة واحدة رفعها الأدمن لكل تصنيف رئيسي (مطاعم/فنادق/صحة...) — تظهر لكل
+// الزوار فورًا بدون أي تعديل بكود التطبيق. categoryKey يطابق نفس اسم الصندوق
+// المحلي (boxName) المستخدم بالتطبيق (transport/health/...)، بالإضافة لمفتاح
+// "more" الخاص بمربّع "المزيد" بالصفحة الرئيسية.
+model CategoryImage {
+  id          String   @id @default(cuid())
+  categoryKey String   @unique
+  imageUrl    String?
+  updatedAt   DateTime @updatedAt
+}

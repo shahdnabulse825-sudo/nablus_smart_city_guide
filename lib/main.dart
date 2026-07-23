@@ -68,6 +68,7 @@ Future<void> _seedAllBoxes() async {
   await ApiService.syncShopping();
   await ApiService.syncNews();
   await ApiService.syncEvents();
+  await ApiService.syncCategoryImages();
   await AppState.instance.incrementVisitorCount();
 }
 

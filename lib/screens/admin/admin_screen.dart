@@ -1169,6 +1169,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                   final s = _sections[i];
                                   final count = _countFor(s['boxName']);
                                   final color = s['color'] as Color;
+                                  final customImageUrl =
+                                      ApiService.categoryImageUrl(
+                                        s['boxName'] as String,
+                                      );
                                   return GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onTap: () => _openSection(context, s),
@@ -1194,7 +1198,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                         children: [
                                           ThemedImage(
                                             query: s['photoQuery'] as String,
-                                            localAsset: s['localAsset'] as String?,
+                                            localAsset: customImageUrl == null
+                                                ? s['localAsset'] as String?
+                                                : null,
+                                            serverImageUrl: customImageUrl,
                                             fallbackSeed:
                                                 s['boxName'] as String,
                                             height: double.infinity,
