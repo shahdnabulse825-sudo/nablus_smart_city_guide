@@ -17,6 +17,9 @@ import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../services/location_service.dart';
+import '../../widgets/nearest_to_me_chip.dart';
 
 // ==================== بيانات المطعم ====================
 class RestaurantData {
@@ -988,6 +991,38 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
   String priceTier = 'all';
   bool sortByPriceAsc = false; // false = الأعلى تقييماً, true = الأقل سعراً
 
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(RestaurantData r) => distanceKmFromUser(
+    _userPosition,
+    nameAr: r.nameAr,
+    nameEn: r.nameEn,
+    locationAr: r.locationAr,
+    locationEn: r.locationEn,
+    lat: r.lat,
+    lng: r.lng,
+  );
+
   List<RestaurantData> get _filtered {
     var list = _liveRestaurants.where((r) {
       final matchesSearch =
@@ -1002,6 +1037,10 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
       return matchesSearch && matchesCuisine && matchesRating && matchesPrice;
     }).toList();
 
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+      return list;
+    }
     list.sort((a, b) {
       final categoryCompare = cuisineOrder
           .indexOf(a.cuisineKey)
@@ -1141,6 +1180,15 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                     currentPage = 0;
                                   }),
                                   onApply: () => setState(() {}),
+                                  nearestActive: _nearestActive,
+                                  nearestLoading: _locating,
+                                  onNearestTap: () async {
+                                    if (_nearestActive) {
+                                      setState(() => _nearestActive = false);
+                                    } else {
+                                      await _activateNearestToMe();
+                                    }
+                                  },
                                 ),
                                 SizedBox(height: 16),
                                 _ResultsArea(
@@ -1193,6 +1241,15 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                       currentPage = 0;
                                     }),
                                     onApply: () => setState(() {}),
+                                    nearestActive: _nearestActive,
+                                    nearestLoading: _locating,
+                                    onNearestTap: () async {
+                                      if (_nearestActive) {
+                                        setState(() => _nearestActive = false);
+                                      } else {
+                                        await _activateNearestToMe();
+                                      }
+                                    },
                                   ),
                                 ),
                                 SizedBox(width: 20),
@@ -1799,6 +1856,9 @@ class _FiltersSidebar extends StatelessWidget {
   final String priceTier;
   final void Function(String) onPriceTap;
   final VoidCallback onApply;
+  final bool nearestActive;
+  final bool nearestLoading;
+  final VoidCallback onNearestTap;
 
   const _FiltersSidebar({
     required this.searchController,
@@ -1810,6 +1870,9 @@ class _FiltersSidebar extends StatelessWidget {
     required this.priceTier,
     required this.onPriceTap,
     required this.onApply,
+    required this.nearestActive,
+    required this.nearestLoading,
+    required this.onNearestTap,
   });
 
   @override
@@ -1832,6 +1895,15 @@ class _FiltersSidebar extends StatelessWidget {
                 ).copyWith(fontSize: 14),
               ),
             ],
+          ),
+          SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: NearestToMeChip(
+              active: nearestActive,
+              loading: nearestLoading,
+              onTap: onNearestTap,
+            ),
           ),
           SizedBox(height: 16),
           Text(

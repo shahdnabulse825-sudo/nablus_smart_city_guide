@@ -18,6 +18,9 @@ import '../../widgets/sort_toggle.dart';
 import '../../widgets/skeleton_card.dart';
 import '../../widgets/empty_state.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../services/location_service.dart';
+import '../../widgets/nearest_to_me_chip.dart';
 
 /// شاشة عامة قابلة لإعادة الاستخدام لعرض أي تصنيف (فنادق، سياحة، تسوق، مواصلات، صحة، صيدليات)
 /// نفس التصميم بالضبط، بس البيانات والعنوان يختلفوا حسب التصنيف المُمرَّر.
@@ -61,11 +64,43 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
   List<ListingItem> _liveItems = [];
   final ScrollController _scrollController = ScrollController();
 
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
+
   @override
   void initState() {
     super.initState();
     _loadData();
   }
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(ListingItem it) => distanceKmFromUser(
+    _userPosition,
+    nameAr: it.nameAr,
+    nameEn: it.nameEn,
+    locationAr: it.locationAr,
+    locationEn: it.locationEn,
+    lat: it.lat,
+    lng: it.lng,
+  );
 
   @override
   void dispose() {
@@ -75,7 +110,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
 
   Future<void> _loadData() async {
     final db = LocalDbService.instance;
-    await db.syncSeed(
+    await db.syncSeedExact(
       widget.boxName,
       widget.seedData.map(listingToMap).toList(),
     );
@@ -98,6 +133,10 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           !favoritesOnly || FavoritesService.instance.isFavorite(it.nameEn);
       return matchesSearch && matchesRating && matchesFavorites;
     }).toList();
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+      return list;
+    }
     if (sortMode == 1) {
       list.sort((a, b) => b.reviews.compareTo(a.reviews));
     } else if (sortMode == 2) {
@@ -202,6 +241,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                       seed: widget.titleEn,
                       boxName: widget.boxName,
                     ),
+                    if (widget.boxName == 'government') const _EmergencyBar(),
                     Padding(
                       padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
                       child: isMobile(context)
@@ -223,6 +263,15 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                     favoritesOnly = !favoritesOnly;
                                     currentPage = 0;
                                   }),
+                                  nearestActive: _nearestActive,
+                                  nearestLoading: _locating,
+                                  onNearestTap: () async {
+                                    if (_nearestActive) {
+                                      setState(() => _nearestActive = false);
+                                    } else {
+                                      await _activateNearestToMe();
+                                    }
+                                  },
                                 ),
                                 SizedBox(height: 16),
                                 _ResultsGrid(
@@ -265,6 +314,15 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                       favoritesOnly = !favoritesOnly;
                                       currentPage = 0;
                                     }),
+                                    nearestActive: _nearestActive,
+                                    nearestLoading: _locating,
+                                    onNearestTap: () async {
+                                      if (_nearestActive) {
+                                        setState(() => _nearestActive = false);
+                                      } else {
+                                        await _activateNearestToMe();
+                                      }
+                                    },
                                   ),
                                 ),
                                 SizedBox(width: 20),
@@ -400,6 +458,14 @@ final Map<String, String> _bannerQueryByBox = {
   'government': 'government building Nablus',
 };
 
+// صورة بانر محلية حقيقية لبعض التصنيفات (لو موجودة) بدل الاعتماد على الإنترنت
+final Map<String, String> _bannerAssetByBox = {
+  'education': 'assets/images/education/تعليم.jpeg',
+  'banks': 'assets/images/bank/بنوك.jpeg',
+  'entertainment': 'assets/images/Entertainment/ترفيه.jpeg',
+  'government': 'assets/images/Government services/خدمات حكومية.jpeg',
+};
+
 // ==================== بانر عنوان الصفحة ====================
 class _Banner extends StatelessWidget {
   final String titleAr;
@@ -436,11 +502,13 @@ class _Banner extends StatelessWidget {
               context,
               query: _bannerQueryByBox[boxName] ?? 'nablus palestine city',
               fallbackSeed: '$seed-banner',
+              localAsset: _bannerAssetByBox[boxName],
             ),
             child: ThemedImage(
               query: _bannerQueryByBox[boxName] ?? 'nablus palestine city',
               fallbackSeed: '$seed-banner',
               height: 200,
+              localAsset: _bannerAssetByBox[boxName],
             ),
           ),
           Container(
@@ -483,6 +551,103 @@ class _Banner extends StatelessWidget {
   }
 }
 
+// ==================== شريط أرقام الطوارئ (خاص بقسم الخدمات الحكومية) ====================
+class _EmergencyBar extends StatelessWidget {
+  const _EmergencyBar();
+
+  static const _numbers = [
+    {'ar': 'الشرطة', 'en': 'Police', 'icon': Icons.local_police, 'phone': '100'},
+    {
+      'ar': 'الإسعاف',
+      'en': 'Ambulance',
+      'icon': Icons.medical_services,
+      'phone': '101',
+    },
+    {
+      'ar': 'الإطفائية',
+      'en': 'Fire Department',
+      'icon': Icons.local_fire_department,
+      'phone': '102',
+    },
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Container(
+      margin: EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.red.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.emergency, color: AppColors.red, size: 20),
+              SizedBox(width: 8),
+              Text(
+                app.t('أرقام الطوارئ', 'Emergency Numbers'),
+                textDirection: app.dir,
+                style: AppTypography.title(AppColors.red).copyWith(fontSize: 15),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: _numbers.map((n) {
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => launchUrl(Uri.parse('tel:${n['phone']}')),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: AppColors.cardShadow,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(n['icon'] as IconData, color: AppColors.red, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        app.t(n['ar'] as String, n['en'] as String),
+                        textDirection: app.dir,
+                        style: TextStyle(
+                          color: AppColors.textWhite,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        n['phone'] as String,
+                        style: TextStyle(
+                          color: AppColors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.call, color: AppColors.red, size: 14),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ==================== الفلاتر الجانبية (عامة: بحث + تقييم) ====================
 class _FiltersSidebar extends StatelessWidget {
   final void Function(String) onSearchChanged;
@@ -490,12 +655,18 @@ class _FiltersSidebar extends StatelessWidget {
   final void Function(double) onRatingTap;
   final bool favoritesOnly;
   final VoidCallback onFavoritesOnlyTap;
+  final bool nearestActive;
+  final bool nearestLoading;
+  final VoidCallback onNearestTap;
   const _FiltersSidebar({
     required this.onSearchChanged,
     required this.minRating,
     required this.onRatingTap,
     required this.favoritesOnly,
     required this.onFavoritesOnlyTap,
+    required this.nearestActive,
+    required this.nearestLoading,
+    required this.onNearestTap,
   });
 
   @override
@@ -518,6 +689,15 @@ class _FiltersSidebar extends StatelessWidget {
                 ).copyWith(fontSize: 14),
               ),
             ],
+          ),
+          SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: NearestToMeChip(
+              active: nearestActive,
+              loading: nearestLoading,
+              onTap: onNearestTap,
+            ),
           ),
           SizedBox(height: 16),
           Container(

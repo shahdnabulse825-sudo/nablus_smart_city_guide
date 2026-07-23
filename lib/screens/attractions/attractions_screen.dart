@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
-import '../../services/location_service.dart' show findNearest;
+import 'package:geolocator/geolocator.dart';
+import '../../services/location_service.dart'
+    show findNearest, LocationService, distanceKmFromUser;
+import '../../widgets/nearest_to_me_chip.dart';
 import '../../widgets/themed_image.dart';
 import '../../widgets/responsive.dart';
 import '../../services/local_db_service.dart';
@@ -1013,12 +1016,44 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
   int currentPage = 0;
   static const int perPage = 9;
 
+  Position? _userPosition;
+  bool _locating = false;
+  bool _nearestActive = false;
+
   @override
   void initState() {
     super.initState();
     categoryFilter = widget.initialCategory ?? '';
     _loadData();
   }
+
+  Future<void> _activateNearestToMe() async {
+    setState(() => _locating = true);
+    try {
+      final position = await LocationService.instance.getCurrentPosition();
+      setState(() {
+        _userPosition = position;
+        _nearestActive = true;
+        _locating = false;
+      });
+    } catch (e) {
+      setState(() => _locating = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e is String ? e : e.toString())));
+    }
+  }
+
+  double? _distanceKmTo(AttractionData a) => distanceKmFromUser(
+    _userPosition,
+    nameAr: a.nameAr,
+    nameEn: a.nameEn,
+    locationAr: a.locationAr,
+    locationEn: a.locationEn,
+    lat: a.lat,
+    lng: a.lng,
+  );
 
   @override
   void dispose() {
@@ -1055,6 +1090,10 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
       final matchesRating = a.rating >= minRating;
       return matchesSearch && matchesFilter && matchesRating;
     }).toList();
+    if (_nearestActive && _userPosition != null) {
+      list.sort((a, b) => _distanceKmTo(a)!.compareTo(_distanceKmTo(b)!));
+      return list;
+    }
     if (sortMode == 1) {
       list.sort((a, b) => b.reviews.compareTo(a.reviews));
     } else if (sortMode == 2) {
@@ -1165,12 +1204,30 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                             ),
                           ),
                           SizedBox(height: 10),
-                          _RatingFiltersRow(
-                            minRating: minRating,
-                            onRatingTap: (v) => setState(() {
-                              minRating = minRating == v ? 0 : v;
-                              currentPage = 0;
-                            }),
+                          Row(
+                            children: [
+                              NearestToMeChip(
+                                active: _nearestActive,
+                                loading: _locating,
+                                onTap: () async {
+                                  if (_nearestActive) {
+                                    setState(() => _nearestActive = false);
+                                  } else {
+                                    await _activateNearestToMe();
+                                  }
+                                },
+                              ),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: _RatingFiltersRow(
+                                  minRating: minRating,
+                                  onRatingTap: (v) => setState(() {
+                                    minRating = minRating == v ? 0 : v;
+                                    currentPage = 0;
+                                  }),
+                                ),
+                              ),
+                            ],
                           ),
                           SizedBox(height: 22),
                           Row(

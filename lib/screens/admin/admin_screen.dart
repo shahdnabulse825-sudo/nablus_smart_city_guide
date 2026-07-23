@@ -302,6 +302,21 @@ const _shoppingVenueFields = [
   _FieldConfig('hoursEn', 'ساعات العمل (إنجليزي)', 'Working hours (English)'),
   _FieldConfig('phone', 'رقم الهاتف', 'Phone number'),
   _FieldConfig(
+    'website',
+    'الموقع الإلكتروني / صفحة التواصل (اختياري)',
+    'Website / social page (optional)',
+  ),
+  _FieldConfig.dropdown('subCategory', 'قسم المحل (فلتر التسوق)', 'Store category (shopping filter)', [
+    '',
+    'fashion',
+    'shoes',
+    'electronics',
+    'cosmetics',
+    'jewelry',
+    'books',
+    'entertainment',
+  ]),
+  _FieldConfig(
     'aboutAr',
     'نبذة (عربي)',
     'About (Arabic)',

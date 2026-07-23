@@ -39,19 +39,22 @@ Future<void> _seedAllBoxes() async {
     'shopping',
     shoppingVenuesSeedData.map(shoppingVenueToMap).toList(),
   );
-  await db.seedIfEmpty('transport', transportData.map(listingToMap).toList());
-  await db.seedIfEmpty('health', healthData.map(listingToMap).toList());
+  await db.syncSeedExact('transport', transportData.map(listingToMap).toList());
+  await db.syncSeedExact('health', healthData.map(listingToMap).toList());
   await db.syncSeed(
     'pharmacies',
     pharmaciesSeedData.map(pharmacyToMap).toList(),
   );
-  await db.seedIfEmpty('education', educationData.map(listingToMap).toList());
-  await db.seedIfEmpty('banks', banksData.map(listingToMap).toList());
-  await db.seedIfEmpty(
+  await db.syncSeedExact('education', educationData.map(listingToMap).toList());
+  await db.syncSeedExact('banks', banksData.map(listingToMap).toList());
+  await db.syncSeedExact(
     'entertainment',
     entertainmentData.map(listingToMap).toList(),
   );
-  await db.seedIfEmpty('government', governmentData.map(listingToMap).toList());
+  await db.syncSeedExact(
+    'government',
+    governmentData.map(listingToMap).toList(),
+  );
   await db.syncSeed(
     'restaurants',
     restaurantsSeedData.map(restaurantToMap).toList(),

@@ -110,6 +110,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Restaurants',
       'icon': Icons.restaurant,
       'color': AppColors.red,
+      'photoQuery': 'restaurant food table Nablus',
+      'localAsset': 'assets/images/category_icons/restaurants.jpg',
       'onTap': (BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => RestaurantCategoriesScreen()),
       ),
@@ -119,6 +121,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Hotels',
       'icon': Icons.bed,
       'color': AppColors.purple,
+      'photoQuery': 'hotel room bed Nablus',
+      'localAsset': 'assets/images/category_icons/hotels.jpg',
       'onTap': (BuildContext context) => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (context) => HotelsScreen())),
@@ -128,6 +132,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Attractions',
       'icon': Icons.mosque,
       'color': AppColors.gold,
+      'photoQuery': 'landmark old city alley Nablus',
+      'localAsset': 'assets/images/category_icons/attractions.jpg',
       'onTap': (BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => AttractionCategoriesScreen()),
       ),
@@ -137,6 +143,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Shopping',
       'icon': Icons.shopping_bag,
       'color': AppColors.primary,
+      'photoQuery': 'market shopping bags Nablus',
+      'localAsset': 'assets/images/category_icons/shopping.avif',
       'onTap': (BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => ShoppingCategoriesScreen()),
       ),
@@ -146,6 +154,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Transport',
       'icon': Icons.directions_bus,
       'color': AppColors.teal,
+      'photoQuery': 'bus station transport Nablus',
+      'localAsset': 'assets/images/category_icons/transport.png',
       'onTap': (BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => CategoryListScreen(
@@ -165,6 +175,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Health',
       'icon': Icons.favorite,
       'color': AppColors.teal,
+      'photoQuery': 'hospital medical cross Nablus',
+      'localAsset': 'assets/images/category_icons/health.png',
       'onTap': (BuildContext context) => Navigator.of(context).push(
         MaterialPageRoute(
           builder: (context) => CategoryListScreen(
@@ -184,6 +196,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'labelEn': 'Pharmacies',
       'icon': Icons.local_pharmacy,
       'color': AppColors.primary,
+      'photoQuery': 'pharmacy medicine shelves Nablus',
+      'localAsset': 'assets/images/category_icons/pharmacies.png',
       'onTap': (BuildContext context) => Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (context) => PharmaciesScreen())),
@@ -426,48 +440,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                     ),
                                 itemBuilder: (context, i) {
                                   final c = _categories[i];
-                                  return GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
+                                  return CategoryTile(
+                                    labelAr: c['labelAr'] as String,
+                                    labelEn: c['labelEn'] as String,
+                                    icon: c['icon'] as IconData,
+                                    color: c['color'] as Color,
+                                    photoQuery: c['photoQuery'] as String?,
+                                    localAsset: c['localAsset'] as String?,
                                     onTap: () =>
                                         (c['onTap'] as Function)(context),
-                                    child: Column(
-                                      children: [
-                                        Container(
-                                          width: 56,
-                                          height: 56,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                c['color'] as Color,
-                                                (c['color'] as Color)
-                                                    .withValues(alpha: 0.7),
-                                              ],
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              AppRadius.lg,
-                                            ),
-                                            boxShadow: AppColors.cardShadow,
-                                          ),
-                                          child: Icon(
-                                            c['icon'],
-                                            color: Colors.white,
-                                            size: 26,
-                                          ),
-                                        ),
-                                        SizedBox(height: 6),
-                                        Text(
-                                          app.t(c['labelAr'], c['labelEn']),
-                                          textDirection: app.dir,
-                                          textAlign: TextAlign.center,
-                                          style:
-                                              AppTypography.label(
-                                                AppColors.textWhite,
-                                              ).copyWith(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
                                   );
                                 },
                               ),

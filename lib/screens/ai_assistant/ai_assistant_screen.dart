@@ -30,7 +30,8 @@ class ChatMessage {
 }
 
 class AiAssistantScreen extends StatefulWidget {
-  const AiAssistantScreen({super.key});
+  final String? initialQuery;
+  const AiAssistantScreen({super.key, this.initialQuery});
 
   @override
   State<AiAssistantScreen> createState() => _AiAssistantScreenState();
@@ -60,6 +61,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   void initState() {
     super.initState();
     _addGreeting();
+    if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _send(widget.initialQuery);
+      });
+    }
     _scrollController.addListener(() {
       if (!_scrollController.hasClients) return;
       final distanceFromBottom =
@@ -106,6 +112,19 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   List<UniversalPlace> _topRatedList(String categoryKey, {int count = 3}) {
     final list = allPlaces.where((p) => p.categoryKey == categoryKey).toList()
       ..sort((a, b) => b.rating.compareTo(a.rating));
+    return list.take(count).toList();
+  }
+
+  // محلات "المراكز التجارية" حسب القسم الفرعي (أزياء، أحذية...) — تُستخدم لاقتراح
+  // منتجات/محلات مشابهة عند الضغط على "اسأل الذكاء الاصطناعي عن هذا المحل".
+  List<UniversalPlace> _topRatedShopping(String subCategory, {int count = 3}) {
+    final list =
+        allPlaces
+            .where(
+              (p) => p.categoryKey == 'shopping' && p.subCategory == subCategory,
+            )
+            .toList()
+          ..sort((a, b) => b.rating.compareTo(a.rating));
     return list.take(count).toList();
   }
 
@@ -187,6 +206,104 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       return ChatMessage(
         textAr: 'أفضل الفنادق تقييمًا بنابلس: ${namesList(list)}.',
         textEn: 'The best-rated hotels in Nablus: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['أزياء', 'ملابس', 'موضة'], ['fashion', 'clothing', 'clothes'])) {
+      final list = _topRatedShopping('fashion');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات أزياء مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات الأزياء بالمراكز التجارية: ${namesList(list)}. اضغطي على الاقتراح لمزيد من التفاصيل أو محلات قريبة مشابهة.',
+        textEn: list.isEmpty
+            ? 'No fashion stores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top fashion stores in the commercial centers: ${namesListEn(list)}. Tap the suggestion for details or similar nearby stores.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['أحذية', 'حذاء'], ['shoes', 'shoe', 'footwear'])) {
+      final list = _topRatedShopping('shoes');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات أحذية مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات الأحذية بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No shoe stores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top shoe stores in the commercial centers: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['إلكترونيات', 'الكترونيات', 'موبايل', 'هواتف'], ['electronics', 'electronic', 'mobile', 'phone'])) {
+      final list = _topRatedShopping('electronics');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات إلكترونيات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات الإلكترونيات بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No electronics stores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top electronics stores in the commercial centers: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['تجميل', 'مكياج', 'مستحضرات'], ['cosmetics', 'makeup', 'beauty'])) {
+      final list = _topRatedShopping('cosmetics');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات مستحضرات تجميل مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات مستحضرات التجميل بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No cosmetics stores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top cosmetics stores in the commercial centers: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['مجوهرات', 'ذهب', 'حلي'], ['jewelry', 'jewellery', 'gold'])) {
+      final list = _topRatedShopping('jewelry');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات مجوهرات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات المجوهرات بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No jewelry stores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top jewelry stores in the commercial centers: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['مكتبات', 'مكتبة', 'كتب'], ['bookstore', 'books', 'book'])) {
+      final list = _topRatedShopping('books');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت مكتبات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل المكتبات بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No bookstores are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top bookstores in the commercial centers: ${namesListEn(list)}.',
+        isUser: false,
+        place: list.isEmpty ? null : list.first,
+      );
+    }
+
+    if (has(['ترفيه', 'ألعاب', 'العاب'], ['arcade', 'games', 'gaming'])) {
+      final list = _topRatedShopping('entertainment');
+      return ChatMessage(
+        textAr: list.isEmpty
+            ? 'ما لقيت محلات ترفيه مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل أماكن الترفيه والألعاب بالمراكز التجارية: ${namesList(list)}.',
+        textEn: list.isEmpty
+            ? 'No entertainment spots are registered right now. Check the "Commercial Centers" section in Shopping.'
+            : 'Top entertainment and arcade spots in the commercial centers: ${namesListEn(list)}.',
         isUser: false,
         place: list.isEmpty ? null : list.first,
       );

@@ -44,8 +44,12 @@ flutter:
     - assets/images/
     - assets/images/health/
     - assets/images/education/
+    - assets/images/bank/
+    - assets/images/Entertainment/
+    - assets/images/Government services/
     - assets/images/restaurants/
     - assets/images/hotels/
     - assets/images/pharmaces/
     - assets/images/landmark/
     - assets/images/category_icons/
+    - assets/images/shopping/
