@@ -181,6 +181,9 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           customImageBase64: it.customImageBase64,
           serverImageUrl: it.serverImageUrl,
           localAsset: it.image,
+          // boxName 'banks' مفردها 'bank' بمفردات categoryKey الموحّدة
+          // بباقي الشاشات (all_places/explore/nearby...) — لازم نطابقها هون.
+          placeType: widget.boxName == 'banks' ? 'bank' : widget.boxName,
         ),
       ),
     );
@@ -1168,17 +1171,21 @@ class _ItemListTile extends StatelessWidget {
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-            child: ThemedImage(
-              query: item.photoQuery,
-              fallbackSeed: item.nameEn,
-              height: 64,
-              fallbackIcon: item.placeholderIcon,
-              fallbackColor: item.placeholderColor,
-              customImageBase64: item.customImageBase64,
-              serverImageUrl: item.serverImageUrl,
-              localAsset: item.image,
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: ThemedImage(
+                query: item.photoQuery,
+                fallbackSeed: item.nameEn,
+                height: 64,
+                fallbackIcon: item.placeholderIcon,
+                fallbackColor: item.placeholderColor,
+                customImageBase64: item.customImageBase64,
+                serverImageUrl: item.serverImageUrl,
+                localAsset: item.image,
+              ),
             ),
           ),
           SizedBox(width: 10),

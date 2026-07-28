@@ -4,6 +4,8 @@ import 'services/local_db_service.dart';
 import 'services/auth_service.dart';
 import 'services/data_converters.dart';
 import 'services/api_service.dart';
+import 'services/favorites_service.dart';
+import 'services/recent_activity_service.dart';
 import 'screens/category/category_data.dart';
 import 'screens/restaurants/restaurants_screen.dart' show restaurantsSeedData;
 import 'screens/hotels/hotels_screen.dart' show hotelsSeedData;
@@ -19,9 +21,10 @@ import 'screens/splash/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalDbService.instance.init(); // تهيئة قاعدة البيانات المحلية (Hive)
+  // نسترجع جلسة الدخول المحفوظة قبل التعبئة، حتى لو كان فيه حساب حقيقي متزامن
+  // نقدر نجيب مفضلته/سجل زياراته من السيرفر ضمن نفس دورة التعبئة تحت.
+  AuthService.instance.restoreSession();
   await _seedAllBoxes(); // نعبّي كل الصناديق مبكرًا حتى الشاشات المجمّعة (استكشف/المساعد الذكي) تشوف بيانات الأدمن فورًا
-  AuthService.instance
-      .restoreSession(); // نسترجع جلسة الدخول المحفوظة حتى ما نرجع لتسجيل الدخول بعد تحديث الصفحة
   runApp(const NablusGuideApp());
 }
 
@@ -72,6 +75,10 @@ Future<void> _seedAllBoxes() async {
   await ApiService.syncNews();
   await ApiService.syncEvents();
   await ApiService.syncCategoryImages();
+  if (AuthService.instance.userToken != null) {
+    await FavoritesService.instance.syncWithServer();
+    await RecentActivityService.instance.syncWithServer();
+  }
   await AppState.instance.incrementVisitorCount();
 }
 

@@ -9,6 +9,7 @@ import '../events/events_data.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/weather_service.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 
@@ -27,6 +28,28 @@ class ChatMessage {
     this.place,
     this.event,
   }) : time = time ?? DateTime.now();
+
+  Map<String, dynamic> toMap() => {
+    'textAr': textAr,
+    'textEn': textEn,
+    'isUser': isUser,
+    'time': time.toIso8601String(),
+    'placeNameEn': place?.nameEn,
+    'eventTitleEn': event?.titleEn,
+  };
+
+  static ChatMessage fromMap(
+    Map<String, dynamic> m, {
+    UniversalPlace? place,
+    EventItem? event,
+  }) => ChatMessage(
+    textAr: m['textAr'] as String? ?? '',
+    textEn: m['textEn'] as String? ?? '',
+    isUser: m['isUser'] as bool? ?? false,
+    time: DateTime.tryParse(m['time'] as String? ?? ''),
+    place: place,
+    event: event,
+  );
 }
 
 class AiAssistantScreen extends StatefulWidget {
@@ -60,7 +83,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   @override
   void initState() {
     super.initState();
-    _addGreeting();
+    _loadHistory();
+    if (_messages.length > 1) _scrollToEnd();
     if (widget.initialQuery != null && widget.initialQuery!.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _send(widget.initialQuery);
@@ -83,6 +107,40 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     _scrollController.dispose();
     super.dispose();
   }
+
+  // ---------- حفظ/استرجاع سجل المحادثة محليًا (Hive) حتى ما تضيع لما تُسكّر الشاشة ----------
+  void _loadHistory() {
+    final raw = LocalDbService.instance.getAll('ai_chat')
+      ..sort((a, b) {
+        final ta = a.value['time'] as String? ?? '';
+        final tb = b.value['time'] as String? ?? '';
+        return ta.compareTo(tb);
+      });
+    if (raw.isEmpty) {
+      _addGreeting();
+      _persistMessage(_messages.last);
+      return;
+    }
+    for (final entry in raw) {
+      final m = entry.value;
+      final placeNameEn = m['placeNameEn'] as String?;
+      final eventTitleEn = m['eventTitleEn'] as String?;
+      _messages.add(
+        ChatMessage.fromMap(
+          m,
+          place: placeNameEn == null
+              ? null
+              : allPlaces.where((p) => p.nameEn == placeNameEn).firstOrNull,
+          event: eventTitleEn == null
+              ? null
+              : _liveEvents.where((e) => e.titleEn == eventTitleEn).firstOrNull,
+        ),
+      );
+    }
+  }
+
+  Future<void> _persistMessage(ChatMessage m) =>
+      LocalDbService.instance.add('ai_chat', m.toMap());
 
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -421,6 +479,20 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
     }
 
     if (has(
+      ['سعر الدولار', 'الدولار', 'سعر الدينار', 'الدينار', 'سعر اليورو', 'اليورو', 'أسعار العملات', 'سعر الصرف'],
+      ['dollar', 'usd', 'jod exchange', 'euro rate', 'exchange rate', 'currency'],
+    )) {
+      final app = AppState.instance;
+      return ChatMessage(
+        textAr:
+            'أسعار الصرف الحالية مقابل الشيكل: الدولار ${app.usdToIls.toStringAsFixed(2)}₪، الدينار الأردني ${app.jodToIls.toStringAsFixed(2)}₪، اليورو ${app.eurToIls.toStringAsFixed(2)}₪. بتقدري تشوفي التفاصيل بالشريط الجانبي بالصفحة الرئيسية.',
+        textEn:
+            'Current exchange rates against the shekel: USD ${app.usdToIls.toStringAsFixed(2)}₪, JOD ${app.jodToIls.toStringAsFixed(2)}₪, EUR ${app.eurToIls.toStringAsFixed(2)}₪. See the sidebar on the home page for details.',
+        isUser: false,
+      );
+    }
+
+    if (has(
       ['مساعدة', 'ماذا تفعل', 'شو تقدر', 'قدراتك'],
       ['help', 'what can you do', 'capabilities'],
     )) {
@@ -460,32 +532,74 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
     return ChatMessage(
       textAr:
-          'ما فهمت طلبك بالضبط 🤔 بس تقدر تسألني عن: المطاعم، الفنادق، المعالم السياحية، التسوق، الصيدليات، المستشفيات، المواصلات، الفعاليات، أو الطقس بنابلس.',
+          'ما فهمت طلبك بالضبط 🤔 بس تقدر تسألني عن: المطاعم، الفنادق، المعالم السياحية، التسوق، الصيدليات، المستشفيات، المواصلات، الفعاليات، أسعار العملات، أو الطقس بنابلس.',
       textEn:
-          "I didn't quite get that 🤔 but you can ask me about: restaurants, hotels, landmarks, shopping, pharmacies, hospitals, transport, events, or the weather in Nablus.",
+          "I didn't quite get that 🤔 but you can ask me about: restaurants, hotels, landmarks, shopping, pharmacies, hospitals, transport, events, currency rates, or the weather in Nablus.",
       isUser: false,
     );
   }
 
-  void _send([String? preset]) {
+  Future<void> _send([String? preset]) async {
     final text = preset ?? _controller.text.trim();
     if (text.isEmpty) return;
+    final userMsg = ChatMessage(textAr: text, textEn: text, isUser: true);
     setState(() {
-      _messages.add(ChatMessage(textAr: text, textEn: text, isUser: true));
+      _messages.add(userMsg);
       _controller.clear();
       _hasText = false;
       _isTyping = true;
     });
+    _persistMessage(userMsg);
     _scrollToEnd();
-    final delay = 500 + (text.length.clamp(0, 40)) * 15;
-    Future.delayed(Duration(milliseconds: delay), () {
-      if (!mounted) return;
-      setState(() {
-        _isTyping = false;
-        _messages.add(_generateReply(text));
-      });
-      _scrollToEnd();
+
+    // بنجرّب المساعد الذكي الحقيقي (نموذج لغوي عبر السيرفر) أول شي — بيفهم
+    // صياغات مرنة وأخطاء إملائية بعكس المطابقة الحرفية القديمة، وبنبعتله آخر
+    // كم رسالة من المحادثة (history) حتى يفهم أسئلة المتابعة، وبنحدد له لغة
+    // الرد (lang) صراحة حتى تطابق دايمًا لغة عرض التطبيق الحالية. لو تعذّر
+    // الوصول له (بدون إنترنت، أو المفتاح مش مُفعّل بعد)، نرجع تلقائيًا
+    // للردود المحلية القديمة (_generateReply) حتى المساعد يضل شغال دايمًا.
+    final lang = AppState.instance.isArabic ? 'ar' : 'en';
+    final priorMessages = _messages.sublist(0, _messages.length - 1);
+    final recentHistory = (priorMessages.length > 8
+            ? priorMessages.sublist(priorMessages.length - 8)
+            : priorMessages)
+        .map(
+          (m) => {
+            'role': m.isUser ? 'user' : 'assistant',
+            'content': lang == 'ar' ? m.textAr : m.textEn,
+          },
+        )
+        .toList();
+    final apiResult = await ApiService.askAiAssistant(
+      text,
+      history: recentHistory,
+      lang: lang,
+    );
+    if (!mounted) return;
+    ChatMessage reply;
+    if (apiResult['ok'] == true) {
+      final placeNameEn = apiResult['placeNameEn'] as String?;
+      final eventTitleEn = apiResult['eventTitleEn'] as String?;
+      reply = ChatMessage(
+        textAr: (apiResult['textAr'] as String?) ?? '',
+        textEn: (apiResult['textEn'] as String?) ?? '',
+        isUser: false,
+        place: placeNameEn == null
+            ? null
+            : allPlaces.where((p) => p.nameEn == placeNameEn).firstOrNull,
+        event: eventTitleEn == null
+            ? null
+            : _liveEvents.where((e) => e.titleEn == eventTitleEn).firstOrNull,
+      );
+    } else {
+      reply = _generateReply(text);
+    }
+    setState(() {
+      _isTyping = false;
+      _messages.add(reply);
     });
+    _persistMessage(reply);
+    _scrollToEnd();
   }
 
   void _clearChat() {
@@ -493,6 +607,9 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       _messages.clear();
       _addGreeting();
     });
+    LocalDbService.instance
+        .clearBox('ai_chat')
+        .then((_) => _persistMessage(_messages.last));
   }
 
   @override
@@ -591,6 +708,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           locationAr: p.locationAr,
           locationEn: p.locationEn,
           customImageBase64: p.customImageBase64,
+          placeType: p.categoryKey,
         ),
       ),
     );
@@ -1003,14 +1121,18 @@ class _PlaceSuggestionCard extends StatelessWidget {
         onTap: onTap,
         child: Row(
           children: [
-            ThemedImage(
-              query: p.photoQuery,
-              fallbackSeed: p.nameEn,
+            SizedBox(
+              width: 64,
               height: 64,
-              fallbackIcon: p.icon,
-              fallbackColor: p.color,
-              customImageBase64: p.customImageBase64,
-              localAsset: p.image,
+              child: ThemedImage(
+                query: p.photoQuery,
+                fallbackSeed: p.nameEn,
+                height: 64,
+                fallbackIcon: p.icon,
+                fallbackColor: p.color,
+                customImageBase64: p.customImageBase64,
+                localAsset: p.image,
+              ),
             ),
             Expanded(
               child: Padding(

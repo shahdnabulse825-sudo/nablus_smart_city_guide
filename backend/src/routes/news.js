@@ -12,6 +12,80 @@ router.get('/', async (req, res) => {
   res.json(items);
 });
 
+// ==================== أخبار حقيقية مباشرة عن الضفة الغربية/فلسطين ====================
+// مصدر خارجي حقيقي (Al Jazeera RSS العام، بدون مفتاح API) مفلتر بكلمات مفتاحية
+// للضفة الغربية/فلسطين، مع جلب صورة كل خبر من صفحته الحقيقية (og:image) لأنه
+// الـ RSS نفسه ما بيحمل صور. نتيجة مؤقتة بالذاكرة (15 دقيقة) حتى ما نضرب
+// السيرفر الخارجي بكل فتحة لشاشة الأخبار.
+const WEST_BANK_KEYWORDS = [
+  'palestin', 'west bank', 'nablus', 'ramallah', 'hebron', 'bethlehem',
+  'jenin', 'jericho', 'tulkarm', 'qalqilya', 'salfit', 'gaza',
+];
+let _liveNewsCache = { at: 0, items: [] };
+
+function decodeEntities(text) {
+  return text
+    .replace(/&#8217;|&#8216;/g, "'")
+    .replace(/&#8211;|&#8212;/g, '-')
+    .replace(/&#8220;|&#8221;/g, '"')
+    .replace(/&#038;|&amp;/g, '&')
+    .replace(/&#039;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+async function fetchOgImage(articleUrl) {
+  try {
+    const res = await fetch(articleUrl, { signal: AbortSignal.timeout(6000) });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    return match ? decodeEntities(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+router.get('/live', async (req, res) => {
+  const FIFTEEN_MIN = 15 * 60 * 1000;
+  if (Date.now() - _liveNewsCache.at < FIFTEEN_MIN && _liveNewsCache.items.length) {
+    return res.json(_liveNewsCache.items);
+  }
+
+  const feedRes = await fetch('https://www.aljazeera.com/xml/rss/all.xml', {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!feedRes.ok) return res.status(502).json({ error: 'تعذّر جلب الأخبار الآن' });
+  const xml = await feedRes.text();
+
+  const itemBlocks = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
+  const parsed = itemBlocks.map((block) => {
+    const title = decodeEntities((block.match(/<title>([\s\S]*?)<\/title>/) || [, ''])[1]);
+    const description = decodeEntities(
+      (block.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || [, ''])[1],
+    );
+    const link = (block.match(/<link>([\s\S]*?)<\/link>/) || [, ''])[1];
+    const pubDate = (block.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [, ''])[1];
+    const category = (block.match(/<category>([\s\S]*?)<\/category>/) || [, ''])[1];
+    return { title, description, link, pubDate, category };
+  });
+
+  const matched = parsed
+    .filter((a) => {
+      const haystack = `${a.title} ${a.description}`.toLowerCase();
+      return WEST_BANK_KEYWORDS.some((k) => haystack.includes(k));
+    })
+    .slice(0, 8);
+
+  const withImages = await Promise.all(
+    matched.map(async (a) => ({ ...a, imageUrl: await fetchOgImage(a.link) })),
+  );
+
+  _liveNewsCache = { at: Date.now(), items: withImages };
+  res.json(withImages);
+});
+
 router.get('/:id', async (req, res) => {
   const item = await prisma.newsArticle.findUnique({ where: { id: req.params.id } });
   if (!item) return res.status(404).json({ error: 'الخبر غير موجود' });

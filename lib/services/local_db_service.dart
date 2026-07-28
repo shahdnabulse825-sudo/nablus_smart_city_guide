@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// خدمة قاعدة بيانات محلية (على الجهاز فقط، بدون إنترنت وبدون تسجيل حساب)
 /// كل تصنيف (مطاعم، فنادق، سياحة، تسوق، مواصلات، صحة، صيدليات، أخبار) إله "صندوق" خاص فيه.
@@ -28,15 +30,46 @@ class LocalDbService {
     'feedback',
     'activity',
     'search_log',
+    'visit_log',
+    'ai_chat',
   ];
 
   final Map<String, Box> _boxes = {};
 
   /// تُستدعى مرة وحدة بأول تشغيل للتطبيق (بـ main.dart) قبل runApp
+  ///
+  /// بتخزّن ملفات Hive بمجلد بيانات التطبيق (%LOCALAPPDATA%) بدل مجلد
+  /// المستندات الافتراضي — على أجهزة الويندوز اللي فيها OneDrive بيربط مجلد
+  /// المستندات بالمزامنة السحابية، وهاد كان بيسبب قفل ملفات (.hivec) عشوائي
+  /// أثناء كتابة Hive وبيكرش التطبيق. بننقل أي بيانات قديمة موجودة بالمكان
+  /// القديم أول مرة حتى ما نخسرها.
   Future<void> init() async {
-    await Hive.initFlutter();
+    final newDir = await getApplicationSupportDirectory();
+    await _migrateFromOldLocation(newDir.path);
+    Hive.init(newDir.path);
     for (final name in boxNames) {
       _boxes[name] = await Hive.openBox(name);
+    }
+  }
+
+  Future<void> _migrateFromOldLocation(String newDirPath) async {
+    try {
+      final oldDir = await getApplicationDocumentsDirectory();
+      if (oldDir.path == newDirPath) return;
+      for (final name in boxNames) {
+        final oldFile = File('${oldDir.path}${Platform.pathSeparator}$name.hive');
+        final newFile = File('$newDirPath${Platform.pathSeparator}$name.hive');
+        if (await oldFile.exists() && !await newFile.exists()) {
+          await oldFile.copy(newFile.path);
+          final oldLock = File('${oldDir.path}${Platform.pathSeparator}$name.lock');
+          if (await oldLock.exists()) {
+            await oldLock.copy('$newDirPath${Platform.pathSeparator}$name.lock');
+          }
+        }
+      }
+    } catch (_) {
+      // لو فشلت الهجرة (مثلاً أول تشغيل ما في بيانات قديمة أصلاً) بنكمل عادي
+      // بصناديق فاضية وبترجع تتعبى من مزامنة السيرفر.
     }
   }
 
@@ -138,8 +171,9 @@ class LocalDbService {
         .toList();
   }
 
-  Future<void> add(String boxName, Map<String, dynamic> item) async {
-    await _box(boxName).add(item);
+  /// بترجع المفتاح المتولّد تلقائيًا للعنصر المُضاف (لازم لأي تعديل/حذف لاحق عليه)
+  Future<dynamic> add(String boxName, Map<String, dynamic> item) {
+    return _box(boxName).add(item);
   }
 
   Future<void> update(String boxName, dynamic key, Map<String, dynamic> item) async {

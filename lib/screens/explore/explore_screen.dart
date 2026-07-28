@@ -511,6 +511,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           locationEn: p.locationEn,
           customImageBase64: p.customImageBase64,
           localAsset: p.image,
+          placeType: p.categoryKey,
         ),
       ),
     );
@@ -527,16 +528,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Row(
           textDirection: TextDirection.rtl,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: ThemedImage(
-                query: p.photoQuery,
-                fallbackSeed: p.nameEn,
-                height: 48,
-                fallbackIcon: p.icon,
-                fallbackColor: p.color,
-                customImageBase64: p.customImageBase64,
-                localAsset: p.image,
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: ThemedImage(
+                  query: p.photoQuery,
+                  fallbackSeed: p.nameEn,
+                  height: 48,
+                  fallbackIcon: p.icon,
+                  fallbackColor: p.color,
+                  customImageBase64: p.customImageBase64,
+                  localAsset: p.image,
+                ),
               ),
             ),
             SizedBox(width: 10),

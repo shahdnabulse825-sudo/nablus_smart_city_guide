@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../admin/admin_screen.dart';
 import '../../services/auth_service.dart';
+import '../../services/favorites_service.dart';
+import '../../services/recent_activity_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 import 'sign_up_screen.dart';
@@ -65,6 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = false);
 
     if (error == null) {
+      if (AuthService.instance.userToken != null) {
+        // بالخلفية، بدون تأخير التنقّل — تجيب مفضلة/سجل زيارات الحساب من أجهزة تانية
+        FavoritesService.instance.syncWithServer();
+        RecentActivityService.instance.syncWithServer();
+      }
       Navigator.of(
         context,
       ).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
@@ -695,7 +702,7 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
     });
     await Future.delayed(Duration(milliseconds: 300));
     if (!mounted) return;
-    final exists = AuthService.instance.emailExists(emailController.text);
+    final exists = await AuthService.instance.emailExists(emailController.text);
     setState(() {
       isLoading = false;
       if (exists) {

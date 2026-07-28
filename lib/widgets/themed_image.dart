@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/wikimedia_service.dart';
 
 /// يفتح الصورة بحجم كامل مع إمكانية التكبير/التصغير باللمس، ويُغلق بالضغط
 /// على الخلفية أو زر الإغلاق. استخدميها بأي مكان عندك فيه ThemedImage رئيسية
@@ -14,6 +15,7 @@ void showImageZoom(
   String? serverImageUrl,
   IconData fallbackIcon = Icons.image,
   Color fallbackColor = const Color(0xFF6C5CE7),
+  bool tryRealPhoto = false,
 }) {
   Navigator.of(context).push(
     PageRouteBuilder(
@@ -29,6 +31,7 @@ void showImageZoom(
           serverImageUrl: serverImageUrl,
           fallbackIcon: fallbackIcon,
           fallbackColor: fallbackColor,
+          tryRealPhoto: tryRealPhoto,
         ),
       ),
     ),
@@ -43,6 +46,7 @@ class _ImageZoomScreen extends StatelessWidget {
   final String? serverImageUrl;
   final IconData fallbackIcon;
   final Color fallbackColor;
+  final bool tryRealPhoto;
   const _ImageZoomScreen({
     required this.query,
     required this.fallbackSeed,
@@ -51,6 +55,7 @@ class _ImageZoomScreen extends StatelessWidget {
     this.serverImageUrl,
     required this.fallbackIcon,
     required this.fallbackColor,
+    this.tryRealPhoto = false,
   });
 
   @override
@@ -79,6 +84,7 @@ class _ImageZoomScreen extends StatelessWidget {
                       serverImageUrl: serverImageUrl,
                       fallbackIcon: fallbackIcon,
                       fallbackColor: fallbackColor,
+                      tryRealPhoto: tryRealPhoto,
                     ),
                   ),
                 ),
@@ -110,7 +116,10 @@ class _ImageZoomScreen extends StatelessWidget {
 
 /// ودجت يعرض صورة حقيقية مرتبطة بموضوع معيّن (query)، مثلاً "mosque" أو "burger".
 /// لو الأدمن رفع صورة مخصّصة لهذا العنصر (customImageBase64) فهذي تُعرض دائمًا أولاً.
-/// وإلا يجرّب صورة حقيقية من الإنترنت، وإذا فشلت كلها، بيعرض أيقونة ولون مميز.
+/// وإلا — فقط لو [tryRealPhoto] مفعّلة — يجرّب صورة حقيقية من Wikimedia Commons.
+/// [tryRealPhoto] لازم تُفعّل بس لمعالم حقيقية معروفة بالاسم (query فيه اسم المكان
+/// نفسه)، مش لأعمال محلية (مطاعم/فنادق..) اللي مستحيل يكون إلها صور حقيقية هناك —
+/// غير هيك بترجع صور عشوائية غير مرتبطة. إذا فشل الجلب أو تعطّل، بيعرض أيقونة ولون.
 class ThemedImage extends StatefulWidget {
   final String
   query; // الكلمة المفتاحية بالإنجليزي، مثلاً "mosque", "burger", "hotel exterior"
@@ -122,6 +131,7 @@ class ThemedImage extends StatefulWidget {
   final String? customImageBase64; // صورة رفعها الأدمن يدويًا لهذا العنصر تحديدًا
   final String? localAsset; // مسار صورة محلية جاهزة بالمشروع (assets/...)
   final String? serverImageUrl; // مسار صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
+  final bool tryRealPhoto; // فعّليها فقط لمعالم حقيقية معروفة بالاسم (شوف التعليق فوق)
 
   const ThemedImage({
     super.key,
@@ -134,6 +144,7 @@ class ThemedImage extends StatefulWidget {
     this.customImageBase64,
     this.localAsset,
     this.serverImageUrl,
+    this.tryRealPhoto = false,
   });
 
   @override
@@ -141,6 +152,36 @@ class ThemedImage extends StatefulWidget {
 }
 
 class _ThemedImageState extends State<ThemedImage> {
+  String? _fetchedUrl;
+
+  bool get _hasOwnImage =>
+      (widget.customImageBase64?.isNotEmpty ?? false) ||
+      (widget.localAsset?.isNotEmpty ?? false) ||
+      (widget.serverImageUrl?.isNotEmpty ?? false);
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeFetchFromWikimedia();
+  }
+
+  @override
+  void didUpdateWidget(covariant ThemedImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.query != widget.query) {
+      _fetchedUrl = null;
+      _maybeFetchFromWikimedia();
+    }
+  }
+
+  void _maybeFetchFromWikimedia() {
+    if (!widget.tryRealPhoto || _hasOwnImage || widget.query.isEmpty) return;
+    WikimediaService.instance.getPhotoUrl(widget.query).then((url) {
+      if (!mounted || url == null) return;
+      setState(() => _fetchedUrl = url);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget content;
@@ -169,6 +210,14 @@ class _ThemedImageState extends State<ThemedImage> {
         fit: BoxFit.cover,
         errorBuilder: (context, error, stack) => _iconFallback(),
       );
+    } else if (_fetchedUrl != null) {
+      content = Image.network(
+        _fetchedUrl!,
+        height: widget.height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stack) => _iconFallback(),
+      );
     } else {
       content = _iconFallback();
     }
@@ -179,8 +228,8 @@ class _ThemedImageState extends State<ThemedImage> {
     return content;
   }
 
-  /// ما في محاولة جلب صورة عشوائية من الإنترنت — لو ما رفع الأدمن صورة يدوية
-  /// (أو صورة محلية جاهزة بالمشروع)، بيظهر أيقونة ولون مميز بدل صورة غير مرتبطة.
+  /// لو ما رفع الأدمن صورة يدوية، ولا [tryRealPhoto] مفعّلة، ولا لقينا صورة
+  /// حقيقية بعد (لسا عم تحمّل أو فشل الجلب)، بيظهر أيقونة ولون مميز بدل مكان فاضي.
   Widget _iconFallback() {
     return Container(
       height: widget.height,

@@ -25,6 +25,7 @@ import '../category/more_categories_screen.dart';
 import '../explore/explore_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../places/all_places_screen.dart';
+import '../places/visit_history_screen.dart';
 import '../events/events_screen.dart';
 import '../nearby/nearby_places_screen.dart';
 import 'recommendations_section.dart';
@@ -84,6 +85,12 @@ class AppState extends ChangeNotifier {
       currentTime = DateFormat('hh:mm:ss a').format(DateTime.now());
       notifyListeners();
     });
+  }
+
+  @override
+  void dispose() {
+    _clockTimer?.cancel();
+    super.dispose();
   }
 
   // ---------- أسعار العملات الحقيقية ----------
@@ -1067,6 +1074,7 @@ class _BannerSliderState extends State<BannerSlider> {
       'titleEn': '🏛 Welcome to Nablus',
       'subtitleEn': 'Rich History... Bright Future',
       'photoQuery': 'nablus palestine cityscape',
+      'localAsset': 'assets/images/banner/nablus_cityscape.jpg',
     },
     {
       'title': '🕌 اكتشف البلدة القديمة',
@@ -1074,6 +1082,7 @@ class _BannerSliderState extends State<BannerSlider> {
       'titleEn': '🕌 Discover the Old City',
       'subtitleEn': 'Alleys That Hold Thousand-Year Stories',
       'photoQuery': 'old town stone alley',
+      'localAsset': 'assets/images/banner/old_city_alley.jpg',
     },
     {
       'title': '🍽 نكهات نابلس الأصيلة',
@@ -1081,6 +1090,7 @@ class _BannerSliderState extends State<BannerSlider> {
       'titleEn': '🍽 Authentic Nablus Flavors',
       'subtitleEn': 'Nabulsi Kunafa and the Finest Dishes',
       'photoQuery': 'kunafa dessert',
+      'localAsset': 'assets/images/banner/kunafa.jpg',
     },
   ];
 
@@ -1121,6 +1131,7 @@ class _BannerSliderState extends State<BannerSlider> {
                       // صورة الخلفية: صورة حقيقية مرتبطة بمضمون كل شريحة
                       ThemedImage(
                         query: slide['photoQuery'] ?? 'nablus palestine city',
+                        localAsset: slide['localAsset'],
                         fallbackSeed: 'banner-${slide['titleEn']}',
                         height: 210,
                       ),
@@ -1933,7 +1944,32 @@ class FavoritePlacesSection extends StatelessWidget {
                 builder: (context) => AllPlacesScreen(
                   titleAr: 'الأماكن المفضلة',
                   titleEn: 'Favorite Places',
-                  sortMode: PlacesSortMode.featured,
+                  sortMode: PlacesSortMode.favorites,
+                ),
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const VisitHistoryScreen()),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  textDirection: app.dir,
+                  children: [
+                    Icon(Icons.history_rounded, size: 13, color: AppColors.textGrey),
+                    SizedBox(width: 4),
+                    Text(
+                      app.t('سجل الزيارات', 'Visit History'),
+                      textDirection: app.dir,
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                    ),
+                  ],
                 ),
               ),
             ),

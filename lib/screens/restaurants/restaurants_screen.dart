@@ -1101,6 +1101,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           serverImageUrl: r.serverImageUrl,
           localAsset: r.image,
           phone: r.phone,
+          placeType: 'restaurant',
         ),
       ),
     );
@@ -2877,7 +2878,9 @@ class _DetailPanel extends StatelessWidget {
                   children: [
                     _roundIconBtn(
                       Icons.ios_share,
-                      () => onShowSnack(app.t('المشاركة', 'Share')),
+                      () => Share.share(
+                        '$name (${r.rating}⭐) — $location',
+                      ),
                     ),
                     SizedBox(width: 8),
                     _roundIconBtn(

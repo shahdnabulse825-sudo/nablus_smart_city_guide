@@ -213,6 +213,405 @@ class ApiService {
     }
   }
 
+  // ==================== حسابات المستخدمين الحقيقية (سيرفر) ====================
+  /// نتيجة موحّدة: {ok:true, token, name, email} لو نجح، أو {ok:false, unreachable:true}
+  /// لو تعذّر الوصول للسيرفر أصلاً، أو {ok:false, error:'...'} لو السيرفر ردّ برفض حقيقي
+  /// (بريد مكرر، كلمة سر غلط...) — الفرق بين الحالتين الأخيرتين هو اللي بيحدد بـ
+  /// [AuthService] هل نرجع لحساب محلي احتياطي أو نعرض رسالة الخطأ الحقيقية.
+  static Future<Map<String, dynamic>> _authRequest(
+    String path,
+    Map<String, String> body,
+  ) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/auth/$path'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      final decoded = jsonDecode(res.body);
+      if ((res.statusCode == 200 || res.statusCode == 201) &&
+          decoded is Map &&
+          decoded['token'] is String &&
+          decoded['user'] is Map) {
+        final user = decoded['user'] as Map;
+        return {
+          'ok': true,
+          'token': decoded['token'],
+          'name': user['name'],
+          'email': user['email'],
+        };
+      }
+      return {
+        'ok': false,
+        'error': (decoded is Map ? decoded['error'] as String? : null) ??
+            'فشلت العملية',
+      };
+    } catch (_) {
+      return {'ok': false, 'unreachable': true};
+    }
+  }
+
+  static Future<Map<String, dynamic>> userRegister(
+    String name,
+    String email,
+    String password,
+  ) =>
+      _authRequest('register', {'name': name, 'email': email, 'password': password});
+
+  static Future<Map<String, dynamic>> userLogin(String email, String password) =>
+      _authRequest('login', {'email': email, 'password': password});
+
+  static Future<bool?> checkEmailExists(String email) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/auth/check-email/$email'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? decoded['exists'] as bool? : null;
+    } catch (_) {
+      return null; // null = تعذّر الوصول للسيرفر، مختلف عن false = الحساب مش موجود
+    }
+  }
+
+  static Future<Map<String, dynamic>> resetPasswordServer(
+    String email,
+    String newPassword,
+  ) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/auth/reset-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'newPassword': newPassword}),
+          )
+          .timeout(_timeout);
+      final decoded = jsonDecode(res.body);
+      if (res.statusCode == 200 && decoded is Map && decoded['success'] == true) {
+        return {'ok': true};
+      }
+      return {
+        'ok': false,
+        'error': (decoded is Map ? decoded['error'] as String? : null) ??
+            'فشلت العملية',
+      };
+    } catch (_) {
+      return {'ok': false, 'unreachable': true};
+    }
+  }
+
+  // ==================== المفضلة وسجل الزيارات (حساب حقيقي مُتزامن) ====================
+  static Future<void> pushFavoriteAdd(String token, String nameEn) async {
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/favorites'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'nameEn': nameEn}),
+          )
+          .timeout(_timeout);
+    } catch (_) {}
+  }
+
+  static Future<void> pushFavoriteRemove(String token, String nameEn) async {
+    try {
+      await http
+          .delete(
+            Uri.parse('$baseUrl/favorites/${Uri.encodeComponent(nameEn)}'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+    } catch (_) {}
+  }
+
+  /// بترجع لائحة {nameEn, createdAt} أو null لو تعذّر الوصول للسيرفر
+  static Future<List<Map<String, dynamic>>?> fetchFavorites(String token) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/favorites'), headers: {'Authorization': 'Bearer $token'})
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> pushPlaceView(String token, String nameEn) async {
+    try {
+      await http
+          .post(
+            Uri.parse('$baseUrl/place-views'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'nameEn': nameEn}),
+          )
+          .timeout(_timeout);
+    } catch (_) {}
+  }
+
+  /// بترجع لائحة {nameEn, viewedAt} أو null لو تعذّر الوصول للسيرفر
+  static Future<List<Map<String, dynamic>>?> fetchPlaceViews(
+    String token, {
+    int limit = 100,
+  }) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/place-views?limit=$limit'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ==================== تقييمات ومراجعات حقيقية ====================
+  /// بترجع {average, count, reviews: [...]}  أو null لو تعذّر الوصول للسيرفر
+  static Future<Map<String, dynamic>?> fetchReviews(
+    String placeType,
+    String placeNameEn,
+  ) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/reviews?placeType=${Uri.encodeComponent(placeType)}'
+              '&placeNameEn=${Uri.encodeComponent(placeNameEn)}',
+            ),
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) return null;
+      return decoded.cast<String, dynamic>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// بترجع {ok:true} أو {ok:false, error} — بتحتاج تسجيل دخول حقيقي (token)
+  static Future<Map<String, dynamic>> submitReview({
+    required String token,
+    required String placeType,
+    required String placeNameEn,
+    required int rating,
+    String comment = '',
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/reviews'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'placeType': placeType,
+              'placeNameEn': placeNameEn,
+              'rating': rating,
+              'comment': comment,
+            }),
+          )
+          .timeout(_timeout);
+      if (res.statusCode == 200 || res.statusCode == 201) return {'ok': true};
+      final decoded = jsonDecode(res.body);
+      return {
+        'ok': false,
+        'error': (decoded is Map ? decoded['error'] as String? : null) ?? 'فشل إرسال التقييم',
+      };
+    } catch (_) {
+      return {'ok': false, 'unreachable': true};
+    }
+  }
+
+  static Future<void> deleteReview(String token, String reviewId) async {
+    try {
+      await http
+          .delete(
+            Uri.parse('$baseUrl/reviews/${Uri.encodeComponent(reviewId)}'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+    } catch (_) {}
+  }
+
+  // ==================== رسائل التواصل/البلاغات (متزامنة مع السيرفر) ====================
+  /// بترجع صف الرسالة كما اتخزّن بالسيرفر (فيه الـ id الحقيقي) أو null لو تعذّر الوصول
+  static Future<Map<String, dynamic>?> pushFeedback({
+    required String name,
+    required String email,
+    required String type,
+    required String message,
+    String? relatedPlace,
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/feedback'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'name': name,
+              'email': email,
+              'type': type,
+              'message': message,
+              'relatedPlace': relatedPlace,
+            }),
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 201) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? decoded.cast<String, dynamic>() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// رسائل زائر معيّن حسب بريده — أو null لو تعذّر الوصول للسيرفر
+  static Future<List<Map<String, dynamic>>?> fetchFeedbackForEmail(String email) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/feedback/mine?email=${Uri.encodeComponent(email)}'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// كل رسائل الزوار — للوحة الأدمن فقط (بتحتاج adminToken)
+  static Future<List<Map<String, dynamic>>?> fetchAllFeedback(String adminToken) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/feedback'), headers: {'Authorization': 'Bearer $adminToken'})
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> markFeedbackRead(String adminToken, String id) async {
+    try {
+      final res = await http
+          .patch(
+            Uri.parse('$baseUrl/feedback/${Uri.encodeComponent(id)}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $adminToken',
+            },
+            body: jsonEncode({'read': true}),
+          )
+          .timeout(_timeout);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> replyFeedback(String adminToken, String id, String reply) async {
+    try {
+      final res = await http
+          .patch(
+            Uri.parse('$baseUrl/feedback/${Uri.encodeComponent(id)}'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $adminToken',
+            },
+            body: jsonEncode({'reply': reply}),
+          )
+          .timeout(_timeout);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteFeedback(String adminToken, String id) async {
+    try {
+      final res = await http
+          .delete(
+            Uri.parse('$baseUrl/feedback/${Uri.encodeComponent(id)}'),
+            headers: {'Authorization': 'Bearer $adminToken'},
+          )
+          .timeout(_timeout);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ==================== أخبار حقيقية مباشرة عن الضفة الغربية (Al Jazeera) ====================
+  static Future<List<Map<String, dynamic>>?> fetchLiveWestBankNews() async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/news/live'))
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ==================== المساعد الذكي (نموذج لغوي حقيقي عبر السيرفر) ====================
+  /// بترجع {ok:true, textAr, textEn, placeNameEn, eventTitleEn} لو نجح، أو
+  /// {ok:false} لو تعذّر الوصول أو المساعد مش مُفعّل بعد — الشاشة بترجع بهاي
+  /// الحالة تلقائيًا للردود المحلية القديمة (_generateReply) بدل ما توقف.
+  static Future<Map<String, dynamic>> askAiAssistant(
+    String message, {
+    List<Map<String, String>> history = const [],
+    String lang = 'ar',
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/ai-chat'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'message': message,
+              'history': history,
+              'lang': lang,
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
+      if (res.statusCode != 200) return {'ok': false};
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) return {'ok': false};
+      return {
+        'ok': true,
+        'textAr': decoded['textAr'],
+        'textEn': decoded['textEn'],
+        'placeNameEn': decoded['placeNameEn'],
+        'eventTitleEn': decoded['eventTitleEn'],
+      };
+    } catch (_) {
+      return {'ok': false};
+    }
+  }
+
   /// فحص سريع إذا كان السيرفر شغال (تُستخدم لعرض تنبيه بلوحة الأدمن)
   static Future<bool> isServerReachable() async {
     try {

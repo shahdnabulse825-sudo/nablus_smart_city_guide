@@ -132,6 +132,16 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
+  void initState() {
+    super.initState();
+    // نجيب رسائل جديدة من السيرفر (من أي جهاز/زائر تاني، أو ردود أدمن جديدة)
+    // وندمجها بالعرض المحلي فور فتح الشاشة.
+    FeedbackService.instance.syncWithServer().then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
     final isAdmin = AuthService.instance.isAdmin;

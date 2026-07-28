@@ -6,6 +6,7 @@ import '../../widgets/themed_image.dart';
 import '../info/contact_us_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../services/recent_activity_service.dart';
+import '../../widgets/reviews_section.dart';
 
 /// شاشة تفاصيل عامة تُستخدم لأي كرت (مكان مفضل، خبر، فعالية...) عند الضغط عليه.
 /// كل الحقول اختيارية ما عدا العنوان، فتقدر تستخدمها لأي نوع محتوى.
@@ -25,6 +26,9 @@ class DetailScreen extends StatelessWidget {
   final String? localAsset; // مسار صورة محلية جاهزة بالمشروع (assets/...)
   final String? serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
   final String? phone; // رقم هاتف للاتصال المباشر (اختياري)
+  // نوع المكان (restaurant/hotel/attraction...) — لو محدّد بيظهر قسم تقييمات
+  // ومراجعات حقيقية بالأسفل. اتركيه فاضي لمحتوى مش "مكان" فعلي (خبر، فعالية).
+  final String? placeType;
 
   const DetailScreen({
     super.key,
@@ -42,6 +46,7 @@ class DetailScreen extends StatelessWidget {
     this.localAsset,
     this.serverImageUrl,
     this.phone,
+    this.placeType,
   });
 
   @override
@@ -328,6 +333,10 @@ class DetailScreen extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (placeType != null) ...[
+                          SizedBox(height: 24),
+                          ReviewsSection(placeType: placeType!, placeNameEn: titleEn),
+                        ],
                       ],
                     ),
                   ),

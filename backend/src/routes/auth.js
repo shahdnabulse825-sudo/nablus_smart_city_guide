@@ -32,7 +32,7 @@ router.post('/register', async (req, res) => {
     data: { name: name.trim(), email: cleanEmail, passwordHash, role: 'user' },
   });
 
-  const token = signToken({ id: user.id, role: user.role });
+  const token = signToken({ id: user.id, role: user.role, email: user.email });
   res.status(201).json({ token, user: publicUser(user) });
 });
 
@@ -51,7 +51,7 @@ router.post('/login', async (req, res) => {
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) return res.status(401).json({ error: 'كلمة المرور غير صحيحة' });
 
-  const token = signToken({ id: user.id, role: user.role });
+  const token = signToken({ id: user.id, role: user.role, email: user.email });
   res.json({ token, user: publicUser(user) });
 });
 
@@ -66,7 +66,7 @@ router.post('/admin-login', async (req, res) => {
   const match = await bcrypt.compare(password || '', admin.passwordHash);
   if (!match) return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
 
-  const token = signToken({ id: admin.id, role: admin.role });
+  const token = signToken({ id: admin.id, role: admin.role, email: admin.email });
   res.json({ token, user: publicUser(admin) });
 });
 

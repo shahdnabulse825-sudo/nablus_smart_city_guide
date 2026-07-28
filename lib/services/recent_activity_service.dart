@@ -1,5 +1,6 @@
 import 'local_db_service.dart';
 import 'auth_service.dart';
+import 'api_service.dart';
 
 /// تتبّع الأماكن اللي زارها/شافها المستخدم (لكل مستخدم على حدة، أو كزائر)، حتى
 /// نقدر نبني "الأكثر مشاهدة" و"موصى لك" بناءً على سلوك حقيقي بدل بيانات ثابتة.
@@ -22,6 +23,61 @@ class RecentActivityService {
       'viewCount': viewCount + 1,
       'lastViewedAt': DateTime.now().toIso8601String(),
     });
+    // سجل زيارات كامل (append-only، مش عداد بيتحدّث) — عشان شاشة "سجل الزيارات"
+    // تقدر تعرض كل زيارة لحالها بترتيبها الزمني، مش بس آخر مرة زرتِ فيها كل مكان.
+    await LocalDbService.instance.add('visit_log', {
+      'nameEn': nameEn,
+      'scope': _scope,
+      'viewedAt': DateTime.now().toIso8601String(),
+    });
+    // لو حساب حقيقي متزامن، ابعتي الزيارة عالسيرفر بالخلفية بدون انتظار
+    final token = AuthService.instance.userToken;
+    if (token != null) {
+      ApiService.pushPlaceView(token, nameEn);
+    }
+  }
+
+  /// سجل الزيارات الكامل للمستخدم الحالي، الأحدث أولًا — كل زيارة سطر لحالها
+  /// (بعكس getRecentlyViewedNames اللي بترجع كل مكان مرة وحدة بس).
+  List<Map<String, dynamic>> getVisitHistory({int limit = 100}) {
+    final entries = LocalDbService.instance
+        .getAll('visit_log')
+        .where((e) => e.value['scope'] == _scope)
+        .map((e) => e.value)
+        .toList()
+      ..sort((a, b) => (b['viewedAt'] ?? '').compareTo(a['viewedAt'] ?? ''));
+    return entries.take(limit).toList();
+  }
+
+  /// تسحب سجل الزيارات من أجهزة/جلسات ثانية عالسيرفر وتدمجه محليًا (بدون حذف
+  /// شي محلي) — الدمج بدقّة الدقيقة الواحدة (مش الثانية بالضبط) لأنه وقت
+  /// الحفظ المحلي ووقت وصول نفس الحدث للسيرفر مش متطابقين تمامًا.
+  Future<void> syncWithServer() async {
+    final token = AuthService.instance.userToken;
+    if (token == null) return;
+    final remote = await ApiService.fetchPlaceViews(token, limit: 200);
+    if (remote == null) return;
+
+    String minuteKey(String nameEn, String iso) {
+      final minute = iso.length >= 16 ? iso.substring(0, 16) : iso; // yyyy-MM-ddTHH:mm
+      return '$nameEn|$minute';
+    }
+
+    final localKeys = getVisitHistory(limit: 1000)
+        .map((e) => minuteKey(e['nameEn'] as String, e['viewedAt'] as String))
+        .toSet();
+
+    for (final row in remote) {
+      final name = row['nameEn'] as String?;
+      final viewedAt = row['viewedAt'] as String?;
+      if (name == null || viewedAt == null) continue;
+      if (localKeys.contains(minuteKey(name, viewedAt))) continue;
+      await LocalDbService.instance.add('visit_log', {
+        'nameEn': name,
+        'scope': _scope,
+        'viewedAt': viewedAt,
+      });
+    }
   }
 
   List<Map<String, dynamic>> _scopedEntries() {

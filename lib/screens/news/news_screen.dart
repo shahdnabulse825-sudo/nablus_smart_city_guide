@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../common/detail_screen.dart';
 import '../../widgets/themed_image.dart';
@@ -32,6 +33,7 @@ class NewsArticle {
   final String bodyEn;
   final String?
   customImageBase64; // صورة رفعها الأدمن يدويًا لهذا الخبر تحديدًا
+  final String? image; // صورة حقيقية جاهزة بالمشروع (assets/...) لخبر موثّق
 
   NewsArticle({
     required this.titleAr,
@@ -46,6 +48,7 @@ class NewsArticle {
     required this.bodyAr,
     required this.bodyEn,
     this.customImageBase64,
+    this.image,
   });
 }
 
@@ -66,6 +69,7 @@ final List<NewsArticle> newsSeedData = [
         'أعلنت بلدية نابلس عن انطلاق مشروع شامل لتطوير البلدة القديمة يهدف إلى ترميم الأبنية التاريخية وتحسين البنية التحتية مع الحفاظ على الطابع المعماري الأصيل. يتضمن المشروع تحسين الإنارة، رصف الأزقة بالحجر الطبيعي، وإعادة تأهيل الأسواق القديمة لجذب مزيد من الزوار والسياح.',
     bodyEn:
         'Nablus Municipality announced the launch of a comprehensive project to develop the Old City, aiming to restore historic buildings and improve infrastructure while preserving the original architectural character. The project includes improved lighting, natural stone paving for the alleys, and rehabilitation of the old markets to attract more visitors and tourists.',
+    image: 'assets/images/banner/old_city_alley.jpg',
   ),
   NewsArticle(
     titleAr: 'نابلس تستضيف المؤتمر السياحي الدولي',
@@ -83,6 +87,7 @@ final List<NewsArticle> newsSeedData = [
         'شهدت نابلس هذا الأسبوع فعاليات المؤتمر السياحي الدولي بمشاركة خبراء ومختصين من عدة دول، حيث تم بحث استراتيجيات تطوير القطاع السياحي وجذب المزيد من الزوار عبر تحسين الخدمات والبنية التحتية السياحية بالمدينة.',
     bodyEn:
         'Nablus witnessed this week the International Tourism Conference with the participation of experts from several countries, discussing strategies to develop the tourism sector and attract more visitors by improving tourism services and infrastructure in the city.',
+    image: 'assets/images/banner/nablus_cityscape.jpg',
   ),
   NewsArticle(
     titleAr: 'تحسن حركة السياحة في نابلس',
@@ -100,6 +105,7 @@ final List<NewsArticle> newsSeedData = [
         'أظهرت إحصائيات حديثة ارتفاعًا ملحوظًا في أعداد الزوار القادمين إلى نابلس خلال الأشهر الأخيرة، ويعزو المختصون هذا التحسن إلى الحملات الترويجية الأخيرة وتحسين الخدمات السياحية في المدينة.',
     bodyEn:
         'Recent statistics showed a noticeable increase in the number of visitors coming to Nablus in recent months. Experts attribute this improvement to recent promotional campaigns and improved tourism services in the city.',
+    image: 'assets/images/banner/old_city_alley.jpg',
   ),
   NewsArticle(
     titleAr: 'فعاليات ثقافية جديدة في المدينة',
@@ -117,6 +123,7 @@ final List<NewsArticle> newsSeedData = [
         'تنطلق هذا الشهر سلسلة من الفعاليات الثقافية والفنية في نابلس، تشمل معارض فنية وأمسيات شعرية وعروض موسيقية تراثية، بهدف إحياء التراث الثقافي المحلي وتشجيع السياحة الثقافية بالمدينة.',
     bodyEn:
         'A series of cultural and artistic events kicks off this month in Nablus, including art exhibitions, poetry evenings, and traditional music performances, aiming to revive local cultural heritage and encourage cultural tourism in the city.',
+    image: 'assets/images/banner/nablus_cityscape.jpg',
   ),
   NewsArticle(
     titleAr: 'مهرجان نابلس للتسوق ينطلق الشهر القادم',
@@ -134,6 +141,7 @@ final List<NewsArticle> newsSeedData = [
         'تجري الاستعدادات على قدم وساق لانطلاق مهرجان نابلس للتسوق السنوي الذي يشارك فيه عشرات المحال التجارية بعروض وتخفيضات خاصة، إلى جانب فعاليات ترفيهية للعائلات طوال أيام المهرجان.',
     bodyEn:
         'Preparations are in full swing for the launch of the annual Nablus Shopping Festival, with dozens of stores participating with special offers and discounts, alongside family entertainment activities throughout the festival days.',
+    image: 'assets/images/news/shopping_festival.jpg',
   ),
   NewsArticle(
     titleAr: 'توسعة شبكة المواصلات العامة داخل المدينة',
@@ -151,6 +159,7 @@ final List<NewsArticle> newsSeedData = [
         'أعلنت الجهات المختصة عن توسعة شبكة المواصلات العامة داخل نابلس بإضافة خطوط جديدة تربط الأحياء السكنية بمركز المدينة والمعالم السياحية الرئيسية، بهدف تسهيل التنقل للسكان والزوار على حد سواء.',
     bodyEn:
         'Authorities announced the expansion of the public transportation network within Nablus by adding new lines connecting residential neighborhoods to the city center and major tourist landmarks, aiming to facilitate movement for both residents and visitors.',
+    image: 'assets/images/transport/service_taxi.jpg',
   ),
 ];
 
@@ -167,12 +176,24 @@ class _NewsScreenState extends State<NewsScreen> {
 
   bool _loaded = false;
   List<NewsArticle> _liveArticles = [];
+  List<Map<String, dynamic>> _westBankNews = [];
+  bool _westBankNewsLoading = true;
   final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _loadWestBankNews();
+  }
+
+  Future<void> _loadWestBankNews() async {
+    final items = await ApiService.fetchLiveWestBankNews();
+    if (!mounted) return;
+    setState(() {
+      _westBankNews = items ?? [];
+      _westBankNewsLoading = false;
+    });
   }
 
   @override
@@ -291,6 +312,12 @@ class _NewsScreenState extends State<NewsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            _WestBankNewsSection(
+                              loading: _westBankNewsLoading,
+                              items: _westBankNews,
+                            ),
+                            if (_westBankNewsLoading || _westBankNews.isNotEmpty)
+                              SizedBox(height: 24),
                             // شريط البحث
                             Container(
                               height: 48,
@@ -396,7 +423,7 @@ class _NewsScreenState extends State<NewsScreen> {
                                       ),
                                       crossAxisSpacing: 16,
                                       mainAxisSpacing: 16,
-                                      childAspectRatio: 0.85,
+                                      childAspectRatio: 0.8,
                                     ),
                                 itemBuilder: (context, i) =>
                                     _ArticleCard(article: filtered[i]),
@@ -471,6 +498,7 @@ class _ArticleCard extends StatelessWidget {
               descriptionAr: a.bodyAr,
               descriptionEn: a.bodyEn,
               customImageBase64: a.customImageBase64,
+              localAsset: a.image,
             ),
           ),
         );
@@ -492,6 +520,7 @@ class _ArticleCard extends StatelessWidget {
                     top: Radius.circular(AppRadius.lg),
                   ),
                   customImageBase64: a.customImageBase64,
+                  localAsset: a.image,
                 ),
                 Positioned(
                   top: 8,
@@ -543,6 +572,143 @@ class _ArticleCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// أخبار حقيقية مباشرة عن الضفة الغربية/فلسطين — مصدر خارجي حقيقي (Al Jazeera)
+/// عبر السيرفر (`/api/news/live`)، بعكس بقية الأخبار بهاي الشاشة اللي المصدر
+/// فيها الأدمن. بتختفي بهدوء لو تعذّر الوصول للسيرفر (بدون رسالة خطأ مزعجة).
+class _WestBankNewsSection extends StatelessWidget {
+  final bool loading;
+  final List<Map<String, dynamic>> items;
+  const _WestBankNewsSection({required this.loading, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    if (!loading && items.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          textDirection: TextDirection.rtl,
+          children: [
+            Icon(Icons.public_rounded, size: 16, color: AppColors.primary),
+            SizedBox(width: 6),
+            Text(
+              app.t('أخبار الضفة الغربية المباشرة', 'Live West Bank News'),
+              textDirection: app.dir,
+              style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+            ),
+            Spacer(),
+            Text(
+              'via Al Jazeera',
+              style: AppTypography.caption(AppColors.textGrey),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        SizedBox(
+          height: 200,
+          child: loading
+              ? Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                  ),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) => SizedBox(width: 12),
+                  itemBuilder: (context, i) => _WestBankNewsCard(item: items[i]),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WestBankNewsCard extends StatelessWidget {
+  final Map<String, dynamic> item;
+  const _WestBankNewsCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = (item['title'] as String?) ?? '';
+    final description = (item['description'] as String?) ?? '';
+    final imageUrl = item['imageUrl'] as String?;
+    final link = item['link'] as String?;
+
+    return SizedBox(
+      width: 240,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        onTap: link == null
+            ? null
+            : () => launchUrl(Uri.parse(link), mode: LaunchMode.externalApplication),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+              child: SizedBox(
+                height: 100,
+                width: double.infinity,
+                child: imageUrl == null
+                    ? Container(
+                        color: AppColors.cardDark2,
+                        child: Icon(Icons.newspaper_rounded, color: AppColors.textGrey),
+                      )
+                    : Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          color: AppColors.cardDark2,
+                          child: Icon(Icons.newspaper_rounded, color: AppColors.textGrey),
+                        ),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return Container(
+                            color: AppColors.cardDark2,
+                            child: Center(
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.label(AppColors.textWhite).copyWith(fontSize: 12),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption(AppColors.textGrey),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -145,6 +145,7 @@ class _NearbyPlacesScreenState extends State<NearbyPlacesScreen> {
           locationEn: p.locationEn,
           customImageBase64: p.customImageBase64,
           localAsset: p.image,
+          placeType: p.categoryKey,
         ),
       ),
     );
@@ -336,16 +337,20 @@ class _NearbyPlacesScreenState extends State<NearbyPlacesScreen> {
         child: Row(
           textDirection: TextDirection.rtl,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              child: ThemedImage(
-                query: p.photoQuery,
-                fallbackSeed: p.nameEn,
-                height: 64,
-                fallbackIcon: p.icon,
-                fallbackColor: p.color,
-                customImageBase64: p.customImageBase64,
-                localAsset: p.image,
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                child: ThemedImage(
+                  query: p.photoQuery,
+                  fallbackSeed: p.nameEn,
+                  height: 64,
+                  fallbackIcon: p.icon,
+                  fallbackColor: p.color,
+                  customImageBase64: p.customImageBase64,
+                  localAsset: p.image,
+                ),
               ),
             ),
             SizedBox(width: 10),

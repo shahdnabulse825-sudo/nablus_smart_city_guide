@@ -289,6 +289,7 @@ final List<ListingItem> transportData = [
     photoQuery: 'bus station',
     placeholderIcon: Icons.directions_bus,
     placeholderColor: Color(0xFF14B8A6),
+    image: 'assets/images/transport/intercity_bus_line.jpg',
   ),
   ListingItem(
     nameAr: 'موقف سرفيس دوار الشهداء',
@@ -306,6 +307,7 @@ final List<ListingItem> transportData = [
     photoQuery: 'taxi stand street',
     placeholderIcon: Icons.local_taxi,
     placeholderColor: Color(0xFFF5A623),
+    image: 'assets/images/transport/service_taxi.jpg',
   ),
   ListingItem(
     nameAr: 'تأجير سيارات نابلس',
@@ -340,6 +342,7 @@ final List<ListingItem> transportData = [
     photoQuery: 'taxi stand street',
     placeholderIcon: Icons.local_taxi,
     placeholderColor: Color(0xFFF5A623),
+    image: 'assets/images/transport/service_taxi.jpg',
   ),
   ListingItem(
     nameAr: 'محطة وقود البترول الوطنية',
@@ -357,6 +360,7 @@ final List<ListingItem> transportData = [
     photoQuery: 'gas station',
     placeholderIcon: Icons.local_gas_station,
     placeholderColor: Color(0xFFEF4444),
+    image: 'assets/images/transport/gas_station.jpg',
   ),
   ListingItem(
     nameAr: 'كراج صيانة السيارات الحديث',
@@ -408,6 +412,7 @@ final List<ListingItem> transportData = [
     photoQuery: 'intercity bus',
     placeholderIcon: Icons.directions_bus_filled,
     placeholderColor: Color(0xFF14B8A6),
+    image: 'assets/images/transport/central_bus_station.jpg',
   ),
 ];
 
@@ -527,6 +532,7 @@ final List<ListingItem> healthData = [
     photoQuery: 'Al Watani Governmental Hospital Nablus',
     placeholderIcon: Icons.local_hospital,
     placeholderColor: Color(0xFFE85D5D),
+    image: 'assets/images/health/al_watani_hospital.jpg',
     lat: 32.220980,
     lng: 35.262533,
   ),

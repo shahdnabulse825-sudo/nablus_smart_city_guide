@@ -396,14 +396,10 @@ final List<AttractionData> attractionsSeedData = [
   ),
 ];
 
-// كلمة بحث إنجليزية مناسبة لصورة المعلم حسب تصنيفه، لما ما توجد صورة محلية.
-String attractionPhotoQuery(AttractionData a) {
-  if (a.categories.contains('nature')) return 'nature landscape valley';
-  if (a.categories.contains('religious')) return 'historic mosque church';
-  if (a.categories.contains('culture')) return 'museum cultural exhibit';
-  if (a.categories.contains('oldCity')) return 'old town stone alley market';
-  return 'historic landmark';
-}
+// كلمة بحث إنجليزية بالاسم الحقيقي للمعلم (وليس تصنيف عام)، تُستخدم للبحث عن
+// صورة حقيقية لهذا المعلم بالذات (شوف tryRealPhoto بـ ThemedImage) لما ما توجد
+// صورة محلية. الاسم الدقيق + "Nablus" أكثر دقة بكثير من كلمة تصنيف عامة.
+String attractionPhotoQuery(AttractionData a) => '${a.nameEn} Nablus Palestine';
 
 const List<String> attractionCategoryOrder = [
   'historical',
@@ -1494,6 +1490,7 @@ class _AttractionCard extends StatelessWidget {
                 ThemedImage(
                   query: attractionPhotoQuery(a),
                   fallbackSeed: a.nameEn,
+                  tryRealPhoto: true,
                   height: double.infinity,
                   borderRadius: BorderRadius.vertical(
                     top: Radius.circular(AppRadius.lg),
@@ -1659,6 +1656,7 @@ class _AttractionListTile extends StatelessWidget {
             child: ThemedImage(
               query: attractionPhotoQuery(a),
               fallbackSeed: a.nameEn,
+              tryRealPhoto: true,
               height: 70,
               borderRadius: BorderRadius.circular(AppRadius.sm),
               fallbackIcon: a.placeholderIcon,
@@ -1895,6 +1893,7 @@ class AttractionDetailScreen extends StatelessWidget {
                           context,
                           query: attractionPhotoQuery(a),
                           fallbackSeed: a.nameEn,
+                          tryRealPhoto: true,
                           fallbackIcon: a.placeholderIcon,
                           fallbackColor: a.placeholderColor,
                           customImageBase64: a.customImageBase64,
@@ -1904,6 +1903,7 @@ class AttractionDetailScreen extends StatelessWidget {
                         child: ThemedImage(
                           query: attractionPhotoQuery(a),
                           fallbackSeed: a.nameEn,
+                          tryRealPhoto: true,
                           height: 260,
                           fallbackIcon: a.placeholderIcon,
                           fallbackColor: a.placeholderColor,
@@ -2929,6 +2929,7 @@ class _TourStopCard extends StatelessWidget {
               child: ThemedImage(
                 query: attractionPhotoQuery(a),
                 fallbackSeed: a.nameEn,
+                tryRealPhoto: true,
                 height: 56,
                 borderRadius: BorderRadius.circular(AppRadius.sm),
                 fallbackIcon: a.placeholderIcon,

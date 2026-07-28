@@ -14,6 +14,7 @@ import '../shopping/shopping_screen.dart'
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/recommendation_service.dart';
+import '../../services/favorites_service.dart';
 import '../../widgets/responsive.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/keyboard_scrollable.dart';
@@ -316,7 +317,15 @@ final Map<String, String> _categoryLabelsEn = {
   'government': 'Government',
 };
 
-enum PlacesSortMode { featured, topRated, newest, trending, recommended, interests }
+enum PlacesSortMode {
+  featured,
+  topRated,
+  newest,
+  trending,
+  recommended,
+  interests,
+  favorites,
+}
 
 /// شاشة موحّدة تعرض كل الأماكن (مطاعم، فنادق، معالم، تسوق...) قابلة للبحث
 /// والتصفية، تُستخدم كوجهة "عرض الكل" لأقسام الأماكن المفضلة/الأكثر زيارة/أحدث الأماكن.
@@ -398,6 +407,15 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
         return RecommendationService.recommendedForYou(limit: 100);
       case PlacesSortMode.interests:
         return RecommendationService.basedOnYourInterests(limit: 100);
+      case PlacesSortMode.favorites:
+        // getFavoriteNames() بترجع بترتيب "آخر إضافة أولًا" — منحافظ عليه هون
+        // (أنسب لشاشة "مفضلتي" من إعادة الترتيب حسب التقييم).
+        final byName = {for (final p in allPlaces) p.nameEn: p};
+        return FavoritesService.instance
+            .getFavoriteNames()
+            .map((n) => byName[n])
+            .whereType<UniversalPlace>()
+            .toList();
     }
   }
 
@@ -660,6 +678,7 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                           customImageBase64:
                                               p.customImageBase64,
                                           localAsset: p.image,
+                                          placeType: p.categoryKey,
                                         ),
                                       ),
                                     );
@@ -675,6 +694,8 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                             ThemedImage(
                                               query: p.photoQuery,
                                               fallbackSeed: p.nameEn,
+                                              tryRealPhoto:
+                                                  p.categoryKey == 'attraction',
                                               height: double.infinity,
                                               borderRadius:
                                                   BorderRadius.vertical(

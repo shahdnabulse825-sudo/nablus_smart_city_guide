@@ -1,5 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
@@ -8,6 +11,22 @@ import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../services/location_service.dart';
+import '../places/all_places_screen.dart' show allPlaces, UniversalPlace;
+
+// MapPlace.categoryKey يستخدم مفردات مختلفة عن categoryKey بباقي الشاشات
+// (UniversalPlace) — هاي بتحوّلها لنفس المفردة الموحّدة حتى تقييمات نفس
+// المكان تنعرض صح بغض النظر من وين انفتحت شاشة تفاصيله. بترجع null للفئات
+// الزخرفية البحتة (معلم عام/حديقة) اللي مالها مراجعات أصلًا.
+String? reviewPlaceTypeFor(String mapCategoryKey) {
+  const map = {
+    'restaurants': 'restaurant',
+    'hotels': 'hotel',
+    'pharmacies': 'pharmacy',
+    'attractions': 'attraction',
+    'shopping': 'shopping',
+  };
+  return map[mapCategoryKey];
+}
 
 // ==================== بيانات نقطة على الخريطة (إحداثيات حقيقية) ====================
 class MapPlace {
@@ -15,12 +34,15 @@ class MapPlace {
   final String nameEn;
   final String categoryAr;
   final String categoryEn;
-  final String categoryKey; // landmark / restaurant / hotel / park / shopping
+  final String categoryKey; // landmark / park / restaurants / hotels / pharmacies / attractions / shopping
   final double lat;
   final double lng;
   final IconData icon;
   final Color color;
   final double rating;
+  final String locationAr;
+  final String locationEn;
+  final bool is24Hours;
 
   MapPlace({
     required this.nameAr,
@@ -33,9 +55,57 @@ class MapPlace {
     required this.icon,
     required this.color,
     required this.rating,
+    this.locationAr = '',
+    this.locationEn = '',
+    this.is24Hours = false,
   });
 
   LatLng get point => LatLng(lat, lng);
+}
+
+// أيقونة/لون كل تصنيف حقيقي (نفس التصنيفات المستخدمة بباقي التطبيق) — تُستخدم
+// عند تحويل بيانات الأماكن الحقيقية (allPlaces) لعلامات على الخريطة.
+const Map<String, IconData> _realCategoryIcons = {
+  'restaurants': Icons.restaurant,
+  'hotels': Icons.hotel,
+  'pharmacies': Icons.local_pharmacy,
+  'attractions': Icons.account_balance,
+  'shopping': Icons.shopping_bag,
+};
+const Map<String, Color> _realCategoryColors = {
+  'restaurants': Color(0xFFE85D5D),
+  'hotels': Color(0xFF6C5CE7),
+  'pharmacies': Color(0xFF22C55E),
+  'attractions': Color(0xFFC9A227),
+  'shopping': Color(0xFF3B82F6),
+};
+
+/// تحوّل مكان حقيقي (من قاعدة البيانات المحلية/السيرفر) لنقطة على الخريطة —
+/// حتى الخريطة تعرض كل الأماكن الحقيقية مش بس اللائحة المنسّقة القديمة يدويًا.
+MapPlace mapPlaceFromUniversal(UniversalPlace p) {
+  final point = resolveMapPoint(
+    nameAr: p.nameAr,
+    nameEn: p.nameEn,
+    locationAr: p.locationAr,
+    locationEn: p.locationEn,
+    lat: p.lat,
+    lng: p.lng,
+  );
+  return MapPlace(
+    nameAr: p.nameAr,
+    nameEn: p.nameEn,
+    categoryAr: p.typeAr,
+    categoryEn: p.typeEn,
+    categoryKey: p.categoryKey,
+    lat: point.latitude,
+    lng: point.longitude,
+    icon: _realCategoryIcons[p.categoryKey] ?? p.icon,
+    color: _realCategoryColors[p.categoryKey] ?? p.color,
+    rating: p.rating,
+    locationAr: p.locationAr,
+    locationEn: p.locationEn,
+    is24Hours: p.is24Hours,
+  );
 }
 
 // إحداثيات حقيقية داخل مدينة نابلس، فلسطين — تم التحقق منها عبر خدمة
@@ -99,7 +169,7 @@ final List<MapPlace> mapPlaces = [
     nameEn: 'Al-Bait Al-Nabulsi Restaurant',
     categoryAr: 'مطعم',
     categoryEn: 'Restaurant',
-    categoryKey: 'restaurant',
+    categoryKey: 'restaurants',
     lat: 32.2220,
     lng: 35.2570,
     icon: Icons.restaurant,
@@ -111,7 +181,7 @@ final List<MapPlace> mapPlaces = [
     nameEn: 'Nablus Palace Hotel',
     categoryAr: 'فندق',
     categoryEn: 'Hotel',
-    categoryKey: 'hotel',
+    categoryKey: 'hotels',
     lat: 32.2245,
     lng: 35.2615,
     icon: Icons.hotel,
@@ -147,8 +217,10 @@ final List<MapPlace> mapPlaces = [
 final Map<String, IconData> _categoryIcons = {
   'all': Icons.apps,
   'landmark': Icons.account_balance,
-  'restaurant': Icons.restaurant,
-  'hotel': Icons.hotel,
+  'restaurants': Icons.restaurant,
+  'hotels': Icons.hotel,
+  'pharmacies': Icons.local_pharmacy,
+  'attractions': Icons.account_balance,
   'park': Icons.park,
   'shopping': Icons.shopping_bag,
 };
@@ -308,11 +380,29 @@ class _MapScreenState extends State<MapScreen> {
 
   LatLng? _userLocation;
   bool _locatingUser = false;
+  bool _openNowOnly = false;
+  List<LatLng>? _routePoints;
+  double? _routeDistanceKm;
+  int? _routeWalkingMin;
+  int? _routeDrivingMin;
+  String _travelMode = 'walking'; // 'walking' | 'driving'
+  bool _routingLoading = false;
+  MapPlace? _routeDestination;
+  String _mapStyle = 'street'; // 'street' | 'satellite' | 'dark'
 
   @override
   void initState() {
     super.initState();
-    _allPlaces = List.of(mapPlaces);
+    // نبلش باللائحة المنسّقة يدويًا (معالم/حدائق ما إلها مصدر بيانات ثاني)،
+    // وبعدين نضيف كل الأماكن الحقيقية من قاعدة البيانات (مطاعم/فنادق/صيدليات/
+    // معالم سياحية/تسوق) حتى الخريطة تعرض كل شي حقيقي مش لائحة مصغّرة بس —
+    // مع تفادي التكرار لو نفس المكان موجود بالقائمتين (مثل "البلدة القديمة").
+    final curatedNames = mapPlaces.map((p) => p.nameEn).toSet();
+    _allPlaces = [
+      ...mapPlaces,
+      for (final p in allPlaces)
+        if (!curatedNames.contains(p.nameEn)) mapPlaceFromUniversal(p),
+    ];
     if (widget.focusPoint != null) {
       final existing = findCuratedPlace(
         widget.focusNameAr ?? '',
@@ -395,20 +485,135 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   List<MapPlace> get _filtered {
-    return _allPlaces.where((p) {
+    final q = searchQuery.trim().toLowerCase();
+    final list = _allPlaces.where((p) {
       final matchesCategory =
           categoryFilter == 'all' || p.categoryKey == categoryFilter;
+      // بحث ذكي: بيدوّر بالاسم والتصنيف والموقع النصي مع بعض، مش بالاسم بس —
+      // هيك كتابة "مطعم" أو "البلدة القديمة" بتلاقي نتائج حتى بدون اختيار الفلتر.
       final matchesSearch =
-          searchQuery.isEmpty ||
-          p.nameAr.contains(searchQuery) ||
-          p.nameEn.toLowerCase().contains(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+          q.isEmpty ||
+          p.nameAr.contains(q) ||
+          p.nameEn.toLowerCase().contains(q) ||
+          p.categoryAr.contains(q) ||
+          p.categoryEn.toLowerCase().contains(q) ||
+          p.locationAr.contains(q) ||
+          p.locationEn.toLowerCase().contains(q);
+      final matchesOpenNow = !_openNowOnly || p.is24Hours;
+      return matchesCategory && matchesSearch && matchesOpenNow;
     }).toList();
+    // فلترة ذكية: لو عندنا موقع المستخدم، رتّبي حسب الأقرب أولًا دايمًا —
+    // مش بس زر "أقرب مكان" المنفصل يلي بيركّز على واحد بس.
+    if (_userLocation != null) {
+      list.sort(
+        (a, b) => const Distance()
+            .as(LengthUnit.Kilometer, _userLocation!, a.point)
+            .compareTo(const Distance().as(LengthUnit.Kilometer, _userLocation!, b.point)),
+      );
+    }
+    return list;
+  }
+
+  static String _tileUrlFor(String style) {
+    switch (style) {
+      case 'satellite':
+        // Esri World Imagery — بلاطات أقمار صناعية حقيقية، مجانية وبدون مفتاح API.
+        return 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+      case 'dark':
+        // CartoDB Dark Matter — تصميم داكن أنيق يتناسق مع ثيم التطبيق الغامق.
+        return 'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png';
+      case 'street':
+      default:
+        return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+    }
+  }
+
+  static const _mapStyleOrder = ['street', 'satellite', 'dark'];
+
+  static IconData _mapStyleIcon(String style) {
+    switch (style) {
+      case 'satellite':
+        return Icons.satellite_alt_rounded;
+      case 'dark':
+        return Icons.dark_mode_rounded;
+      case 'street':
+      default:
+        return Icons.map_rounded;
+    }
+  }
+
+  void _cycleMapStyle() {
+    final i = _mapStyleOrder.indexOf(_mapStyle);
+    final next = _mapStyleOrder[(i + 1) % _mapStyleOrder.length];
+    setState(() => _mapStyle = next);
   }
 
   void _focusOn(MapPlace p) {
-    setState(() => selected = p);
+    setState(() {
+      selected = p;
+      _routePoints = null;
+      _routeDistanceKm = null;
+      _routeWalkingMin = null;
+      _routeDrivingMin = null;
+    });
     _mapController.move(p.point, 16);
+  }
+
+  /// بتجيب مسار حقيقي (فوق شبكة الطرق الفعلية) بين موقع المستخدم والمكان
+  /// المختار — عبر خدمة OSRM عامة حقيقية بملفّات طرق منفصلة فعليًا للمشي
+  /// والسيارات (routing.openstreetmap.de، مستضافة من جمعية FOSSGIS الألمانية
+  /// لـ OpenStreetMap، مجانية وبدون مفتاح API)، فمسار المشي بيختلف عن مسار
+  /// السيارة فعليًا (بياخد أزقة وممرات ما بتقدر تدخلها سيارة مثلًا)، مش بس
+  /// وقت مختلف لنفس الخط متل قبل.
+  Future<void> _fetchRouteTo(MapPlace destination, AppState app) async {
+    if (_userLocation == null) {
+      await _requestUserLocation();
+      if (_userLocation == null) return;
+    }
+    _routeDestination = destination;
+    setState(() => _routingLoading = true);
+    try {
+      final from = _userLocation!;
+      final to = destination.point;
+      final profile = _travelMode == 'walking' ? 'foot' : 'car';
+      final uri = Uri.parse(
+        'https://routing.openstreetmap.de/routed-$profile/route/v1/$profile/'
+        '${from.longitude},${from.latitude};${to.longitude},${to.latitude}'
+        '?overview=full&geometries=geojson',
+      );
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode != 200) throw Exception('bad status');
+      final decoded = jsonDecode(res.body);
+      final routes = decoded['routes'] as List?;
+      if (routes == null || routes.isEmpty) throw Exception('no route');
+      final route = routes.first as Map;
+      final coords = (route['geometry']['coordinates'] as List)
+          .map((c) => LatLng((c as List)[1] as double, c[0] as double))
+          .toList();
+      final distanceKm = (route['distance'] as num) / 1000.0;
+      final minutes = ((route['duration'] as num) / 60).round();
+      if (!mounted) return;
+      setState(() {
+        _routePoints = coords;
+        _routeDistanceKm = distanceKm;
+        if (_travelMode == 'walking') {
+          _routeWalkingMin = minutes;
+        } else {
+          _routeDrivingMin = minutes;
+        }
+        _routingLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _routingLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            app.t('تعذّر جلب المسار — تأكدي من الاتصال بالإنترنت', 'Could not fetch route — check your internet connection'),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -445,28 +650,41 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate: _tileUrlFor(_mapStyle),
                     userAgentPackageName: 'com.nablus.smart_city_guide',
                   ),
-                  MarkerLayer(
-                    markers: filtered.map((p) {
-                      final isSelected = p == selected;
-                      return Marker(
-                        point: p.point,
-                        width: isSelected ? 46 : 36,
-                        height: isSelected ? 46 : 36,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => _focusOn(p),
-                          child: Icon(
-                            Icons.location_on_rounded,
-                            color: isSelected ? AppColors.primary : p.color,
-                            size: isSelected ? 44 : 34,
-                          ),
+                  if (_routePoints != null)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: _routePoints!,
+                          strokeWidth: 5,
+                          color: AppColors.primary,
+                          borderStrokeWidth: 2,
+                          borderColor: Colors.white,
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ),
+                  MarkerClusterLayerWidget(
+                    options: MarkerClusterLayerOptions(
+                      maxClusterRadius: 45,
+                      disableClusteringAtZoom: 17,
+                      size: const Size(38, 38),
+                      markers: filtered.map((p) {
+                        final isSelected = p == selected;
+                        return Marker(
+                          point: p.point,
+                          width: isSelected ? 46 : 36,
+                          height: isSelected ? 46 : 36,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _focusOn(p),
+                            child: _MapMarkerBadge(place: p, isSelected: isSelected),
+                          ),
+                        );
+                      }).toList(),
+                      builder: (context, markers) => _ClusterBadge(count: markers.length),
+                    ),
                   ),
                   if (_userLocation != null)
                     MarkerLayer(
@@ -532,6 +750,8 @@ class _MapScreenState extends State<MapScreen> {
                         : _zoomButton(Icons.my_location_rounded, _requestUserLocation),
                     SizedBox(height: 8),
                     _zoomButton(Icons.near_me_rounded, () => _focusNearest(app)),
+                    SizedBox(height: 8),
+                    _zoomButton(_mapStyleIcon(_mapStyle), _cycleMapStyle),
                   ],
                 ),
               ),
@@ -580,7 +800,25 @@ class _MapScreenState extends State<MapScreen> {
                   left: 16,
                   child: _SelectedPlaceCard(
                     place: selected!,
-                    onClose: () => setState(() => selected = null),
+                    onClose: () => setState(() {
+                      selected = null;
+                      _routePoints = null;
+                    }),
+                    onDirections: () => _fetchRouteTo(selected!, app),
+                    routingLoading: _routingLoading,
+                    routeDistanceKm: _routeDistanceKm,
+                    routeWalkingMin: _routeWalkingMin,
+                    routeDrivingMin: _routeDrivingMin,
+                    travelMode: _travelMode,
+                    onTravelModeChanged: (m) {
+                      setState(() => _travelMode = m);
+                      // لو في وجهة محدّدة سلفًا، اجلبي مسارها الحقيقي بالوضع
+                      // الجديد فورًا (مش بس بدّلي رقم الوقت) — لأنه المسار
+                      // نفسه بيختلف بين المشي والسيارة هلق.
+                      if (_routeDestination != null) {
+                        _fetchRouteTo(_routeDestination!, app);
+                      }
+                    },
                   ),
                 ),
             ],
@@ -705,7 +943,10 @@ class _MapScreenState extends State<MapScreen> {
                     decoration: InputDecoration(
                       isCollapsed: true,
                       border: InputBorder.none,
-                      hintText: app.t('ابحث عن مكان...', 'Search a place...'),
+                      hintText: app.t(
+                        'ابحث بالاسم أو التصنيف أو الحي...',
+                        'Search by name, category, or area...',
+                      ),
                       hintStyle: AppTypography.caption(AppColors.textGrey),
                     ),
                   ),
@@ -720,11 +961,47 @@ class _MapScreenState extends State<MapScreen> {
             children: [
               _catChip('all', app.t('الكل', 'All')),
               _catChip('landmark', app.t('معالم', 'Landmarks')),
-              _catChip('restaurant', app.t('مطاعم', 'Restaurants')),
-              _catChip('hotel', app.t('فنادق', 'Hotels')),
+              _catChip('restaurants', app.t('مطاعم', 'Restaurants')),
+              _catChip('hotels', app.t('فنادق', 'Hotels')),
+              _catChip('pharmacies', app.t('صيدليات', 'Pharmacies')),
+              _catChip('attractions', app.t('سياحة', 'Attractions')),
               _catChip('park', app.t('حدائق', 'Parks')),
               _catChip('shopping', app.t('تسوق', 'Shopping')),
             ],
+          ),
+          SizedBox(height: 8),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _openNowOnly = !_openNowOnly),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: _openNowOnly ? LinearGradient(colors: AppColors.primaryGradient) : null,
+                color: _openNowOnly ? null : AppColors.cardDark2,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                border: Border.all(
+                  color: _openNowOnly ? Colors.transparent : AppColors.borderColor,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 13,
+                    color: _openNowOnly ? Colors.white : AppColors.textGrey,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    app.t('مفتوح 24 ساعة فقط', 'Open 24h only'),
+                    style: AppTypography.caption(
+                      _openNowOnly ? Colors.white : AppColors.textWhite,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           SizedBox(height: 12),
           Expanded(
@@ -858,10 +1135,91 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
+// ==================== شكل علامة احترافي (شارة دائرية متدرّجة اللون + أيقونة) ====================
+// بدل الدبوس المسطّح القديم (Icons.location_on_rounded) — تصميم أوضح وأقرب
+// لتطبيقات الخرائط الاحترافية، ونفس أسلوب الدائرة المتدرّجة المستخدم أصلًا
+// ببطاقة المكان المختار (_SelectedPlaceCard) حتى الشكل موحّد بكل الشاشة.
+class _MapMarkerBadge extends StatelessWidget {
+  final MapPlace place;
+  final bool isSelected;
+  const _MapMarkerBadge({required this.place, required this.isSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = isSelected ? 44.0 : 34.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [place.color, place.color.withValues(alpha: 0.75)],
+        ),
+        border: Border.all(color: Colors.white, width: isSelected ? 3 : 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Icon(place.icon, color: Colors.white, size: size * 0.5),
+    );
+  }
+}
+
+/// شارة تجميع (cluster) لمجموعة علامات متقاربة — بترجّع كل شي مرقّم بدل ما
+/// تتكدّس عشرات الأيقونات فوق بعض عند التصغير (zoom out).
+class _ClusterBadge extends StatelessWidget {
+  final int count;
+  const _ClusterBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(colors: AppColors.primaryGradient),
+        border: Border.all(color: Colors.white, width: 3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$count',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+    );
+  }
+}
+
 class _SelectedPlaceCard extends StatelessWidget {
   final MapPlace place;
   final VoidCallback onClose;
-  const _SelectedPlaceCard({required this.place, required this.onClose});
+  final VoidCallback onDirections;
+  final bool routingLoading;
+  final double? routeDistanceKm;
+  final int? routeWalkingMin;
+  final int? routeDrivingMin;
+  final String travelMode;
+  final ValueChanged<String> onTravelModeChanged;
+  const _SelectedPlaceCard({
+    required this.place,
+    required this.onClose,
+    required this.onDirections,
+    this.routingLoading = false,
+    this.routeDistanceKm,
+    this.routeWalkingMin,
+    this.routeDrivingMin,
+    this.travelMode = 'walking',
+    required this.onTravelModeChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -881,112 +1239,209 @@ class _SelectedPlaceCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        textDirection: TextDirection.rtl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [p.color, p.color.withValues(alpha: 0.7)],
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(p.icon, color: Colors.white, size: 22),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  app.isArabic ? p.nameAr : p.nameEn,
-                  textDirection: app.dir,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.title(
-                    AppColors.textWhite,
-                  ).copyWith(fontSize: 14),
+          Row(
+            textDirection: TextDirection.rtl,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [p.color, p.color.withValues(alpha: 0.7)],
+                  ),
+                  shape: BoxShape.circle,
                 ),
-                Row(
+                child: Icon(p.icon, color: Colors.white, size: 22),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Icon(Icons.star_rounded, size: 12, color: AppColors.gold),
-                    SizedBox(width: 3),
                     Text(
-                      '${p.rating}',
-                      style: AppTypography.caption(AppColors.textGrey),
+                      app.isArabic ? p.nameAr : p.nameEn,
+                      textDirection: app.dir,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.title(
+                        AppColors.textWhite,
+                      ).copyWith(fontSize: 14),
                     ),
-                    SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        app.isArabic ? p.categoryAr : p.categoryEn,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption(AppColors.textGrey),
-                      ),
+                    Row(
+                      children: [
+                        Icon(Icons.star_rounded, size: 12, color: AppColors.gold),
+                        SizedBox(width: 3),
+                        Text(
+                          '${p.rating}',
+                          style: AppTypography.caption(AppColors.textGrey),
+                        ),
+                        SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            app.isArabic ? p.categoryAr : p.categoryEn,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.caption(AppColors.textGrey),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => openInExternalMaps(p),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              margin: EdgeInsets.only(left: 8),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark2,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: AppColors.borderColor),
               ),
-              child: Icon(
-                Icons.directions_rounded,
-                size: 16,
-                color: AppColors.primary,
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: routingLoading ? null : onDirections,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  margin: EdgeInsets.only(left: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(color: AppColors.borderColor),
+                  ),
+                  child: routingLoading
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : Icon(
+                          travelMode == 'walking'
+                              ? Icons.directions_walk_rounded
+                              : Icons.directions_car_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                ),
               ),
-            ),
-          ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => DetailScreen(
-                    titleAr: p.nameAr,
-                    titleEn: p.nameEn,
-                    subtitleAr: p.categoryAr,
-                    subtitleEn: p.categoryEn,
-                    rating: p.rating,
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => openInExternalMaps(p),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  margin: EdgeInsets.only(left: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark2,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(color: AppColors.borderColor),
+                  ),
+                  child: Icon(
+                    Icons.open_in_new_rounded,
+                    size: 16,
+                    color: AppColors.textGrey,
                   ),
                 ),
-              );
-            },
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => DetailScreen(
+                        titleAr: p.nameAr,
+                        titleEn: p.nameEn,
+                        subtitleAr: p.categoryAr,
+                        subtitleEn: p.categoryEn,
+                        rating: p.rating,
+                        placeType: reviewPlaceTypeFor(p.categoryKey),
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: AppColors.primaryGradient),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Text(
+                    app.t('التفاصيل', 'Details'),
+                    style: AppTypography.caption(Colors.white),
+                  ),
+                ),
+              ),
+              SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onClose,
+                child: Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textGrey,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+          if (routeDistanceKm != null &&
+              routeWalkingMin != null &&
+              routeDrivingMin != null) ...[
+            SizedBox(height: 10),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: AppColors.primaryGradient),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: Text(
-                app.t('التفاصيل', 'Details'),
-                style: AppTypography.caption(Colors.white),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  _travelModeButton(
+                    icon: Icons.directions_walk_rounded,
+                    mode: 'walking',
+                    active: travelMode == 'walking',
+                  ),
+                  SizedBox(width: 6),
+                  _travelModeButton(
+                    icon: Icons.directions_car_rounded,
+                    mode: 'driving',
+                    active: travelMode == 'driving',
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      travelMode == 'walking'
+                          ? app.t(
+                              'مشيًا: ${routeDistanceKm!.toStringAsFixed(1)} كم — تقريبًا $routeWalkingMin د',
+                              'Walking: ${routeDistanceKm!.toStringAsFixed(1)} km — about $routeWalkingMin min',
+                            )
+                          : app.t(
+                              'بالسيارة: ${routeDistanceKm!.toStringAsFixed(1)} كم — تقريبًا $routeDrivingMin د',
+                              'Driving: ${routeDistanceKm!.toStringAsFixed(1)} km — about $routeDrivingMin min',
+                            ),
+                      style: AppTypography.caption(AppColors.primary),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          SizedBox(width: 8),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onClose,
-            child: Icon(
-              Icons.close_rounded,
-              color: AppColors.textGrey,
-              size: 18,
-            ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _travelModeButton({
+    required IconData icon,
+    required String mode,
+    required bool active,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onTravelModeChanged(mode),
+      child: Container(
+        padding: EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 15, color: active ? Colors.white : AppColors.primary),
       ),
     );
   }

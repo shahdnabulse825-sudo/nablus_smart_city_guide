@@ -8,10 +8,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:nablus_smart_city_guide/main.dart';
+import 'package:nablus_smart_city_guide/screens/home/home_screen.dart';
 
 void main() {
   testWidgets('App builds without throwing', (WidgetTester tester) async {
     await tester.pumpWidget(const NablusGuideApp());
     await tester.pump();
+    AppState.instance.dispose();
   });
 }

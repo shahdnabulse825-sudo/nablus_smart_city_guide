@@ -362,6 +362,7 @@ Map<String, dynamic> newsToMap(NewsArticle a) => {
   'bodyAr': a.bodyAr,
   'bodyEn': a.bodyEn,
   'customImageBase64': a.customImageBase64,
+  'image': a.image,
 };
 
 NewsArticle mapToNews(Map<String, dynamic> m) => NewsArticle(
@@ -377,6 +378,7 @@ NewsArticle mapToNews(Map<String, dynamic> m) => NewsArticle(
   bodyAr: m['bodyAr'] ?? '',
   bodyEn: m['bodyEn'] ?? '',
   customImageBase64: m['customImageBase64'],
+  image: m['image'],
 );
 
 // ==================== الفعاليات القادمة ====================

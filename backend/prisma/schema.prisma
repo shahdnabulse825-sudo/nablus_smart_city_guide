@@ -253,3 +253,61 @@ model CategoryImage {
   imageUrl    String?
   updatedAt   DateTime @updatedAt
 }
+
+// ==================== المفضلة وسجل الزيارات (حسابات حقيقية مُتزامنة) ====================
+// userEmail هو مفتاح الربط بالمستخدم (مطابق User.email) — نفس مفتاح النطاق
+// (scope) المستخدم أصلًا محليًا بـ Hive، فما في داعي لأي هجرة بيانات.
+model Favorite {
+  id        String   @id @default(cuid())
+  userEmail String
+  nameEn    String
+  createdAt DateTime @default(now())
+
+  @@unique([userEmail, nameEn])
+  @@index([userEmail])
+}
+
+model PlaceView {
+  id        String   @id @default(cuid())
+  userEmail String
+  nameEn    String
+  viewedAt  DateTime @default(now())
+
+  @@index([userEmail])
+}
+
+// ==================== تقييمات ومراجعات حقيقية من المستخدمين ====================
+// مرتبطة بالمكان عبر (placeType, placeNameEn) وليس id — نفس مفتاح الربط
+// المستخدم أصلًا بكل مكان بالتطبيق (nameEn)، حتى تشتغل مع كل الأماكن (بيانات
+// الكود الثابتة وبيانات السيرفر) بدون فرق. مراجعة وحدة لكل مستخدم لكل مكان
+// (upsert) بدل سماح بمراجعات مكررة.
+model Review {
+  id          String   @id @default(cuid())
+  userEmail   String
+  userName    String
+  placeType   String // restaurant | hotel | pharmacy | attraction | shopping | transport | health | ...
+  placeNameEn String
+  rating      Int // 1-5
+  comment     String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userEmail, placeType, placeNameEn])
+  @@index([placeType, placeNameEn])
+}
+
+// ==================== رسائل تواصل/بلاغات الزوار (متزامنة مع السيرفر) ====================
+model Feedback {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @default("")
+  type         String // suggestion | issue | question
+  message      String
+  relatedPlace String?
+  read         Boolean   @default(false)
+  reply        String?
+  repliedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([email])
+}
