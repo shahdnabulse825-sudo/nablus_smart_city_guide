@@ -28,7 +28,9 @@ import '../places/all_places_screen.dart';
 import '../places/visit_history_screen.dart';
 import '../events/events_screen.dart';
 import '../nearby/nearby_places_screen.dart';
+import '../transport/transport_screen.dart';
 import 'recommendations_section.dart';
+import 'sponsored_section.dart';
 import '../../services/favorites_service.dart';
 import '../info/about_us_screen.dart';
 import '../../widgets/responsive.dart';
@@ -290,6 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 StatsRow(),
                 CategoriesSection(),
                 FavoritePlacesSection(),
+                SponsoredSection(),
                 RecommendationsSection(),
                 EventsAndMapSection(),
                 LatestNewsSection(),
@@ -1667,19 +1670,9 @@ class CategoriesSection extends StatelessWidget {
         MaterialPageRoute(builder: (context) => ShoppingCategoriesScreen()),
       );
     } else if (label == 'مواصلات') {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'مواصلات',
-            titleEn: 'Transport',
-            bannerSubtitleAr: 'كل خيارات التنقل داخل نابلس',
-            bannerSubtitleEn: 'All transportation options within Nablus',
-            icon: Icons.directions_bus,
-            boxName: 'transport',
-            seedData: transportData,
-          ),
-        ),
-      );
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => TransportScreen()));
     } else if (label == 'صحة') {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -2198,9 +2191,13 @@ class PlaceCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        app.t('مشاركة برمز QR', 'Share via QR'),
-                        style: AppTypography.caption(AppColors.primary),
+                      Flexible(
+                        child: Text(
+                          app.t('مشاركة برمز QR', 'Share via QR'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption(AppColors.primary),
+                        ),
                       ),
                       SizedBox(width: 3),
                       Icon(

@@ -7,6 +7,7 @@ import '../screens/shopping/shopping_screen.dart' show ShoppingVenueData;
 import '../screens/category/category_data.dart' show ListingItem;
 import '../screens/news/news_screen.dart' show NewsArticle;
 import '../screens/events/events_data.dart' show EventItem;
+import '../screens/home/promotion_data.dart' show PromotionData;
 
 // ==================== المطاعم ====================
 Map<String, dynamic> restaurantToMap(RestaurantData r) => {
@@ -416,4 +417,39 @@ EventItem mapToEvent(Map<String, dynamic> m) => EventItem(
   icon: IconData(m['iconCodePoint'] ?? Icons.event.codePoint, fontFamily: 'MaterialIcons'),
   color: Color(m['colorValue'] ?? 0xFF3B82F6),
   customImageBase64: m['customImageBase64'],
+);
+
+// ==================== العروض/الإعلانات ====================
+Map<String, dynamic> promotionToMap(PromotionData p) => {
+  'nameAr': p.titleAr, // مفتاح موحّد (nameAr/nameEn) حتى تشتغل مع syncSeed/purgeByName العامة
+  'nameEn': p.titleEn,
+  'titleAr': p.titleAr,
+  'titleEn': p.titleEn,
+  'descriptionAr': p.descriptionAr,
+  'descriptionEn': p.descriptionEn,
+  'discountCode': p.discountCode,
+  'placeNameAr': p.placeNameAr,
+  'placeNameEn': p.placeNameEn,
+  'categoryKey': p.categoryKey,
+  'startDate': p.startDate?.toIso8601String(),
+  'endDate': p.endDate?.toIso8601String(),
+  'customImageBase64': p.customImageBase64,
+  'serverImageUrl': p.serverImageUrl,
+  'apiId': p.apiId,
+};
+
+PromotionData mapToPromotion(Map<String, dynamic> m) => PromotionData(
+  titleAr: m['titleAr'] ?? m['nameAr'] ?? '',
+  titleEn: m['titleEn'] ?? m['nameEn'] ?? '',
+  descriptionAr: m['descriptionAr'] ?? '',
+  descriptionEn: m['descriptionEn'] ?? '',
+  discountCode: m['discountCode'] ?? '',
+  placeNameAr: m['placeNameAr'] ?? '',
+  placeNameEn: m['placeNameEn'] ?? '',
+  categoryKey: m['categoryKey'] ?? '',
+  startDate: DateTime.tryParse(m['startDate'] ?? ''),
+  endDate: DateTime.tryParse(m['endDate'] ?? ''),
+  customImageBase64: m['customImageBase64'],
+  serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
 );

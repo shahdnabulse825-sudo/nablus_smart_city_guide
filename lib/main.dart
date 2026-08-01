@@ -74,6 +74,7 @@ Future<void> _seedAllBoxes() async {
   await ApiService.syncShopping();
   await ApiService.syncNews();
   await ApiService.syncEvents();
+  await ApiService.syncPromotions();
   await ApiService.syncCategoryImages();
   if (AuthService.instance.userToken != null) {
     await FavoritesService.instance.syncWithServer();

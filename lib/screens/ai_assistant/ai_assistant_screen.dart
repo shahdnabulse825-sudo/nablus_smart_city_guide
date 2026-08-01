@@ -1,15 +1,24 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' hide TextDirection;
+import 'package:record/record.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:exif/exif.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:latlong2/latlong.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
 import '../common/detail_screen.dart';
 import '../places/all_places_screen.dart';
+import '../category/category_data.dart' show transportStationExtras;
 import '../events/events_data.dart';
+import '../map/map_screen.dart' show resolveMapPoint;
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/weather_service.dart';
 import '../../services/api_service.dart';
+import '../../services/location_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
 
@@ -68,13 +77,18 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   bool _hasText = false;
   bool _showScrollToBottom = false;
 
+  final Record _audioRecorder = Record();
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isRecording = false;
+  bool _isBusyMedia = false; // منع الضغط المتكرر أثناء معالجة صوت/صورة
+
   void _addGreeting() {
     _messages.add(
       ChatMessage(
         textAr:
-            'مرحباً! أنا المساعد الذكي لدليل نابلس 🤖 اسألني عن أي مطعم، فندق، معلم سياحي، فعالية، أو خدمة بالمدينة، وبقترحلك أفضل الخيارات مباشرة.',
+            'مرحباً! أنا المساعد الذكي لدليل نابلس 🤖 اسأليني أي سؤال بأي موضوع، وكمان بقدر أساعدك بمطاعم وفنادق ومعالم وفعاليات وخدمات المدينة بمعلومات حقيقية ومباشرة.',
         textEn:
-            "Hi! I'm the Nablus Guide AI Assistant 🤖 Ask me about any restaurant, hotel, landmark, event, or service in the city, and I'll suggest the best options right away.",
+            "Hi! I'm the Nablus Guide AI Assistant 🤖 Ask me anything, about any topic — and I can also help with real, up-to-date info on restaurants, hotels, landmarks, events, and services in the city.",
         isUser: false,
       ),
     );
@@ -105,7 +119,199 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _audioRecorder.dispose();
     super.dispose();
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  // ---------- تسجيل صوتي وتحويله لنص (Whisper عبر الباكند) ----------
+  Future<void> _toggleRecording() async {
+    final app = AppState.instance;
+    if (_isRecording) {
+      setState(() => _isRecording = false);
+      final path = await _audioRecorder.stop();
+      if (path == null) return;
+      setState(() => _isBusyMedia = true);
+      final bytes = await File(path).readAsBytes();
+      final lang = app.isArabic ? 'ar' : 'en';
+      final text = await ApiService.transcribeAudio(bytes, 'voice.m4a', lang: lang);
+      if (!mounted) return;
+      setState(() => _isBusyMedia = false);
+      if (text == null || text.isEmpty) {
+        _showSnack(
+          app.t('تعذّر فهم التسجيل، حاولي تاني', "Couldn't understand the recording, try again"),
+        );
+        return;
+      }
+      _send(text);
+      return;
+    }
+    if (!await _audioRecorder.hasPermission()) {
+      _showSnack(app.t('لازم إذن الميكروفون', 'Microphone permission is required'));
+      return;
+    }
+    final dir = await getTemporaryDirectory();
+    final path = '${dir.path}/ai_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _audioRecorder.start(path: path, encoder: AudioEncoder.aacLc);
+    if (!mounted) return;
+    setState(() => _isRecording = true);
+  }
+
+  // ---------- صورة: نطلع بيانات GPS منها (لو موجودة) ونلاقي أقرب مكان حقيقي ----------
+  double? _dmsToDecimal(IfdTag? coordTag, IfdTag? refTag) {
+    if (coordTag == null) return null;
+    final list = coordTag.values.toList();
+    if (list.length < 3) return null;
+    double toD(dynamic v) => v is Ratio ? v.toDouble() : (v as num).toDouble();
+    final dec = toD(list[0]) + toD(list[1]) / 60 + toD(list[2]) / 3600;
+    final ref = (refTag?.printable ?? '').trim().toUpperCase();
+    return (ref == 'S' || ref == 'W') ? -dec : dec;
+  }
+
+  Future<void> _pickPhotoAndLocate(ImageSource source) async {
+    final app = AppState.instance;
+    XFile? file;
+    try {
+      file = await _imagePicker.pickImage(source: source, imageQuality: 90);
+    } catch (_) {
+      // بعض المنصات (زي سطح مكتب ويندوز) ما عندها كاميرا مدعومة من image_picker
+      _showSnack(
+        app.t('الكاميرا غير مدعومة على هذا الجهاز', 'Camera isn\'t supported on this device'),
+      );
+      return;
+    }
+    if (file == null) return;
+
+    final userMsg = ChatMessage(
+      textAr: '📷 ${app.t('صورة', 'Photo')}',
+      textEn: '📷 ${app.t('صورة', 'Photo')}',
+      isUser: true,
+    );
+    setState(() {
+      _messages.add(userMsg);
+      _isTyping = true;
+      _isBusyMedia = true;
+    });
+    _persistMessage(userMsg);
+    _scrollToEnd();
+
+    ChatMessage reply;
+    try {
+      final bytes = await File(file.path).readAsBytes();
+      final data = await readExifFromBytes(bytes);
+      final lat = _dmsToDecimal(data['GPS GPSLatitude'], data['GPS GPSLatitudeRef']);
+      final lng = _dmsToDecimal(data['GPS GPSLongitude'], data['GPS GPSLongitudeRef']);
+
+      if (lat == null || lng == null) {
+        reply = ChatMessage(
+          textAr:
+              'ما لقيت بيانات موقع (GPS) جوا هاي الصورة، فما بقدر أعرف مكانها بالضبط. جربي صورة ملتقطة بالكاميرا مباشرة مع تفعيل خدمة الموقع.',
+          textEn:
+              "This photo doesn't have GPS location data in it, so I can't tell exactly where it is. Try a photo taken directly with the camera with location services on.",
+          isUser: false,
+        );
+      } else {
+        final photoPoint = LatLng(lat, lng);
+        UniversalPlace? nearest;
+        double bestKm = double.infinity;
+        for (final p in allPlaces) {
+          final point = resolveMapPoint(
+            nameAr: p.nameAr,
+            nameEn: p.nameEn,
+            locationAr: p.locationAr,
+            locationEn: p.locationEn,
+            lat: p.lat,
+            lng: p.lng,
+          );
+          final km = LocationService.instance.distanceKm(photoPoint, point);
+          if (km < bestKm) {
+            bestKm = km;
+            nearest = p;
+          }
+        }
+        final distText = bestKm.toStringAsFixed(bestKm < 1 ? 2 : 1);
+        if (nearest != null && bestKm < 2) {
+          reply = ChatMessage(
+            textAr:
+                'حسب بيانات الموقع بالصورة، أقرب مكان مسجّل عندي هو "${nearest.nameAr}" ($distText كم تقريبًا).',
+            textEn:
+                'Based on the photo\'s location data, the closest place I have is "${nearest.nameEn}" (about $distText km away).',
+            isUser: false,
+            place: nearest,
+          );
+        } else {
+          reply = ChatMessage(
+            textAr:
+                'لقيت إحداثيات الصورة (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)})، بس ما في مكان قريب منها مسجّل بالتطبيق.',
+            textEn:
+                'Found the photo\'s coordinates (${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}), but no nearby place is registered in the app.',
+            isUser: false,
+          );
+        }
+      }
+    } catch (_) {
+      reply = ChatMessage(
+        textAr: 'تعذّر قراءة بيانات الصورة.',
+        textEn: 'Could not read this photo\'s data.',
+        isUser: false,
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isTyping = false;
+      _isBusyMedia = false;
+      _messages.add(reply);
+    });
+    _persistMessage(reply);
+    _scrollToEnd();
+  }
+
+  void _showPhotoSourceSheet() {
+    final app = AppState.instance;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardDark,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (sheetContext) => Directionality(
+        textDirection: app.dir,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_camera, color: AppColors.primary),
+                title: Text(
+                  app.t('التقاط صورة', 'Take a photo'),
+                  style: AppTypography.body(AppColors.textWhite),
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickPhotoAndLocate(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: AppColors.primary),
+                title: Text(
+                  app.t('اختيار من المعرض', 'Choose from gallery'),
+                  style: AppTypography.body(AppColors.textWhite),
+                ),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickPhotoAndLocate(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ---------- حفظ/استرجاع سجل المحادثة محليًا (Hive) حتى ما تضيع لما تُسكّر الشاشة ----------
@@ -408,6 +614,65 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             : 'The best recommended health facility: ${top.nameEn} (${top.rating}⭐).',
         isUser: false,
         place: top,
+      );
+    }
+
+    if (has(
+      ['أريد الذهاب', 'بدي روح', 'بدي اروح', 'كيف أوصل', 'كيف اوصل', 'وصلوني على'],
+      ['i want to go', 'how do i get', 'get to', 'go to'],
+    )) {
+      const destinations = <String, (String, String, String)>{
+        // مفتاح البحث: (اسم المحطة المقترحة بالإنجليزي, نص المسار عربي, نص المسار إنجليزي)
+        'النجاح': ('Rafidia Service Taxi Stand', 'رفيديا ← الجامعة', 'Rafidia ← University'),
+        'الجامعة': ('Rafidia Service Taxi Stand', 'رفيديا ← الجامعة', 'Rafidia ← University'),
+        'البلدة القديمة': (
+          'Martyrs Circle Service Taxi Stand',
+          'دوار الشهداء ← البلدة القديمة',
+          'Martyrs Circle ← Old City',
+        ),
+        'بلاطة': ('Rafidia Service Taxi Stand', 'رفيديا ← بلاطة', 'Rafidia ← Balata'),
+        'عسكر': ('Rafidia Service Taxi Stand', 'رفيديا ← عسكر', 'Rafidia ← Askar'),
+        'رام الله': (
+          'Nablus - Ramallah Bus Line',
+          'نابلس ← رام الله',
+          'Nablus ← Ramallah',
+        ),
+      };
+      String? matchedKey;
+      for (final k in destinations.keys) {
+        if (input.contains(k)) {
+          matchedKey = k;
+          break;
+        }
+      }
+      if (matchedKey != null) {
+        final (stationNameEn, routeAr, routeEn) = destinations[matchedKey]!;
+        UniversalPlace? station;
+        for (final p in allPlaces) {
+          if (p.categoryKey == 'transport' && p.nameEn == stationNameEn) {
+            station = p;
+            break;
+          }
+        }
+        final extras = transportStationExtras[stationNameEn];
+        final waiting = extras == null
+            ? ''
+            : (' — ${AppState.instance.isArabic ? extras.waitingTimeAr : extras.waitingTimeEn}');
+        return ChatMessage(
+          textAr:
+              '🚐 اركبي من ${station?.nameAr ?? stationNameEn}، مسار: $routeAr$waiting.',
+          textEn:
+              '🚐 Ride from ${station?.nameEn ?? stationNameEn}, route: $routeEn$waiting.',
+          isUser: false,
+          place: station,
+        );
+      }
+      return ChatMessage(
+        textAr:
+            'قوليلي وين بدك تروحي بالضبط (متل "جامعة النجاح"، "البلدة القديمة"، "بلاطة"، "عسكر"، أو "رام الله") وبقترحلك أقرب موقف ومسار.',
+        textEn:
+            'Tell me exactly where you want to go (e.g. "An-Najah University", "Old City", "Balata", "Askar", or "Ramallah") and I\'ll suggest the nearest stand and route.',
+        isUser: false,
       );
     }
 
@@ -922,6 +1187,38 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       ),
       child: Row(
         children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: (_isBusyMedia || _isRecording) ? null : _showPhotoSourceSheet,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.cardDark2,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.camera_alt_outlined, color: AppColors.textGrey, size: 18),
+            ),
+          ),
+          SizedBox(width: 8),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _isBusyMedia ? null : _toggleRecording,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _isRecording ? AppColors.red : AppColors.cardDark2,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                color: _isRecording ? Colors.white : AppColors.textGrey,
+                size: 18,
+              ),
+            ),
+          ),
+          SizedBox(width: 8),
           Expanded(
             child: Container(
               padding: EdgeInsets.symmetric(horizontal: 16),

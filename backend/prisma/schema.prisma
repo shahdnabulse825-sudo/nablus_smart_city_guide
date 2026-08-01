@@ -311,3 +311,57 @@ model Feedback {
 
   @@index([email])
 }
+
+// ==================== حواجز (حالة يدوية من الإدارة فقط — مش بيانات حية/GPS) ====================
+// ما عنا أي مصدر بيانات حي لحالة الحواجز الفعلية، فالحالة هون لازم تُحدَّث يدويًا
+// من أدمن حقيقي بعد تحقق فعلي — الافتراضي "unknown" لحتى ما نفترض حالة ممكن تكون
+// غلط وتوقع حدا بموقف صعب. status: unknown | open | congested | closed
+model Checkpoint {
+  id         String   @id @default(cuid())
+  nameAr     String
+  nameEn     String   @unique
+  locationAr String   @default("")
+  locationEn String   @default("")
+  status     String   @default("unknown")
+  altRouteAr String   @default("")
+  altRouteEn String   @default("")
+  updatedBy  String   @default("") // بريد الأدمن اللي حدّث آخر مرة (شفافية)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ==================== تنبيه ازدحام واحد نشط (منشور يدويًا من أدمن حقيقي) ====================
+// مش بيانات مرورية حية تلقائية — مجرد إعلان نصي بينشره أدمن، زي منشور، وبيظهر
+// لكل المستخدمين لحد ما يمسحه/يعدّله.
+model TrafficAlert {
+  id         String   @id @default(cuid())
+  active     Boolean  @default(false)
+  textAr     String   @default("")
+  textEn     String   @default("")
+  altRouteAr String   @default("")
+  altRouteEn String   @default("")
+  updatedBy  String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// ==================== عروض/إعلانات محلات حقيقية (خصم، توصيل مجاني، كود خصم...) ====================
+// إعلان داخلي بينشره الأدمن لمحل حقيقي موجود بالتطبيق — بعكس isFeatured (يظهر
+// المحل نفسه أولًا بشكل دائم)، هاي عرض بعنوان/تفاصيل واضحة وبفترة صلاحية اختيارية
+// (مثلاً عرض عيد الحب أو رأس السنة)، وبيختفي تلقائيًا بعد تاريخ الانتهاء.
+model Promotion {
+  id            String    @id @default(cuid())
+  titleAr       String
+  titleEn       String
+  descriptionAr String    @default("")
+  descriptionEn String    @default("")
+  discountCode  String    @default("")
+  placeNameAr   String    @default("")
+  placeNameEn   String    @default("")
+  categoryKey   String    @default("") // لفتح فئة المحل الصح لو ضغط المستخدم عليه (restaurants/shopping/hotels...)
+  imageUrl      String?
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

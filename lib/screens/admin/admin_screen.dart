@@ -13,6 +13,7 @@ import '../auth/login_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../../services/feedback_service.dart';
 import '../../theme/app_typography.dart';
+import 'promotions_admin_screen.dart';
 import '../../widgets/responsive.dart';
 import '../map/map_screen.dart' show nablusCenter;
 import '../../widgets/app_toggle_bar.dart';
@@ -628,6 +629,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       'photoQuery': 'street festival crowd',
       'localAsset': 'assets/images/category_icons/events.webp',
     },
+    {
+      'boxName': 'promotions',
+      'titleAr': 'عروض وإعلانات',
+      'titleEn': 'Deals & Offers',
+      'icon': Icons.local_offer_rounded,
+      'color': AppColors.primary,
+      'photoQuery': 'shop discount sale',
+    },
   ];
 
   bool? _serverOk; // null = لسا عم يفحص
@@ -750,6 +759,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     BuildContext context,
     Map<String, dynamic> s,
   ) async {
+    // العروض/الإعلانات إلها شكل بيانات مختلف كليًا (عنوان/كود خصم/فترة صلاحية)
+    // عن باقي الأقسام، فبتفتح شاشتها المخصّصة بدل النموذج العام.
+    if (s['boxName'] == 'promotions') {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => const PromotionsAdminScreen()),
+      );
+      if (mounted) setState(() {});
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => AdminCollectionScreen(
@@ -1670,17 +1688,38 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         return;
       }
       setState(() => _saving = true);
-      final ok = await ApiService.deleteItem(token, widget.boxName, apiId);
+      final status = await ApiService.deleteItem(token, widget.boxName, apiId);
       if (!mounted) return;
       setState(() => _saving = false);
-      if (!ok) {
-        _showMessage(
-          app.t(
-            'فشل الحذف — تأكدي إنه السيرفر شغال',
-            'Delete failed — make sure the server is running',
-          ),
-        );
-        return;
+      // 404 يعني العنصر محذوف أصلاً بالسيرفر (مثلاً اتحذف من جهاز/جلسة تانية) —
+      // نكمل نحذفه محليًا بهدوء بدل ما نطلع رسالة خطأ مخيفة وهو أصلاً مش موجود.
+      final alreadyGone = status == 404;
+      if (status < 200 || status >= 300) {
+        if (status == -1) {
+          _showMessage(
+            app.t(
+              'فشل الحذف — تأكدي إنه السيرفر شغال',
+              'Delete failed — make sure the server is running',
+            ),
+          );
+          return;
+        } else if (status == 401 || status == 403) {
+          _showMessage(
+            app.t(
+              'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+              'Session expired — please log in as admin again',
+            ),
+          );
+          return;
+        } else if (!alreadyGone) {
+          _showMessage(
+            app.t(
+              'فشل الحذف — تأكدي إنه السيرفر شغال',
+              'Delete failed — make sure the server is running',
+            ),
+          );
+          return;
+        }
       }
     }
     await LocalDbService.instance.delete(widget.boxName, key);

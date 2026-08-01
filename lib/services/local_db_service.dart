@@ -32,6 +32,9 @@ class LocalDbService {
     'search_log',
     'visit_log',
     'ai_chat',
+    'checkpoints',
+    'traffic_alerts',
+    'promotions',
   ];
 
   final Map<String, Box> _boxes = {};

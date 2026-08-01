@@ -91,6 +91,9 @@ UniversalPlace _fromListing(ListingItem it, String categoryKey) =>
       color: it.placeholderColor,
       customImageBase64: it.customImageBase64,
       isFeatured: it.isFeatured,
+      image: it.image ?? '',
+      lat: it.lat,
+      lng: it.lng,
     );
 
 UniversalPlace _fromHotel(HotelData h) => UniversalPlace(

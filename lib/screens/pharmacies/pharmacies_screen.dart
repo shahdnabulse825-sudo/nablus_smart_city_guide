@@ -252,6 +252,16 @@ final List<PharmacyData> pharmaciesSeedData = [
   ),
 ];
 
+// أسماء صيدليات كانت مضافة سابقًا (تقريبية/وهمية) وطُلب حذفها نهائيًا من التطبيق —
+// تُستخدم فقط لتنظيف أي نسخة محلية أو مزامَنة من السيرفر لسا موجودة على جهاز
+// المستخدم (انظر [purgeByName] بالأسفل)، وليست جزءًا من البيانات الحالية.
+const Set<String> retiredPharmacyNames = {
+  'Al-Rahma Pharmacy',
+  'Al-Najah Pharmacy',
+  'Al-Amal Pharmacy',
+  'Al-Shifa Pharmacy',
+};
+
 const List<(String, String, String)> _quickFilters = [
   ('is24Hours', '🕗 صيدليات 24 ساعة', '🕗 24-Hour Pharmacies'),
   ('nearestToMe', '📍 الأقرب لموقعي', '📍 Nearest to Me'),
@@ -302,6 +312,9 @@ class _PharmaciesScreenState extends State<PharmaciesScreen> {
       pharmaciesSeedData.map(pharmacyToMap).toList(),
     );
     await ApiService.syncPharmacies();
+    // لازم تُنفَّذ بعد المزامنة مع السيرفر (مش قبلها)، وإلا أي عنصر متقاعد لسا
+    // موجود بقاعدة بيانات السيرفر رح يرجع يتزامن محليًا فورًا بعد الحذف.
+    await db.purgeByName('pharmacies', retiredPharmacyNames);
     final entries = db.getAll('pharmacies');
     setState(() {
       _livePharmacies = entries.map((e) => mapToPharmacy(e.value)).toList();

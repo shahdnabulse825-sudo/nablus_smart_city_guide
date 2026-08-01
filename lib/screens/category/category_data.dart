@@ -56,24 +56,6 @@ class ListingItem {
 // ==================== الفنادق ====================
 final List<ListingItem> hotelsData = [
   ListingItem(
-    nameAr: 'فندق قصر نابلس',
-    nameEn: 'Nablus Palace Hotel',
-    typeAr: 'فندق 4 نجوم',
-    typeEn: '4-Star Hotel',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.5,
-    reviews: 180,
-    infoLabelAr: '180-250 ₪ / ليلة',
-    infoLabelEn: '180-250 ₪ / night',
-    aboutAr: 'فندق راقٍ بإطلالة على المدينة، يضم غرف مريحة ومطعم داخلي وخدمة استقبال على مدار الساعة.',
-    aboutEn: 'An elegant hotel with a city view, comfortable rooms, an in-house restaurant, and 24-hour front desk service.',
-    photoQuery: 'hotel exterior building',
-    placeholderIcon: Icons.hotel,
-    placeholderColor: Color(0xFF6C5CE7),
-    isFeatured: true,
-  ),
-  ListingItem(
     nameAr: 'فندق نابلس الدولي',
     nameEn: 'Nablus International Hotel',
     typeAr: 'فندق 3 نجوم',
@@ -88,41 +70,7 @@ final List<ListingItem> hotelsData = [
     aboutEn: 'A budget-friendly hotel in a central location near the main markets and tourist attractions.',
     photoQuery: 'hotel lobby',
     placeholderIcon: Icons.hotel,
-    placeholderColor: Color(0xFF4C6EF5),
-  ),
-  ListingItem(
-    nameAr: 'شقق الرابية المفروشة',
-    nameEn: 'Al-Rabya Furnished Apartments',
-    typeAr: 'شقق فندقية',
-    typeEn: 'Serviced Apartments',
-    locationAr: 'منطقة الرابية - نابلس',
-    locationEn: 'Al-Rabya Area - Nablus',
-    rating: 4.4,
-    reviews: 95,
-    infoLabelAr: '150-220 ₪ / ليلة',
-    infoLabelEn: '150-220 ₪ / night',
-    aboutAr: 'شقق مفروشة بالكامل مناسبة للإقامات الطويلة والعائلات، مع مطبخ خاص وموقف سيارات.',
-    aboutEn: 'Fully furnished apartments suitable for long stays and families, with a private kitchen and parking.',
-    photoQuery: 'furnished apartment interior',
-    placeholderIcon: Icons.apartment,
-    placeholderColor: Color(0xFF22C55E),
-  ),
-  ListingItem(
-    nameAr: 'نزل البلدة القديمة',
-    nameEn: 'Old City Guesthouse',
-    typeAr: 'نزل تراثي',
-    typeEn: 'Heritage Guesthouse',
-    locationAr: 'البلدة القديمة - نابلس',
-    locationEn: 'Old City - Nablus',
-    rating: 4.7,
-    reviews: 140,
-    infoLabelAr: '100-160 ₪ / ليلة',
-    infoLabelEn: '100-160 ₪ / night',
-    aboutAr: 'إقامة فريدة داخل بيت تراثي مرمم بالبلدة القديمة، تجربة أصيلة وسط أزقة نابلس التاريخية.',
-    aboutEn: 'A unique stay inside a restored heritage house in the Old City, an authentic experience among Nablus historic alleys.',
-    photoQuery: 'traditional guesthouse interior',
-    placeholderIcon: Icons.villa,
-    placeholderColor: Color(0xFFC9A227),
+    placeholderColor: Color(0xFFF97316),
   ),
 ];
 
@@ -290,6 +238,7 @@ final List<ListingItem> transportData = [
     placeholderIcon: Icons.directions_bus,
     placeholderColor: Color(0xFF14B8A6),
     image: 'assets/images/transport/intercity_bus_line.jpg',
+    subTypeKey: 'bus',
   ),
   ListingItem(
     nameAr: 'موقف سرفيس دوار الشهداء',
@@ -308,6 +257,7 @@ final List<ListingItem> transportData = [
     placeholderIcon: Icons.local_taxi,
     placeholderColor: Color(0xFFF5A623),
     image: 'assets/images/transport/service_taxi.jpg',
+    subTypeKey: 'service',
   ),
   ListingItem(
     nameAr: 'تأجير سيارات نابلس',
@@ -324,7 +274,29 @@ final List<ListingItem> transportData = [
     aboutEn: 'A car rental service with affordable prices for visitors and tourists.',
     photoQuery: 'car rental',
     placeholderIcon: Icons.car_rental,
-    placeholderColor: Color(0xFF6C5CE7),
+    placeholderColor: Color(0xFFF97316),
+    image: 'assets/images/transport/car_rental.jpg',
+    subTypeKey: 'carRental',
+  ),
+  ListingItem(
+    nameAr: 'دارين لتأجير السيارات',
+    nameEn: 'Dareen Rental Cars',
+    typeAr: 'تأجير سيارات',
+    typeEn: 'Car Rental',
+    locationAr: 'منطقة المعاجين - نابلس',
+    locationEn: "Al-Ma'ajin Area - Nablus",
+    rating: 5.0,
+    reviews: 0,
+    infoLabelAr: 'السبت-الخميس 9ص - 6:30م، الجمعة مغلق',
+    infoLabelEn: 'Sat-Thu 9AM - 6:30PM, Friday closed',
+    aboutAr: 'شركة تقدم خدمات تأجير السيارات مع مجموعة من السيارات الحديثة المناسبة للتنقل داخل وخارج المدينة. تشمل الخدمات: تأجير سيارات اقتصادية، تأجير يومي وأسبوعي، وحجز مسبق.',
+    aboutEn: 'A car rental company offering a range of modern cars suitable for getting around inside and outside the city. Services include economy car rental, daily and weekly rental, and advance booking.',
+    phone: '+970 598 600 608',
+    photoQuery: 'car rental agency',
+    placeholderIcon: Icons.car_rental,
+    placeholderColor: Color(0xFFEF6F53),
+    image: 'assets/images/transport/car_rental.jpg',
+    subTypeKey: 'carRental',
   ),
   ListingItem(
     nameAr: 'موقف سرفيس رفيديا',
@@ -343,6 +315,7 @@ final List<ListingItem> transportData = [
     placeholderIcon: Icons.local_taxi,
     placeholderColor: Color(0xFFF5A623),
     image: 'assets/images/transport/service_taxi.jpg',
+    subTypeKey: 'service',
   ),
   ListingItem(
     nameAr: 'محطة وقود البترول الوطنية',
@@ -361,6 +334,7 @@ final List<ListingItem> transportData = [
     placeholderIcon: Icons.local_gas_station,
     placeholderColor: Color(0xFFEF4444),
     image: 'assets/images/transport/gas_station.jpg',
+    subTypeKey: 'other',
   ),
   ListingItem(
     nameAr: 'كراج صيانة السيارات الحديث',
@@ -378,6 +352,8 @@ final List<ListingItem> transportData = [
     photoQuery: 'car repair garage',
     placeholderIcon: Icons.car_repair,
     placeholderColor: Color(0xFF6B7280),
+    image: 'assets/images/transport/car_repair.jpg',
+    subTypeKey: 'other',
   ),
   ListingItem(
     nameAr: 'موقف السيارات العام - وسط البلد',
@@ -394,7 +370,9 @@ final List<ListingItem> transportData = [
     aboutEn: 'A public parking lot close to the markets and commercial areas.',
     photoQuery: 'parking lot',
     placeholderIcon: Icons.local_parking,
-    placeholderColor: Color(0xFF3B82F6),
+    placeholderColor: Color(0xFFF97316),
+    image: 'assets/images/transport/parking.jpg',
+    subTypeKey: 'other',
   ),
   ListingItem(
     nameAr: 'باصات نابلس - رام الله',
@@ -413,8 +391,80 @@ final List<ListingItem> transportData = [
     placeholderIcon: Icons.directions_bus_filled,
     placeholderColor: Color(0xFF14B8A6),
     image: 'assets/images/transport/central_bus_station.jpg',
+    subTypeKey: 'bus',
   ),
 ];
+
+/// معلومات إضافية عن محطة (خطوط الخدمة ووقت الانتظار التقريبي) — بيانات محلية
+/// وصفية (مش حية/GPS) مرتبطة بالاسم الإنجليزي للمحطة، تُستخدم بشاشة تفاصيل
+/// المحطة وميزة "اقتراح رحلة" بالمساعد الذكي.
+class TransportStationExtras {
+  final List<(String, String)> servicesAr; // (من, إلى) بالعربي
+  final List<(String, String)> servicesEn;
+  final String waitingTimeAr;
+  final String waitingTimeEn;
+  final bool is24Hours;
+  const TransportStationExtras({
+    required this.servicesAr,
+    required this.servicesEn,
+    required this.waitingTimeAr,
+    required this.waitingTimeEn,
+    this.is24Hours = false,
+  });
+}
+
+final Map<String, TransportStationExtras> transportStationExtras = {
+  'Central Bus Station': TransportStationExtras(
+    servicesAr: [
+      ('نابلس', 'البلدة القديمة'),
+      ('نابلس', 'بلاطة'),
+      ('نابلس', 'عسكر'),
+    ],
+    servicesEn: [
+      ('Nablus', 'Old City'),
+      ('Nablus', 'Balata'),
+      ('Nablus', 'Askar'),
+    ],
+    waitingTimeAr: 'كل 10 دقائق تقريبًا',
+    waitingTimeEn: 'About every 10 minutes',
+  ),
+  'Martyrs Circle Service Taxi Stand': TransportStationExtras(
+    servicesAr: [
+      ('دوار الشهداء', 'رفيديا'),
+      ('دوار الشهداء', 'الجامعة'),
+      ('دوار الشهداء', 'البلدة القديمة'),
+    ],
+    servicesEn: [
+      ('Martyrs Circle', 'Rafidia'),
+      ('Martyrs Circle', 'University'),
+      ('Martyrs Circle', 'Old City'),
+    ],
+    waitingTimeAr: 'كل 5-10 دقائق',
+    waitingTimeEn: 'Every 5-10 minutes',
+  ),
+  'Rafidia Service Taxi Stand': TransportStationExtras(
+    servicesAr: [
+      ('رفيديا', 'البلدة القديمة'),
+      ('رفيديا', 'بلاطة'),
+      ('رفيديا', 'الجامعة'),
+      ('رفيديا', 'عسكر'),
+    ],
+    servicesEn: [
+      ('Rafidia', 'Old City'),
+      ('Rafidia', 'Balata'),
+      ('Rafidia', 'University'),
+      ('Rafidia', 'Askar'),
+    ],
+    waitingTimeAr: 'كل 10-15 دقيقة',
+    waitingTimeEn: 'Every 10-15 minutes',
+  ),
+  'Nablus - Ramallah Bus Line': TransportStationExtras(
+    servicesAr: [('نابلس', 'رام الله')],
+    servicesEn: [('Nablus', 'Ramallah')],
+    waitingTimeAr: 'كل 30 دقيقة',
+    waitingTimeEn: 'Every 30 minutes',
+  ),
+};
 
 // ==================== الصحة ====================
 final List<ListingItem> healthData = [
@@ -673,18 +723,19 @@ final List<ListingItem> educationData = [
     image: 'assets/images/education/جامعة النجاح القديمة.jpg',
   ),
   ListingItem(
-    nameAr: 'مدرسة نابلس الصناعية',
-    nameEn: 'Nablus Industrial School',
-    typeAr: 'مدرسة',
-    typeEn: 'School',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
+    nameAr: 'مدرسة نابلس الثانوية الصناعية',
+    nameEn: 'Nablus Industrial Secondary School',
+    typeAr: 'مدرسة ثانوية مهنية',
+    typeEn: 'Vocational Secondary School',
+    locationAr: 'شارع عسكر - نابلس',
+    locationEn: 'Askar St. - Nablus',
     rating: 4.2,
     reviews: 95,
-    infoLabelAr: 'الدوام 7:30ص - 1:30م',
-    infoLabelEn: 'Hours 7:30AM - 1:30PM',
-    aboutAr: 'مدرسة متخصصة بالتعليم الصناعي والمهني تخدم أحياء المدينة المختلفة.',
-    aboutEn: 'A school specializing in industrial and vocational education serving the city\'s different neighborhoods.',
+    infoLabelAr: 'الأحد-الخميس 8ص - 2م',
+    infoLabelEn: 'Sun-Thu 8AM - 2PM',
+    aboutAr: 'مدرسة حكومية متخصصة بالتعليم الصناعي والمهني (فرعي الصناعي والاقتصاد المنزلي)، من أعرق المدارس المهنية بنابلس.',
+    aboutEn: "A public school specializing in industrial and vocational education (industrial and home economics branches), one of Nablus's most established vocational schools.",
+    phone: '+970 9 232 9875',
     photoQuery: 'industrial school building',
     placeholderIcon: Icons.menu_book,
     placeholderColor: Color(0xFF22C55E),
@@ -1101,73 +1152,4 @@ final List<ListingItem> governmentData = [
 ];
 
 // ==================== الصيدليات ====================
-final List<ListingItem> pharmaciesData = [
-  ListingItem(
-    nameAr: 'صيدلية النجاح',
-    nameEn: 'Al-Najah Pharmacy',
-    typeAr: 'صيدلية 24 ساعة',
-    typeEn: '24-Hour Pharmacy',
-    locationAr: 'شارع الجامعة - نابلس',
-    locationEn: 'University St. - Nablus',
-    rating: 4.5,
-    reviews: 160,
-    infoLabelAr: 'تعمل 24 ساعة',
-    infoLabelEn: 'Open 24 hours',
-    aboutAr: 'صيدلية تعمل على مدار الساعة، توفر جميع الأدوية والمستلزمات الطبية.',
-    aboutEn: 'A pharmacy open around the clock, providing all medications and medical supplies.',
-    photoQuery: 'pharmacy interior',
-    placeholderIcon: Icons.local_pharmacy,
-    placeholderColor: Color(0xFF3B82F6),
-  ),
-  ListingItem(
-    nameAr: 'صيدلية الشفاء',
-    nameEn: 'Al-Shifa Pharmacy',
-    typeAr: 'صيدلية',
-    typeEn: 'Pharmacy',
-    locationAr: 'وسط البلد - نابلس',
-    locationEn: 'Downtown - Nablus',
-    rating: 4.3,
-    reviews: 110,
-    infoLabelAr: 'تعمل 8ص - 11م',
-    infoLabelEn: 'Open 8AM - 11PM',
-    aboutAr: 'صيدلية بموقع مركزي تقدم استشارات دوائية مجانية.',
-    aboutEn: 'A centrally located pharmacy offering free medication consultations.',
-    photoQuery: 'pharmacy shelves medicine',
-    placeholderIcon: Icons.local_pharmacy,
-    placeholderColor: Color(0xFF22C55E),
-  ),
-  ListingItem(
-    nameAr: 'صيدلية الرحمة',
-    nameEn: 'Al-Rahma Pharmacy',
-    typeAr: 'صيدلية 24 ساعة',
-    typeEn: '24-Hour Pharmacy',
-    locationAr: 'رفيديا - نابلس',
-    locationEn: 'Rafidia - Nablus',
-    rating: 4.4,
-    reviews: 140,
-    infoLabelAr: 'تعمل 24 ساعة',
-    infoLabelEn: 'Open 24 hours',
-    aboutAr: 'صيدلية تعمل على مدار الساعة مع خدمة توصيل للمنازل.',
-    aboutEn: 'A 24-hour pharmacy offering home delivery service.',
-    photoQuery: 'pharmacy store',
-    placeholderIcon: Icons.local_pharmacy,
-    placeholderColor: Color(0xFFE85D5D),
-  ),
-  ListingItem(
-    nameAr: 'صيدلية الأمل',
-    nameEn: 'Al-Amal Pharmacy',
-    typeAr: 'صيدلية',
-    typeEn: 'Pharmacy',
-    locationAr: 'شارع فيصل - نابلس',
-    locationEn: 'Faisal St. - Nablus',
-    rating: 4.2,
-    reviews: 85,
-    infoLabelAr: 'تعمل 8ص - 10م',
-    infoLabelEn: 'Open 8AM - 10PM',
-    aboutAr: 'صيدلية عائلية تقدم خدمة شخصية ومتابعة دقيقة للزبائن.',
-    aboutEn: 'A family pharmacy offering personalized service and careful follow-up for customers.',
-    photoQuery: 'pharmacy counter',
-    placeholderIcon: Icons.local_pharmacy,
-    placeholderColor: Color(0xFFC9A227),
-  ),
-];
+final List<ListingItem> pharmaciesData = [];

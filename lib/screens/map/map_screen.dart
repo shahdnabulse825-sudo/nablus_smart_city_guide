@@ -177,18 +177,6 @@ final List<MapPlace> mapPlaces = [
     rating: 4.8,
   ),
   MapPlace(
-    nameAr: 'فندق قصر نابلس',
-    nameEn: 'Nablus Palace Hotel',
-    categoryAr: 'فندق',
-    categoryEn: 'Hotel',
-    categoryKey: 'hotels',
-    lat: 32.2245,
-    lng: 35.2615,
-    icon: Icons.hotel,
-    color: Color(0xFF6C5CE7),
-    rating: 4.5,
-  ),
-  MapPlace(
     nameAr: 'حديقة التعاون',
     nameEn: 'Al-Taawon Park',
     categoryAr: 'حديقة',

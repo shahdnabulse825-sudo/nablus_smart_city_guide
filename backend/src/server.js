@@ -20,6 +20,9 @@ const placeViewsRoutes = require('./routes/placeViews');
 const aiChatRoutes = require('./routes/aiChat');
 const reviewsRoutes = require('./routes/reviews');
 const feedbackRoutes = require('./routes/feedback');
+const checkpointsRoutes = require('./routes/checkpoints');
+const trafficAlertsRoutes = require('./routes/trafficAlerts');
+const promotionsRoutes = require('./routes/promotions');
 
 const app = express();
 
@@ -47,6 +50,9 @@ app.use('/api/place-views', placeViewsRoutes);
 app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/checkpoints', checkpointsRoutes);
+app.use('/api/traffic-alerts', trafficAlertsRoutes);
+app.use('/api/promotions', promotionsRoutes);
 
 // معالج أخطاء عام (يلتقط أخطاء multer، وفشل الاتصال بقاعدة البيانات، وأي استثناء غير متوقع بالراوترات)
 app.use((err, req, res, next) => {

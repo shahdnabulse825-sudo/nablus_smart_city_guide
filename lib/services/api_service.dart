@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'local_db_service.dart';
@@ -11,10 +12,14 @@ import 'local_db_service.dart';
 class ApiService {
   ApiService._();
 
-  /// عنوان السيرفر — شغال افتراضيًا لما التطبيق والسيرفر عالجهاز نفسه (متصفح Chrome
-  /// وقت التطوير). لو حبيتي تجربي التطبيق من جهاز/موبايل تاني، لازم تغيّري هاد
-  /// العنوان لعنوان IP جهاز السيرفر بالشبكة (مثلاً http://192.168.1.5:4000/api).
-  static const String baseUrl = 'http://localhost:4000/api';
+  /// عنوان السيرفر — 10.0.2.2 هو اسم خاص بمحاكي أندرويد بس بيشير لجهاز الكمبيوتر
+  /// المضيف نفسه (مش localhost العادي، لأن "localhost" جوا المحاكي بيشير للمحاكي
+  /// نفسه). بباقي المنصات (ويندوز/iOS Simulator) localhost شغال عادي لأنها نفس
+  /// الجهاز فعليًا. لو جرّبتي على موبايل حقيقي متوصّل بالشبكة، لازم تستبدليه
+  /// بعنوان IP جهاز السيرفر بالشبكة (مثلاً http://192.168.1.5:4000/api).
+  static String get baseUrl => Platform.isAndroid
+      ? 'http://10.0.2.2:4000/api'
+      : 'http://localhost:4000/api';
 
   static const Duration _timeout = Duration(seconds: 3);
 
@@ -107,6 +112,111 @@ class ApiService {
   static Future<void> syncNews() => _syncBoxFromApi('news', 'news');
 
   static Future<void> syncEvents() => _syncBoxFromApi('events', 'events');
+
+  /// العروض/الإعلانات كلها من السيرفر فقط (ما في بيانات محلية ابتدائية) — فبنستخدم
+  /// syncSeedExact مباشرة (مش الدمج الإضافي المعتاد) حتى العرض المنتهي صلاحيته
+  /// (السيرفر بيوقف يرجّعه) يختفي فعليًا من الجهاز، مش يضل عالق محليًا للأبد.
+  static Future<void> syncPromotions() async {
+    final items = await _fetchList('promotions');
+    if (items == null) return;
+    final mapped = items
+        .map(
+          (item) => {
+            'nameAr': item['titleAr'],
+            'nameEn': item['titleEn'],
+            'titleAr': item['titleAr'],
+            'titleEn': item['titleEn'],
+            'descriptionAr': item['descriptionAr'],
+            'descriptionEn': item['descriptionEn'],
+            'discountCode': item['discountCode'],
+            'placeNameAr': item['placeNameAr'],
+            'placeNameEn': item['placeNameEn'],
+            'categoryKey': item['categoryKey'],
+            'startDate': item['startDate'],
+            'endDate': item['endDate'],
+            'serverImageUrl': item['imageUrl'],
+            'apiId': item['id'],
+          },
+        )
+        .toList();
+    await LocalDbService.instance.syncSeedExact('promotions', mapped);
+  }
+
+  /// كل العروض (بما فيها المنتهية) — للوحة تحكم الأدمن بس، حتى تقدر تعدّل/تحذف
+  /// عرض قديم. المسار العام (GET /promotions) بيرجّع بس السارية حاليًا.
+  static Future<List<Map<String, dynamic>>?> fetchAllPromotionsForAdmin(
+    String token,
+  ) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/promotions/all'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// الحواجز — حالة يدوية من الإدارة، بس متزامنة مع السيرفر حتى كل المستخدمين
+  /// يشوفوا نفس التحديث (مش بس الجهاز يلي عدّل عليه الأدمن).
+  static Future<void> syncCheckpoints() =>
+      _syncBoxFromApi('checkpoints', 'checkpoints');
+
+  /// يحدّث حالة حاجز موجود بالسيرفر (أدمن فقط). يرجّع true لو نجح.
+  static Future<bool> updateCheckpoint(
+    String token,
+    String apiId,
+    Map<String, dynamic> fields,
+  ) async {
+    final status = await _sendMultipart(
+      'PUT',
+      '$baseUrl/checkpoints/$apiId',
+      token,
+      fields,
+    );
+    return status >= 200 && status < 300;
+  }
+
+  /// تنبيه الازدحام الحالي (سجل وحيد) — بيترجم مباشرة لصندوق Hive المحلي بنفس
+  /// مفتاح 'current' اللي تستخدمه الشاشة، بدل التمرير عبر [_syncBoxFromApi]
+  /// المصمّمة لقوائم مش لسجل واحد.
+  static Future<void> syncTrafficAlert() async {
+    try {
+      final res = await http
+          .get(Uri.parse('$baseUrl/traffic-alerts/current'))
+          .timeout(_timeout);
+      if (res.statusCode != 200) return;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! Map) return;
+      final map = Map<String, dynamic>.from(decoded);
+      map.remove('id');
+      map.remove('createdAt');
+      map.remove('updatedAt');
+      await LocalDbService.instance.update('traffic_alerts', 'current', map);
+    } catch (_) {
+      // سيرفر مقفول/بدون إنترنت — نتجاهل بصمت ونكمل بالتنبيه المحلي الموجود لو في
+    }
+  }
+
+  /// ينشر/يعدّل/يمسح تنبيه الازدحام الحالي بالسيرفر (أدمن فقط).
+  static Future<bool> setTrafficAlert(
+    String token,
+    Map<String, dynamic> fields,
+  ) async {
+    final status = await _sendMultipart(
+      'PUT',
+      '$baseUrl/traffic-alerts/current',
+      token,
+      fields,
+    );
+    return status >= 200 && status < 300;
+  }
 
   /// يجيب صور التصنيفات يلي رفعها الأدمن (خريطة categoryKey → رابط) ويخزّنها
   /// محليًا مباشرة بمفتاح categoryKey نفسه (مش زي باقي الأقسام يلي بتتوزّع
@@ -612,6 +722,34 @@ class ApiService {
     }
   }
 
+  /// يحوّل ملف صوتي مسجَّل بالمساعد الذكي لنص (Whisper عبر Groq) — يرجّع null
+  /// لو فشل الاتصال أو التحويل، حتى الشاشة تقدر ترجع لرسالة خطأ واضحة.
+  static Future<String?> transcribeAudio(
+    List<int> audioBytes,
+    String filename, {
+    String lang = 'ar',
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/ai-chat/transcribe'),
+      );
+      request.fields['lang'] = lang;
+      request.files.add(
+        http.MultipartFile.fromBytes('audio', audioBytes, filename: filename),
+      );
+      final streamed = await request.send().timeout(const Duration(seconds: 30));
+      if (streamed.statusCode != 200) return null;
+      final body = await streamed.stream.bytesToString();
+      final decoded = jsonDecode(body);
+      if (decoded is! Map) return null;
+      final text = decoded['text'] as String?;
+      return (text == null || text.trim().isEmpty) ? null : text.trim();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// فحص سريع إذا كان السيرفر شغال (تُستخدم لعرض تنبيه بلوحة الأدمن)
   static Future<bool> isServerReachable() async {
     try {
@@ -633,6 +771,7 @@ class ApiService {
     'shopping',
     'news',
     'events',
+    'promotions',
   };
 
   /// الأقسام الغنية (فنادق/مطاعم/صيدليات/معالم/تسوق/أخبار) إلها مسار API خاص فيها،
@@ -745,7 +884,11 @@ class ApiService {
     );
   }
 
-  static Future<bool> deleteItem(
+  /// يرجّع كود حالة HTTP الحقيقي (204/200 لو نجح، 404 لو العنصر مش موجود أصلاً
+  /// بالسيرفر، 401 لو الجلسة منتهية...)، أو -1 لو فشل الاتصال بالسيرفر نفسه —
+  /// حتى تقدر لوحة الأدمن تميّز بين "محذوف مسبقًا" و"الجلسة منتهية" و"السيرفر
+  /// مقفول" بدل رسالة عامة واحدة مضلّلة.
+  static Future<int> deleteItem(
     String token,
     String boxName,
     String apiId,
@@ -757,9 +900,9 @@ class ApiService {
             headers: {'Authorization': 'Bearer $token'},
           )
           .timeout(const Duration(seconds: 10));
-      return res.statusCode >= 200 && res.statusCode < 300;
+      return res.statusCode;
     } catch (_) {
-      return false;
+      return -1;
     }
   }
 

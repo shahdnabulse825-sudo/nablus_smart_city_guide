@@ -361,6 +361,16 @@ final List<HotelData> hotelsSeedData = [
   ),
 ];
 
+// أسماء فنادق/سكن كانت مضافة سابقًا (تقريبية/وهمية) وطُلب حذفها نهائيًا من التطبيق —
+// تُستخدم فقط لتنظيف أي نسخة محلية أو مزامَنة من السيرفر لسا موجودة على جهاز
+// المستخدم (انظر [purgeByName] بالأسفل)، وليست جزءًا من البيانات الحالية.
+const Set<String> retiredHotelNames = {
+  'Nablus Palace Hotel',
+  'Old City Guesthouse',
+  'Al-Rabya Furnished Apartments',
+  'Al Qalaa Hotel Apartments',
+};
+
 // كلمة بحث إنجليزية مناسبة لصورة الفندق حسب نوعه، لما ما توجد صورة محلية.
 String hotelPhotoQuery(HotelData h) {
   final text = '${h.nameAr} ${h.nameEn} ${h.typeEn}'.toLowerCase();
@@ -467,6 +477,9 @@ class _HotelsScreenState extends State<HotelsScreen> {
     final db = LocalDbService.instance;
     await db.syncSeed('hotels', hotelsSeedData.map(hotelToMap).toList());
     await ApiService.syncHotels();
+    // لازم تُنفَّذ بعد المزامنة مع السيرفر (مش قبلها)، وإلا أي عنصر متقاعد لسا
+    // موجود بقاعدة بيانات السيرفر رح يرجع يتزامن محليًا فورًا بعد الحذف.
+    await db.purgeByName('hotels', retiredHotelNames);
     final entries = db.getAll('hotels');
     setState(() {
       _liveHotels = entries.map((e) => mapToHotel(e.value)).toList();

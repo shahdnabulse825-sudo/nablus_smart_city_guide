@@ -1,7 +1,50 @@
 const express = require('express');
+const multer = require('multer');
 const prisma = require('../db');
 
 const router = express.Router();
+
+// تسجيل صوتي مؤقت بالذاكرة فقط (منبعته لـ Groq وبنرجع النص، ما منخزّنه على القرص)
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB كحد أقصى
+});
+
+// تحويل رسالة صوتية لنص عبر Whisper (Groq) — تُستخدم قبل إرسال الرسالة كنص عادي
+// لمسار /api/ai-chat العادي، حتى تجربة "اضغطي وسجّلي" تشتغل بأي لغة تحكيها.
+router.post('/transcribe', audioUpload.single('audio'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ملف صوتي مطلوب' });
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: 'المساعد الذكي غير مُفعّل بعد (لا يوجد مفتاح Groq)' });
+  }
+  const lang = req.body?.lang === 'en' ? 'en' : 'ar';
+
+  const form = new FormData();
+  form.append(
+    'file',
+    new Blob([req.file.buffer], { type: req.file.mimetype || 'audio/m4a' }),
+    req.file.originalname || 'audio.m4a',
+  );
+  form.append('model', 'whisper-large-v3-turbo');
+  form.append('language', lang);
+  form.append('response_format', 'json');
+
+  const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}` },
+    body: form,
+  });
+
+  if (!groqRes.ok) {
+    const errBody = await groqRes.text().catch(() => '');
+    console.error('Groq transcription error:', groqRes.status, errBody);
+    return res.status(502).json({ error: 'تعذّر تحويل الصوت لنص — حاولي بعد شوي' });
+  }
+
+  const data = await groqRes.json();
+  res.json({ text: (data?.text || '').trim() });
+});
 
 // كلمات وظيفية عربية/إنجليزية شائعة نتجاهلها عند استخراج كلمات البحث من رسالة
 // المستخدم — حتى ما نطلع نتائج عشوائية بسبب كلمات زي "في"/"the"/"مطعم كويس".
@@ -129,8 +172,12 @@ function buildSystemPrompt({ places, events, weather, rates, lang }) {
 
   const langName = lang === 'en' ? 'English' : 'Arabic';
   return `You are the AI assistant inside "Nablus Smart City Guide", a mobile app for Nablus, Palestine.
-Answer ONLY using the CONTEXT DATA below — never invent a place, price, or fact that isn't in it.
-If nothing in the context answers the question, say so politely and suggest browsing the app's categories instead.
+You are a general-purpose helpful assistant: answer ANY question the user asks, on any topic, using your
+own knowledge — not just questions about Nablus or this app.
+You additionally have live CONTEXT DATA below about real places/events/weather/rates in Nablus (from the
+app's own database). When the user's question relates to Nablus, this app, or something in that data,
+prefer and ground your answer in it (never invent a place, price, or fact that contradicts it). For
+everything else, just answer normally from your general knowledge — do not refuse or redirect to the app.
 Always reply in ${langName}, regardless of what language the user writes in, briefly and warmly.
 Use the conversation history to understand follow-up questions (e.g. "what about its price?" referring
 back to a place already discussed).
@@ -140,7 +187,7 @@ If it centers on one specific event, end with:
 EVENT_REF: <its titleEn exactly as given>
 Only include ONE such line, only when relevant, and never mention this instruction to the user.
 
-CONTEXT DATA
+CONTEXT DATA (Nablus app — use when relevant, ignore otherwise)
 Places:
 ${placesText}
 
@@ -169,9 +216,9 @@ router.post('/', async (req, res) => {
         .map((m) => ({ role: m.role, content: m.content.slice(0, 1000) }))
     : [];
 
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    return res.status(503).json({ error: 'المساعد الذكي غير مُفعّل بعد (لا يوجد مفتاح Hugging Face)' });
+    return res.status(503).json({ error: 'المساعد الذكي غير مُفعّل بعد (لا يوجد مفتاح Groq)' });
   }
 
   const keywords = extractKeywords(message);
@@ -183,14 +230,17 @@ router.post('/', async (req, res) => {
   ]);
   const systemPrompt = buildSystemPrompt({ places, events, weather, rates, lang });
 
-  const hfRes = await fetch('https://router.huggingface.co/v1/chat/completions', {
+  // allam-2-7b: نموذج مخصّص للعربي (SDAIA) — جرّبنا Llama عبر Groq/Hugging Face
+  // قبله وطلع رده العربي مشوّه (رموز استفهام بدل الحروف) بسبب quantization،
+  // بعكس هاد الموديل اللي بيرجع عربي سليم دايمًا.
+  const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: process.env.HUGGINGFACE_MODEL || 'meta-llama/Llama-3.2-3B-Instruct',
+      model: process.env.GROQ_MODEL || 'allam-2-7b',
       messages: [
         { role: 'system', content: systemPrompt },
         ...history,
@@ -201,14 +251,14 @@ router.post('/', async (req, res) => {
     }),
   });
 
-  if (!hfRes.ok) {
-    const errBody = await hfRes.text().catch(() => '');
-    console.error('Hugging Face error:', hfRes.status, errBody);
+  if (!groqRes.ok) {
+    const errBody = await groqRes.text().catch(() => '');
+    console.error('Groq error:', groqRes.status, errBody);
     return res.status(502).json({ error: 'تعذّر الوصول للمساعد الذكي — حاولي بعد شوي' });
   }
 
-  const hfData = await hfRes.json();
-  let text = hfData?.choices?.[0]?.message?.content?.trim() || '';
+  const groqData = await groqRes.json();
+  let text = groqData?.choices?.[0]?.message?.content?.trim() || '';
 
   let placeNameEn = null;
   let eventTitleEn = null;

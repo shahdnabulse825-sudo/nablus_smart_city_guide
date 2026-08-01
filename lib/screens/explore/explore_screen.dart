@@ -12,6 +12,7 @@ import '../category/category_list_screen.dart';
 import '../category/category_data.dart';
 import '../category/more_categories_screen.dart';
 import '../places/all_places_screen.dart';
+import '../transport/transport_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/keyboard_scrollable.dart';
@@ -157,17 +158,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       'photoQuery': 'bus station transport Nablus',
       'localAsset': 'assets/images/category_icons/transport.png',
       'onTap': (BuildContext context) => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => CategoryListScreen(
-            titleAr: 'مواصلات',
-            titleEn: 'Transport',
-            bannerSubtitleAr: 'كل خيارات التنقل داخل نابلس',
-            bannerSubtitleEn: 'All transportation options within Nablus',
-            icon: Icons.directions_bus,
-            boxName: 'transport',
-            seedData: transportData,
-          ),
-        ),
+        MaterialPageRoute(builder: (context) => TransportScreen()),
       ),
     },
     {

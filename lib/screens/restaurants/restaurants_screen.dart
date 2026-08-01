@@ -2680,7 +2680,7 @@ class _RestaurantListTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFFF5A623), Color(0xFFE85D5D)],
+                            colors: [Color(0xFFF5A623), Color(0xFFEF6F53)],
                           ),
                           borderRadius: BorderRadius.circular(5),
                         ),
