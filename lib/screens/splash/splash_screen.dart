@@ -153,25 +153,24 @@ class _SplashScreenState extends State<SplashScreen>
                               width: 110,
                               height: 110,
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: AppColors.primaryGradient,
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
                                 borderRadius: BorderRadius.circular(
                                   AppRadius.xl,
                                 ),
                                 boxShadow: AppColors.glowShadow,
                               ),
-                              child: const Icon(
-                                Icons.location_city_rounded,
-                                color: Colors.white,
-                                size: 54,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.xl,
+                                ),
+                                child: Image.asset(
+                                  'assets/images/branding/logo_icon.png',
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 28),
                             Text(
-                              app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
+                              'NabliGo',
                               textDirection: app.dir,
                               textAlign: TextAlign.center,
                               style: AppTypography.display(

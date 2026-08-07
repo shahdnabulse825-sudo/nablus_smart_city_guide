@@ -597,7 +597,7 @@ class _MapScreenState extends State<MapScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            app.t('تعذّر جلب المسار — تأكدي من الاتصال بالإنترنت', 'Could not fetch route — check your internet connection'),
+            app.t('تعذّر جلب المسار — تأكد من الاتصال بالإنترنت', 'Could not fetch route — check your internet connection'),
           ),
         ),
       );

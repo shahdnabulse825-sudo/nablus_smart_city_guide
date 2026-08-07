@@ -201,7 +201,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
 
     ChatMessage reply;
     try {
-      final bytes = await File(file.path).readAsBytes();
+      final bytes = await file.readAsBytes();
       final data = await readExifFromBytes(bytes);
       final lat = _dmsToDecimal(data['GPS GPSLatitude'], data['GPS GPSLatitudeRef']);
       final lng = _dmsToDecimal(data['GPS GPSLongitude'], data['GPS GPSLongitudeRef']);
@@ -209,7 +209,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       if (lat == null || lng == null) {
         reply = ChatMessage(
           textAr:
-              'ما لقيت بيانات موقع (GPS) جوا هاي الصورة، فما بقدر أعرف مكانها بالضبط. جربي صورة ملتقطة بالكاميرا مباشرة مع تفعيل خدمة الموقع.',
+              'ما لقيت بيانات موقع (GPS) جوا هاي الصورة، فما بقدر أعرف مكانها بالضبط. جرّب صورة ملتقطة بالكاميرا مباشرة مع تفعيل خدمة الموقع.',
           textEn:
               "This photo doesn't have GPS location data in it, so I can't tell exactly where it is. Try a photo taken directly with the camera with location services on.",
           isUser: false,
@@ -479,8 +479,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('fashion');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات أزياء مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
-            : 'أفضل محلات الأزياء بالمراكز التجارية: ${namesList(list)}. اضغطي على الاقتراح لمزيد من التفاصيل أو محلات قريبة مشابهة.',
+            ? 'ما لقيت محلات أزياء مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
+            : 'أفضل محلات الأزياء بالمراكز التجارية: ${namesList(list)}. اضغط على الاقتراح لمزيد من التفاصيل أو محلات قريبة مشابهة.',
         textEn: list.isEmpty
             ? 'No fashion stores are registered right now. Check the "Commercial Centers" section in Shopping.'
             : 'Top fashion stores in the commercial centers: ${namesListEn(list)}. Tap the suggestion for details or similar nearby stores.',
@@ -493,7 +493,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('shoes');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات أحذية مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت محلات أحذية مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل محلات الأحذية بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No shoe stores are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -507,7 +507,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('electronics');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات إلكترونيات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت محلات إلكترونيات مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل محلات الإلكترونيات بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No electronics stores are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -521,7 +521,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('cosmetics');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات مستحضرات تجميل مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت محلات مستحضرات تجميل مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل محلات مستحضرات التجميل بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No cosmetics stores are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -535,7 +535,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('jewelry');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات مجوهرات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت محلات مجوهرات مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل محلات المجوهرات بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No jewelry stores are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -549,7 +549,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('books');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت مكتبات مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت مكتبات مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل المكتبات بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No bookstores are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -563,7 +563,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final list = _topRatedShopping('entertainment');
       return ChatMessage(
         textAr: list.isEmpty
-            ? 'ما لقيت محلات ترفيه مسجّلة حاليًا. جربي قسم "المراكز التجارية" بصفحة التسوق.'
+            ? 'ما لقيت محلات ترفيه مسجّلة حاليًا. جرّب قسم "المراكز التجارية" بصفحة التسوق.'
             : 'أفضل أماكن الترفيه والألعاب بالمراكز التجارية: ${namesList(list)}.',
         textEn: list.isEmpty
             ? 'No entertainment spots are registered right now. Check the "Commercial Centers" section in Shopping.'
@@ -750,7 +750,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       final app = AppState.instance;
       return ChatMessage(
         textAr:
-            'أسعار الصرف الحالية مقابل الشيكل: الدولار ${app.usdToIls.toStringAsFixed(2)}₪، الدينار الأردني ${app.jodToIls.toStringAsFixed(2)}₪، اليورو ${app.eurToIls.toStringAsFixed(2)}₪. بتقدري تشوفي التفاصيل بالشريط الجانبي بالصفحة الرئيسية.',
+            'أسعار الصرف الحالية مقابل الشيكل: الدولار ${app.usdToIls.toStringAsFixed(2)}₪، الدينار الأردني ${app.jodToIls.toStringAsFixed(2)}₪، اليورو ${app.eurToIls.toStringAsFixed(2)}₪. بتقدر تشوف التفاصيل بالشريط الجانبي بالصفحة الرئيسية.',
         textEn:
             'Current exchange rates against the shekel: USD ${app.usdToIls.toStringAsFixed(2)}₪, JOD ${app.jodToIls.toStringAsFixed(2)}₪, EUR ${app.eurToIls.toStringAsFixed(2)}₪. See the sidebar on the home page for details.',
         isUser: false,

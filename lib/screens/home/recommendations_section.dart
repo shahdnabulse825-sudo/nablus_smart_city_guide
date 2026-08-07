@@ -58,17 +58,37 @@ class RecommendationsSection extends StatelessWidget {
     // 3 بطاقات لكل قسم بالصفحة الرئيسية (نفس عدد بطاقات القسم القديم)، حتى ما
     // تنعصر البطاقات بعرض ضيق جدًا وقت ما تكون الأقسام التلاتة ظاهرة مع بعض
     // بشاشات الديسكتوب. "عرض الكل" بكل قسم بيعرض قائمة كاملة بدون هالتحديد.
-    final trending = RecommendationService.trendingToday(limit: 3);
+    final recentlyViewed = RecommendationService.recentlyViewed(limit: 3);
+    final trending = RecommendationService.trendingToday(
+      limit: 3,
+      exclude: recentlyViewed.map((p) => p.nameEn).toSet(),
+    );
     final recommended = RecommendationService.recommendedForYou(
       limit: 3,
-      exclude: trending.map((p) => p.nameEn).toSet(),
+      exclude: {
+        ...recentlyViewed.map((p) => p.nameEn),
+        ...trending.map((p) => p.nameEn),
+      },
     );
     final interests = RecommendationService.basedOnYourInterests(
       limit: 3,
-      exclude: {...trending.map((p) => p.nameEn), ...recommended.map((p) => p.nameEn)},
+      exclude: {
+        ...recentlyViewed.map((p) => p.nameEn),
+        ...trending.map((p) => p.nameEn),
+        ...recommended.map((p) => p.nameEn),
+      },
     );
 
     final columns = [
+      if (recentlyViewed.isNotEmpty)
+        _column(
+          context,
+          titleAr: 'شاهدته مؤخرًا',
+          titleEn: 'Recently Viewed',
+          emoji: '🕒',
+          places: recentlyViewed,
+          sortMode: PlacesSortMode.recentlyViewed,
+        ),
       _column(
         context,
         titleAr: 'رائج اليوم',

@@ -5,6 +5,7 @@ import '../../services/location_service.dart'
     show findNearest, LocationService, distanceKmFromUser;
 import '../../widgets/nearest_to_me_chip.dart';
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
@@ -12,6 +13,7 @@ import '../../services/favorites_service.dart';
 import '../../services/api_service.dart';
 import '../map/map_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 import '../restaurants/restaurants_screen.dart';
 import '../hotels/hotels_screen.dart';
 import '../../widgets/app_toggle_bar.dart';
@@ -497,8 +499,11 @@ class _AttractionCategoriesScreenState
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -1131,8 +1136,11 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -1283,17 +1291,9 @@ class _AttractionsScreenState extends State<AttractionsScreen> {
                           ),
                           SizedBox(height: 14),
                           if (filtered.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60),
-                              child: Center(
-                                child: Text(
-                                  app.t(
-                                    'لا توجد معالم مطابقة',
-                                    'No matching places',
-                                  ),
-                                  style: TextStyle(color: AppColors.textGrey),
-                                ),
-                              ),
+                            EmptyState(
+                              titleAr: 'لا توجد معالم مطابقة',
+                              titleEn: 'No matching places',
                             )
                           else if (isGridView)
                             GridView.builder(
@@ -2331,7 +2331,7 @@ final List<_LocalExperience> _localExperiences = [
     emoji: '🍰',
     titleAr: 'تذوق الكنافة النابلسية',
     titleEn: 'Taste Nabulsi Kunafa',
-    descAr: 'جربي الكنافة النابلسية الأصلية بمحلات الحلويات المشهورة بالمدينة.',
+    descAr: 'جرّب الكنافة النابلسية الأصلية بمحلات الحلويات المشهورة بالمدينة.',
     descEn:
         'Try the original Nabulsi kunafa at the city\'s famous sweet shops.',
     buildAction: (context) =>
@@ -2345,7 +2345,7 @@ final List<_LocalExperience> _localExperiences = [
     emoji: '🧼',
     titleAr: 'زيارة مصانع الصابون النابلسي',
     titleEn: 'Visit the Nabulsi Soap Factories',
-    descAr: 'شوفي طريقة صناعة الصابون النابلسي التقليدي بزيت الزيتون عن قرب.',
+    descAr: 'شوف طريقة صناعة الصابون النابلسي التقليدي بزيت الزيتون عن قرب.',
     descEn:
         'See the traditional olive-oil-based Nabulsi soap-making process up close.',
     buildAction: (context) =>
@@ -2388,7 +2388,7 @@ final List<_LocalExperience> _localExperiences = [
     emoji: '🥘',
     titleAr: 'تجربة المسخن والمقلوبة في المطاعم الشعبية',
     titleEn: 'Try Musakhan & Maqluba at Local Restaurants',
-    descAr: 'جربي أشهر الأطباق الفلسطينية الشعبية بمطاعم نابلس التقليدية.',
+    descAr: 'جرّب أشهر الأطباق الفلسطينية الشعبية بمطاعم نابلس التقليدية.',
     descEn:
         'Try the most famous traditional Palestinian dishes at Nablus\'s local restaurants.',
     buildAction: (context) =>
@@ -2605,8 +2605,11 @@ class _TourPlannerScreenState extends State<TourPlannerScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -2638,7 +2641,7 @@ class _TourPlannerScreenState extends State<TourPlannerScreen> {
                       children: [
                         Text(
                           app.t(
-                            'اختاري مدة جولتك',
+                            'اختر مدة جولتك',
                             'Choose Your Tour Duration',
                           ),
                           textDirection: app.dir,

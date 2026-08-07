@@ -44,11 +44,30 @@ class RecommendationService {
 
   /// الأماكن الأكثر مشاهدة حاليًا (على مستوى الجهاز). لو ما في أي نشاط متتبَّع
   /// بعد (تنصيب جديد)، بترجع نفس ترتيب "المميز" الحالي حتى القسم ما يضل فاضي.
-  static List<UniversalPlace> trendingToday({int limit = 6}) {
-    final names = RecentActivityService.instance.getMostViewedNames(limit: limit * 2);
-    final places = names.map(_byName).whereType<UniversalPlace>().take(limit).toList();
+  static List<UniversalPlace> trendingToday({
+    int limit = 6,
+    Set<String> exclude = const {},
+  }) {
+    final names = RecentActivityService.instance.getMostViewedNames(limit: limit * 2 + exclude.length);
+    final places = names
+        .map(_byName)
+        .whereType<UniversalPlace>()
+        .where((p) => !exclude.contains(p.nameEn))
+        .take(limit)
+        .toList();
     if (places.isNotEmpty) return places;
-    return _sortedByFeatured(allPlaces).take(limit).toList();
+    return _sortedByFeatured(allPlaces)
+        .where((p) => !exclude.contains(p.nameEn))
+        .take(limit)
+        .toList();
+  }
+
+  /// آخر الأماكن يلي شافها المستخدم الحالي فعليًا (سجل شخصي، مش رواج عام).
+  static List<UniversalPlace> recentlyViewed({int limit = 6}) {
+    final names = RecentActivityService.instance.getRecentlyViewedNames(
+      limit: limit * 2,
+    );
+    return names.map(_byName).whereType<UniversalPlace>().take(limit).toList();
   }
 
   /// أماكن مشابهة لسلوك المستخدم (مفضلة + مشاهدات حديثة) — بنجمع فئات الأماكن

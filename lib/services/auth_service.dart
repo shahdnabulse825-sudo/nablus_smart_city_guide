@@ -44,6 +44,33 @@ class AuthService {
     });
   }
 
+  /// يعدّل اسم/بريد/كلمة مرور حساب المستخدم الحالي (لازم يكون مسجّل دخول
+  /// بحساب حقيقي، أي [userToken] موجود). يرجّع null لو نجح، أو رسالة خطأ لو فشل.
+  Future<String?> updateProfile({
+    String? name,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    final token = userToken;
+    if (token == null) return 'لازم تسجّل دخول بحساب حقيقي حتى تقدر تعدّل بياناتك';
+    final result = await ApiService.updateProfile(
+      token: token,
+      name: name,
+      email: email,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+    if (result['ok'] == true) {
+      await _applyServerSession(result, email ?? currentUserEmail ?? '');
+      return null;
+    }
+    if (result['unreachable'] == true) {
+      return 'تعذّر الوصول للسيرفر — تأكد إنه شغال (npm run dev)';
+    }
+    return result['error'] as String? ?? 'فشل تعديل الحساب';
+  }
+
   /// يرجّع null لو نجح التسجيل، أو رسالة خطأ عربية لو فيه مشكلة.
   /// بيحاول التسجيل عالسيرفر الحقيقي أول شي (حتى الحساب يصير قابل للمزامنة بين
   /// الأجهزة)؛ لو تعذّر الوصول للسيرفر بس (مو رفض حقيقي زي بريد مكرر) بيرجع
@@ -115,7 +142,7 @@ class AuthService {
       return null;
     }
 
-    // السيرفر شغال بس رفض الدخول — جربي هجرة حساب محلي قديم بنفس البيانات لو موجود.
+    // السيرفر شغال بس رفض الدخول — جرّب هجرة حساب محلي قديم بنفس البيانات لو موجود.
     final localUser = _findLocalUser(cleanEmail);
     if (localUser != null && localUser['passwordHash'] == _hash(password)) {
       final migrated = await ApiService.userRegister(
@@ -148,7 +175,7 @@ class AuthService {
   Future<String?> loginAsAdminReal(String username, String password) async {
     final token = await ApiService.adminLogin(username, password);
     if (token == null) {
-      return 'تعذّر تسجيل الدخول — تأكدي إنه السيرفر شغال (npm run dev) وإنه اسم المستخدم وكلمة المرور صح';
+      return 'تعذّر تسجيل الدخول — تأكد إنه السيرفر شغال (npm run dev) وإنه اسم المستخدم وكلمة المرور صح';
     }
     isAdmin = true;
     adminToken = token;

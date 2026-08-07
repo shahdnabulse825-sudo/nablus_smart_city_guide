@@ -356,7 +356,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             onTap: () => Navigator.of(context).maybePop(),
                             child: Text(
                               app.t(
-                                'عندك حساب مسبقًا؟ سجّلي الدخول',
+                                'عندك حساب مسبقًا؟ سجّل الدخول',
                                 'Already have an account? Sign in',
                               ),
                               style: TextStyle(

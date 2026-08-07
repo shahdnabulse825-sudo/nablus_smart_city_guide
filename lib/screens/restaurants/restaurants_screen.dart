@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/favorites_service.dart';
@@ -15,6 +16,7 @@ import '../attractions/attractions_screen.dart';
 import '../../widgets/responsive.dart';
 import '../common/detail_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
 import 'package:geolocator/geolocator.dart';
@@ -1129,8 +1131,11 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -1385,8 +1390,11 @@ class _RestaurantCategoriesScreenState
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -2271,17 +2279,9 @@ class _ResultsArea extends StatelessWidget {
         ),
         SizedBox(height: 16),
         if (items.isEmpty)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 60),
-            child: Center(
-              child: Text(
-                app.t(
-                  'لا توجد نتائج مطابقة للفلاتر',
-                  'No results match the filters',
-                ),
-                style: TextStyle(color: AppColors.textGrey),
-              ),
-            ),
+          EmptyState(
+            titleAr: 'لا توجد نتائج مطابقة للفلاتر',
+            titleEn: 'No results match the filters',
           )
         else
           Column(
@@ -2680,7 +2680,7 @@ class _RestaurantListTile extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Color(0xFFF5A623), Color(0xFFEF6F53)],
+                            colors: AppColors.primaryGradient,
                           ),
                           borderRadius: BorderRadius.circular(5),
                         ),
@@ -2878,9 +2878,7 @@ class _DetailPanel extends StatelessWidget {
                   children: [
                     _roundIconBtn(
                       Icons.ios_share,
-                      () => Share.share(
-                        '$name (${r.rating}⭐) — $location',
-                      ),
+                      () => Share.share('$name (${r.rating}⭐) — $location'),
                     ),
                     SizedBox(width: 8),
                     _roundIconBtn(

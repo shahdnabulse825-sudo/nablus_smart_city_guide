@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
@@ -9,6 +10,7 @@ import '../../services/favorites_service.dart';
 import '../../services/api_service.dart';
 import '../map/map_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
 import '../../widgets/pagination_bar.dart';
@@ -545,8 +547,11 @@ class _HotelsScreenState extends State<HotelsScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -677,17 +682,9 @@ class _HotelsScreenState extends State<HotelsScreen> {
                           ),
                           SizedBox(height: 14),
                           if (filtered.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60),
-                              child: Center(
-                                child: Text(
-                                  app.t(
-                                    'لا توجد فنادق مطابقة',
-                                    'No matching hotels',
-                                  ),
-                                  style: TextStyle(color: AppColors.textGrey),
-                                ),
-                              ),
+                            EmptyState(
+                              titleAr: 'لا توجد فنادق مطابقة',
+                              titleEn: 'No matching hotels',
                             )
                           else if (isGridView)
                             GridView.builder(

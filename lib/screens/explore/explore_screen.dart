@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../common/detail_screen.dart';
 import '../restaurants/restaurants_screen.dart';
 import '../hotels/hotels_screen.dart';
@@ -368,19 +369,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               ],
                               SizedBox(height: 12),
                               if (results.isEmpty)
-                                Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 30),
-                                  child: Center(
-                                    child: Text(
-                                      app.t(
-                                        'لا توجد نتائج مطابقة',
-                                        'No matching results',
-                                      ),
-                                      style: AppTypography.body(
-                                        AppColors.textGrey,
-                                      ),
-                                    ),
-                                  ),
+                                EmptyState(
+                                  titleAr: 'لا توجد نتائج مطابقة',
+                                  titleEn: 'No matching results',
                                 )
                               else
                                 ...results.map(

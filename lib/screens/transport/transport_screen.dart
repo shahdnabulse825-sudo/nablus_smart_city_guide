@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors (AppCard مضمّن فيها)
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
 import '../../widgets/app_toggle_bar.dart';
 import '../../widgets/keyboard_scrollable.dart';
@@ -14,6 +15,7 @@ import '../../services/api_service.dart';
 import '../../services/location_service.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 import '../map/map_screen.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 import '../hotels/hotels_screen.dart';
@@ -276,7 +278,12 @@ class _TransportScreenState extends State<TransportScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
+          ),
         ),
       );
     }
@@ -420,14 +427,9 @@ class _TransportScreenState extends State<TransportScreen> {
                           ),
                           SizedBox(height: 12),
                           if (filtered.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 30),
-                              child: Center(
-                                child: Text(
-                                  app.t('لا توجد نتائج مطابقة', 'No matching results'),
-                                  style: TextStyle(color: AppColors.textGrey),
-                                ),
-                              ),
+                            EmptyState(
+                              titleAr: 'لا توجد نتائج مطابقة',
+                              titleEn: 'No matching results',
                             )
                           else
                             ...filtered.map(

@@ -11,11 +11,23 @@ class WeatherCondition {
 }
 
 WeatherCondition weatherConditionFor(int code) {
-  if (code == 0) return const WeatherCondition('صافٍ', 'Clear sky', Icons.wb_sunny);
-  if (code == 1) return const WeatherCondition('صافٍ غالبًا', 'Mainly clear', Icons.wb_sunny);
-  if (code == 2) return const WeatherCondition('غائم جزئيًا', 'Partly cloudy', Icons.wb_cloudy);
+  if (code == 0)
+    return const WeatherCondition('صافٍ', 'Clear sky', Icons.wb_sunny);
+  if (code == 1)
+    return const WeatherCondition(
+      'صافٍ غالبًا',
+      'Mainly clear',
+      Icons.wb_sunny,
+    );
+  if (code == 2)
+    return const WeatherCondition(
+      'غائم جزئيًا',
+      'Partly cloudy',
+      Icons.wb_cloudy,
+    );
   if (code == 3) return const WeatherCondition('غائم', 'Overcast', Icons.cloud);
-  if (code == 45 || code == 48) return const WeatherCondition('ضباب', 'Fog', Icons.foggy);
+  if (code == 45 || code == 48)
+    return const WeatherCondition('ضباب', 'Fog', Icons.foggy);
   if (code >= 51 && code <= 57) {
     return const WeatherCondition('رذاذ خفيف', 'Drizzle', Icons.grain);
   }
@@ -32,7 +44,11 @@ WeatherCondition weatherConditionFor(int code) {
     return const WeatherCondition('زخات ثلج', 'Snow showers', Icons.ac_unit);
   }
   if (code >= 95) {
-    return const WeatherCondition('عاصفة رعدية', 'Thunderstorm', Icons.thunderstorm);
+    return const WeatherCondition(
+      'عاصفة رعدية',
+      'Thunderstorm',
+      Icons.thunderstorm,
+    );
   }
   return const WeatherCondition('غير معروف', 'Unknown', Icons.help_outline);
 }
@@ -55,6 +71,7 @@ class WeatherData {
   final double feelsLike;
   final int humidity;
   final double windSpeed;
+  final double uvIndex;
   final int weatherCode;
   final DateTime sunrise;
   final DateTime sunset;
@@ -65,6 +82,7 @@ class WeatherData {
     required this.feelsLike,
     required this.humidity,
     required this.windSpeed,
+    required this.uvIndex,
     required this.weatherCode,
     required this.sunrise,
     required this.sunset,
@@ -82,7 +100,7 @@ class WeatherService {
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
         '?latitude=32.2211&longitude=35.2608'
-        '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m'
+        '&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,uv_index'
         '&daily=temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset'
         '&timezone=auto',
       );
@@ -102,6 +120,7 @@ class WeatherService {
         feelsLike: (current['apparent_temperature'] as num).toDouble(),
         humidity: (current['relative_humidity_2m'] as num).toInt(),
         windSpeed: (current['wind_speed_10m'] as num).toDouble(),
+        uvIndex: (current['uv_index'] as num?)?.toDouble() ?? 0,
         weatherCode: (current['weather_code'] as num).toInt(),
         sunrise: DateTime.parse(daily['sunrise'][0]),
         sunset: DateTime.parse(daily['sunset'][0]),

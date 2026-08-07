@@ -976,6 +976,7 @@ class _ItemCard extends StatelessWidget {
 
     return AppCard(
       padding: EdgeInsets.zero,
+      radius: AppRadius.xl,
       border: Border.all(
         color: isSelected ? AppColors.primary : AppColors.borderColor,
         width: isSelected ? 2 : 1,
@@ -992,7 +993,7 @@ class _ItemCard extends StatelessWidget {
                   fallbackSeed: item.nameEn,
                   height: double.infinity,
                   borderRadius: BorderRadius.vertical(
-                    top: Radius.circular(AppRadius.lg),
+                    top: Radius.circular(AppRadius.xl),
                   ),
                   fallbackIcon: item.placeholderIcon,
                   fallbackColor: item.placeholderColor,

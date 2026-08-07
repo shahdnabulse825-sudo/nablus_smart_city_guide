@@ -6,7 +6,33 @@ import '../../services/favorites_service.dart';
 import '../../services/recent_activity_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/responsive.dart';
+import '../../services/local_db_service.dart';
 import 'sign_up_screen.dart';
+
+// الأقسام يلي فيها "أماكن" فعلية (مش أخبار/فعاليات/صور تصنيفات..) — تُستخدم
+// لحساب إحصائية حقيقية بلوحة الهوية بشاشة الدخول بدل رقم وهمي.
+const _placeBoxNames = [
+  'restaurants',
+  'hotels',
+  'attractions',
+  'shopping',
+  'transport',
+  'health',
+  'pharmacies',
+  'education',
+  'banks',
+  'entertainment',
+  'government',
+];
+
+int _totalPlacesCount() {
+  var total = 0;
+  for (final box in _placeBoxNames) {
+    total += LocalDbService.instance.getAll(box).length;
+  }
+  return total;
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -108,236 +134,374 @@ class _LoginScreenState extends State<LoginScreen> {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        final showBrandPanel = !isMobile(context);
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
-            body: Stack(
+            body: Row(
               children: [
-                // توهّج دافئ خفيف بالخلفية يعكس هوية التطبيق
-                Positioned(
-                  top: -120,
-                  right: -80,
-                  child: Container(
-                    width: 320,
-                    height: 320,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.primary.withValues(alpha: 0.18),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: -140,
-                  left: -100,
-                  child: Container(
-                    width: 340,
-                    height: 340,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColors.coral.withValues(alpha: 0.14),
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: Center(
-                    child: SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 30,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: 420),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(height: 8),
-                            // ==== تبديل اللغة والمظهر ====
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [AppToggleBar()],
-                            ),
-                            SizedBox(height: 16),
-                            // ==== الشعار ====
-                            Center(
-                              child: Container(
-                                width: 88,
-                                height: 88,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: AppColors.primaryGradient,
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.xl,
-                                  ),
-                                  boxShadow: AppColors.glowShadow,
-                                ),
-                                child: Icon(
-                                  Icons.location_city_rounded,
-                                  color: Colors.white,
-                                  size: 42,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 22),
-                            Text(
-                              app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
-                              textAlign: TextAlign.center,
-                              textDirection: app.dir,
-                              style: AppTypography.display(
-                                AppColors.textWhite,
-                              ).copyWith(fontSize: 25),
-                            ),
-                            SizedBox(height: 6),
-                            Text(
-                              app.t(
-                                'دليلك السياحي الذكي لمدينة نابلس',
-                                'Your smart travel guide to Nablus',
-                              ),
-                              textAlign: TextAlign.center,
-                              textDirection: app.dir,
-                              style: AppTypography.body(AppColors.textGrey),
-                            ),
-                            SizedBox(height: 32),
-
-                            // ==== تبويبات: مستخدم عادي / أدمن ====
-                            Container(
-                              padding: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardDark,
-                                borderRadius: BorderRadius.circular(
-                                  AppRadius.lg,
-                                ),
-                                border: Border.all(
-                                  color: AppColors.borderColor,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _tabButton(
-                                      label: app.t(
-                                        'مستخدم عادي',
-                                        'Regular User',
-                                      ),
-                                      icon: Icons.person_rounded,
-                                      active: !isAdminTab,
-                                      onTap: () => setState(() {
-                                        isAdminTab = false;
-                                        errorMessage = null;
-                                      }),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _tabButton(
-                                      label: app.t('أدمن', 'Admin'),
-                                      icon: Icons.admin_panel_settings_rounded,
-                                      active: isAdminTab,
-                                      onTap: () => setState(() {
-                                        isAdminTab = true;
-                                        errorMessage = null;
-                                      }),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(height: 20),
-
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              child: Container(
-                                key: ValueKey(isAdminTab),
-                                padding: EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: AppColors.cardDark,
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.xl,
-                                  ),
-                                  border: Border.all(
-                                    color: AppColors.borderColor,
-                                  ),
-                                  boxShadow: AppColors.cardShadow,
-                                ),
-                                child: isAdminTab
-                                    ? _adminForm(app)
-                                    : _userForm(app),
-                              ),
-                            ),
-
-                            if (errorMessage != null) ...[
-                              SizedBox(height: 14),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.red.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.sm,
-                                  ),
-                                  border: Border.all(
-                                    color: AppColors.red.withValues(alpha: 0.4),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.error_outline_rounded,
-                                      color: AppColors.red,
-                                      size: 16,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        errorMessage!,
-                                        textDirection: app.dir,
-                                        style: AppTypography.label(
-                                          AppColors.red,
-                                        ).copyWith(fontWeight: FontWeight.w400),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-
-                            SizedBox(height: 24),
-                            Center(
-                              child: Text(
-                                app.t(
-                                  '© 2026 دليل نابلس الذكي',
-                                  '© 2026 Nablus Smart Guide',
-                                ),
-                                style: AppTypography.caption(
-                                  AppColors.textGrey,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                // ==== لوحة الهوية (شاشات واسعة بس) — نفس مبدأ صفحات الدخول
+                // الحديثة: توضيح مرئي كبير + شارات مزايا عائمة بدل نص جاف ====
+                if (showBrandPanel) Expanded(flex: 5, child: _brandPanel(app)),
+                Expanded(
+                  flex: showBrandPanel ? 4 : 1,
+                  child: _formPanel(app),
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// لوحة الهوية اليسرى: تدرّج ألوان التطبيق الدافئ + شارات مزايا حقيقية
+  /// (خريطة تفاعلية، مساعد ذكي، مكان حقيقية) بدل زخرفة عامة بدون معنى.
+  Widget _brandPanel(AppState app) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: AppColors.primaryGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -60,
+            left: -60,
+            child: _blobCircle(220, Colors.white.withValues(alpha: 0.10)),
+          ),
+          Positioned(
+            bottom: -80,
+            right: -40,
+            child: _blobCircle(260, Colors.black.withValues(alpha: 0.10)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(44, 44, 44, 44),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: Image.asset(
+                        'assets/images/branding/logo_icon.png',
+                        width: 44,
+                        height: 44,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'NabliGo',
+                      style: AppTypography.title(
+                        Colors.white,
+                      ).copyWith(fontSize: 20, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 28),
+                // ==== إحصائيات حقيقية (مش أرقام وهمية) — عدد الأماكن الفعلي
+                // بقاعدة البيانات المحلية، وعدد الزوار الحقيقي من السيرفر ====
+                Row(
+                  children: [
+                    _statChip(
+                      app,
+                      icon: Icons.place_rounded,
+                      value: '${_totalPlacesCount()}+',
+                      labelAr: 'مكان موثّق',
+                      labelEn: 'listed places',
+                    ),
+                    SizedBox(width: 12),
+                    if (app.visitorCount != null)
+                      _statChip(
+                        app,
+                        icon: Icons.groups_rounded,
+                        value: '${app.visitorCount}',
+                        labelAr: 'زائر للتطبيق',
+                        labelEn: 'app visitors',
+                      ),
+                  ],
+                ),
+                Spacer(),
+                _featureBadge(
+                  app,
+                  icon: Icons.map_rounded,
+                  textAr: 'خريطة تفاعلية حقيقية للمدينة',
+                  textEn: 'A real interactive city map',
+                  alignEnd: false,
+                ),
+                SizedBox(height: 12),
+                _featureBadge(
+                  app,
+                  icon: Icons.smart_toy_rounded,
+                  textAr: 'مساعد ذكي يجاوب بالعربي',
+                  textEn: 'AI assistant that answers in Arabic',
+                  alignEnd: true,
+                ),
+                SizedBox(height: 12),
+                _featureBadge(
+                  app,
+                  icon: Icons.storefront_rounded,
+                  textAr: 'مئات الأماكن الحقيقية الموثّقة',
+                  textEn: 'Hundreds of real, verified places',
+                  alignEnd: false,
+                ),
+                SizedBox(height: 12),
+                _featureBadge(
+                  app,
+                  icon: Icons.language_rounded,
+                  textAr: 'دعم كامل بالعربي والإنجليزي',
+                  textEn: 'Full Arabic & English support',
+                  alignEnd: true,
+                ),
+                SizedBox(height: 36),
+                Text(
+                  app.t('اكتشف نابلس بسهولة', 'Discover Nablus with ease'),
+                  textDirection: app.dir,
+                  style: AppTypography.display(
+                    Colors.white,
+                  ).copyWith(fontSize: 30),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  app.t(
+                    'من أول لحظة بتفتح التطبيق، لحد ما توصل لباب المكان — كلنا وياك خطوة بخطوة.',
+                    'From the moment you open the app to the moment you arrive — we\'re with you every step.',
+                  ),
+                  textDirection: app.dir,
+                  style: AppTypography.body(
+                    Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statChip(
+    AppState app, {
+    required IconData icon,
+    required String value,
+    required String labelAr,
+    required String labelEn,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        textDirection: app.dir,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: AppTypography.title(
+                  Colors.white,
+                ).copyWith(fontSize: 15),
+              ),
+              Text(
+                app.t(labelAr, labelEn),
+                style: AppTypography.caption(
+                  Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _blobCircle(double size, Color color) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+  );
+
+  Widget _featureBadge(
+    AppState app, {
+    required IconData icon,
+    required String textAr,
+    required String textEn,
+    required bool alignEnd,
+  }) {
+    return Align(
+      alignment: alignEnd ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          textDirection: app.dir,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            SizedBox(width: 8),
+            Text(
+              app.t(textAr, textEn),
+              textDirection: app.dir,
+              style: AppTypography.label(Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// لوحة النموذج اليمنى: نفس منطق تسجيل الدخول بالضبط (تبويبات مستخدم/أدمن،
+  /// الحقول، رسالة الخطأ) بس بمساحتها الخاصة بدل صندوق واحد بنص الشاشة.
+  Widget _formPanel(AppState app) {
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 30),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 420),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [AppToggleBar()],
+                ),
+                SizedBox(height: 20),
+                Text(
+                  app.t('أهلًا فيك 👋', 'Welcome back 👋'),
+                  textDirection: app.dir,
+                  style: AppTypography.display(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 25),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  app.t(
+                    'سجّل دخولك للمتابعة لدليل نابلس الذكي',
+                    'Sign in to continue to Nablus Smart Guide',
+                  ),
+                  textDirection: app.dir,
+                  style: AppTypography.body(AppColors.textGrey),
+                ),
+                SizedBox(height: 28),
+
+                // ==== تبويبات: مستخدم عادي / أدمن ====
+                Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(color: AppColors.borderColor),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _tabButton(
+                          label: app.t('مستخدم عادي', 'Regular User'),
+                          icon: Icons.person_rounded,
+                          active: !isAdminTab,
+                          onTap: () => setState(() {
+                            isAdminTab = false;
+                            errorMessage = null;
+                          }),
+                        ),
+                      ),
+                      Expanded(
+                        child: _tabButton(
+                          label: app.t('أدمن', 'Admin'),
+                          icon: Icons.admin_panel_settings_rounded,
+                          active: isAdminTab,
+                          onTap: () => setState(() {
+                            isAdminTab = true;
+                            errorMessage = null;
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  child: Container(
+                    key: ValueKey(isAdminTab),
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardDark,
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      border: Border.all(color: AppColors.borderColor),
+                      boxShadow: AppColors.cardShadow,
+                    ),
+                    child: isAdminTab ? _adminForm(app) : _userForm(app),
+                  ),
+                ),
+
+                if (errorMessage != null) ...[
+                  SizedBox(height: 14),
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                      border: Border.all(
+                        color: AppColors.red.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.error_outline_rounded,
+                          color: AppColors.red,
+                          size: 16,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            errorMessage!,
+                            textDirection: app.dir,
+                            style: AppTypography.label(
+                              AppColors.red,
+                            ).copyWith(fontWeight: FontWeight.w400),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                SizedBox(height: 24),
+                Center(
+                  child: Text(
+                    '© 2026 NabliGo',
+                    style: AppTypography.caption(AppColors.textGrey),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -405,7 +569,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SizedBox(height: 6),
         Text(
           app.t(
-            'سجّلي دخولك بالبريد الإلكتروني وكلمة المرور',
+            'سجّل دخولك بالبريد الإلكتروني وكلمة المرور',
             'Sign in with your email and password',
           ),
           textDirection: app.dir,
@@ -797,11 +961,11 @@ class _ForgotPasswordDialogState extends State<_ForgotPasswordDialog> {
                     Text(
                       emailVerified
                           ? app.t(
-                              'أدخلي كلمة مرور جديدة لحسابك',
+                              'أدخل كلمة مرور جديدة لحسابك',
                               'Enter a new password for your account',
                             )
                           : app.t(
-                              'أدخلي بريدك الإلكتروني للتحقق من حسابك',
+                              'أدخل بريدك الإلكتروني للتحقق من حسابك',
                               'Enter your email to verify your account',
                             ),
                       textDirection: app.dir,

@@ -504,7 +504,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.all(10),
-                          hintText: app.t('اكتبي ردك هون...', 'Write your reply here...'),
+                          hintText: app.t('اكتب ردك هون...', 'Write your reply here...'),
                           hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 12),
                         ),
                       ),

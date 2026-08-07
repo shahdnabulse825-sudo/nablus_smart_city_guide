@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../common/detail_screen.dart';
 import '../category/category_data.dart';
 import '../restaurants/restaurants_screen.dart'
@@ -328,6 +329,7 @@ enum PlacesSortMode {
   recommended,
   interests,
   favorites,
+  recentlyViewed,
 }
 
 /// شاشة موحّدة تعرض كل الأماكن (مطاعم، فنادق، معالم، تسوق...) قابلة للبحث
@@ -419,6 +421,8 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
             .map((n) => byName[n])
             .whereType<UniversalPlace>()
             .toList();
+      case PlacesSortMode.recentlyViewed:
+        return RecommendationService.recentlyViewed(limit: 100);
     }
   }
 
@@ -630,14 +634,9 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                   ),
                   Expanded(
                     child: filtered.isEmpty
-                        ? Center(
-                            child: Text(
-                              app.t(
-                                'لا توجد نتائج مطابقة',
-                                'No matching results',
-                              ),
-                              style: TextStyle(color: AppColors.textGrey),
-                            ),
+                        ? EmptyState(
+                            titleAr: 'لا توجد نتائج مطابقة',
+                            titleEn: 'No matching results',
                           )
                         : KeyboardScrollable(
                             controller: _scrollController,

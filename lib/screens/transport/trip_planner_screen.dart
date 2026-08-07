@@ -84,7 +84,7 @@ const List<KnownPlace> tripPlannerPlaces = [
 
 /// خط مباشر حقيقي بين مكانين — كل رحلة هون مبنية على نفس بيانات المواقف
 /// الموجودة بقسم المواصلات. التكلفة "تقديرية" بوضوح لأنه ما في تسعيرة رسمية
-/// منشورة نقدر نتأكد منها؛ لازم تتأكدي من السائق وقت الركوب.
+/// منشورة نقدر نتأكد منها؛ لازم تتأكد من السائق وقت الركوب.
 class TripConnection {
   final String fromKey;
   final String toKey;
@@ -538,7 +538,7 @@ class _TripPlannerScreenState extends State<TripPlannerScreen> {
                                 ),
                                 child: Text(
                                   app.t(
-                                    'ما لقيت خط مباشر أو عبر دوار الشهداء بين هالمكانين بالبيانات الحالية. جربي تسألي المساعد الذكي.',
+                                    'ما لقيت خط مباشر أو عبر دوار الشهداء بين هالمكانين بالبيانات الحالية. جرّب تسأل المساعد الذكي.',
                                     'No direct route or connection via Martyrs Circle was found between these places in the current data. Try asking the AI assistant.',
                                   ),
                                   textDirection: app.dir,
@@ -586,7 +586,7 @@ class _PlaceDropdown extends StatelessWidget {
           isExpanded: true,
           dropdownColor: AppColors.cardDark,
           hint: Text(
-            app.t('اختاري مكانًا...', 'Select a place...'),
+            app.t('اختر مكانًا...', 'Select a place...'),
             style: TextStyle(color: AppColors.textGrey, fontSize: 13),
           ),
           style: TextStyle(color: AppColors.textWhite, fontSize: 13),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
@@ -8,6 +9,7 @@ import '../../services/favorites_service.dart';
 import '../../services/api_service.dart';
 import '../map/map_screen.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 import '../restaurants/restaurants_screen.dart';
 import '../attractions/attractions_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -848,8 +850,11 @@ class _ShoppingCategoriesScreenState extends State<ShoppingCategoriesScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -1388,8 +1393,11 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
         textDirection: TextDirection.ltr,
         child: Scaffold(
           backgroundColor: AppColors.bgDark,
-          body: Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: SkeletonGrid(count: 6),
+            ),
           ),
         ),
       );
@@ -1558,17 +1566,9 @@ class _ShoppingVenuesScreenState extends State<ShoppingVenuesScreen> {
                           ),
                           SizedBox(height: 14),
                           if (filtered.isEmpty)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 60),
-                              child: Center(
-                                child: Text(
-                                  app.t(
-                                    'لا توجد مراكز مطابقة',
-                                    'No matching centers',
-                                  ),
-                                  style: TextStyle(color: AppColors.textGrey),
-                                ),
-                              ),
+                            EmptyState(
+                              titleAr: 'لا توجد مراكز مطابقة',
+                              titleEn: 'No matching centers',
                             )
                           else if (isGridView)
                             GridView.builder(

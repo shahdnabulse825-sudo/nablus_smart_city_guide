@@ -10,31 +10,36 @@ class AppTypography {
         displayColor: baseColor,
       );
 
+  /// عنوان الـ Hero — أكبر عنصر نصي بالتطبيق
   static TextStyle display(Color color) => GoogleFonts.tajawal(
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: FontWeight.w800,
     color: color,
-    height: 1.25,
+    height: 1.2,
   );
 
+  /// عنوان قسم (التصنيفات، الأماكن المفضلة...)
   static TextStyle headline(Color color) => GoogleFonts.tajawal(
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: FontWeight.w700,
     color: color,
     height: 1.3,
   );
 
+  /// عنوان بطاقة
   static TextStyle title(Color color) => GoogleFonts.tajawal(
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: FontWeight.w700,
     color: color,
+    height: 1.35,
   );
 
+  /// نص وصفي عادي
   static TextStyle body(Color color) => GoogleFonts.tajawal(
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: FontWeight.w400,
     color: color,
-    height: 1.55,
+    height: 1.6,
   );
 
   static TextStyle label(Color color) => GoogleFonts.tajawal(

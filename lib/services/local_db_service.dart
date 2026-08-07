@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -47,9 +48,15 @@ class LocalDbService {
   /// أثناء كتابة Hive وبيكرش التطبيق. بننقل أي بيانات قديمة موجودة بالمكان
   /// القديم أول مرة حتى ما نخسرها.
   Future<void> init() async {
-    final newDir = await getApplicationSupportDirectory();
-    await _migrateFromOldLocation(newDir.path);
-    Hive.init(newDir.path);
+    if (kIsWeb) {
+      // على الويب: path_provider ما إله تنفيذ حقيقي (لا يوجد نظام ملفات)،
+      // Hive بيستخدم IndexedDB بالمتصفح تلقائيًا بدون أي مسار.
+      await Hive.initFlutter();
+    } else {
+      final newDir = await getApplicationSupportDirectory();
+      await _migrateFromOldLocation(newDir.path);
+      Hive.init(newDir.path);
+    }
     for (final name in boxNames) {
       _boxes[name] = await Hive.openBox(name);
     }
@@ -98,7 +105,7 @@ class LocalDbService {
   /// (صورة/هاتف/ساعات...) — بس بدون حذف أي شي موجود بالصندوق وغير موجود بـ seedData.
   /// هاي مهمة لأنها نفس الدالة اللي بتُستخدم لدمج ردّ الـ API (اللي ممكن يكون جزئي
   /// أو مؤقتًا أقل من بيانات الكود) — حذف تلقائي هون كان رح يمسح عناصر صحيحة موجودة
-  /// محليًا بس مش راجعة بالردّ الحالي. للحذف الفعلي حسب بيانات الكود استخدمي [syncSeedExact].
+  /// محليًا بس مش راجعة بالردّ الحالي. للحذف الفعلي حسب بيانات الكود استخدم [syncSeedExact].
   Future<void> syncSeed(String boxName, List<Map<String, dynamic>> seedData) async {
     final box = _box(boxName);
     final existing = getAll(boxName);
@@ -198,7 +205,7 @@ class LocalDbService {
     await _box(boxName).clear();
   }
 
-  /// حذف كل شي وإعادة التعبئة من جديد (لو حابة ترجعي للبيانات الافتراضية)
+  /// حذف كل شي وإعادة التعبئة من جديد (لو حاب ترجع للبيانات الافتراضية)
   Future<void> resetToSeed(String boxName, List<Map<String, dynamic>> seedData) async {
     final box = _box(boxName);
     await box.clear();

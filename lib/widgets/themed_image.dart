@@ -4,7 +4,7 @@ import '../services/api_service.dart';
 import '../services/wikimedia_service.dart';
 
 /// يفتح الصورة بحجم كامل مع إمكانية التكبير/التصغير باللمس، ويُغلق بالضغط
-/// على الخلفية أو زر الإغلاق. استخدميها بأي مكان عندك فيه ThemedImage رئيسية
+/// على الخلفية أو زر الإغلاق. استخدمها بأي مكان عندك فيه ThemedImage رئيسية
 /// (بانر، صورة تفاصيل) لإتاحة "اضغط لتكبير الصورة".
 void showImageZoom(
   BuildContext context, {

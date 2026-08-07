@@ -3,10 +3,10 @@ import 'package:http/http.dart' as http;
 
 /// خدمة جلب صور حقيقية مرتبطة بالموضوع من Unsplash.
 ///
-/// ⚠️ لازم تحطي مفتاحك المجاني هون:
-/// 1. سجلي بموقع https://unsplash.com/developers (مجاني، بدون بطاقة ائتمان)
+/// ⚠️ لازم تحط مفتاحك المجاني هون:
+/// 1. سجّل بموقع https://unsplash.com/developers (مجاني، بدون بطاقة ائتمان)
 /// 2. أنشئي "New Application"
-/// 3. انسخي "Access Key" وحطيه بدل النص أدناه
+/// 3. انسخ "Access Key" وحطه بدل النص أدناه
 const String unsplashAccessKey = 'ضعي_مفتاحك_هنا';
 
 class UnsplashService {

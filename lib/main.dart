@@ -21,6 +21,9 @@ import 'screens/splash/splash_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalDbService.instance.init(); // تهيئة قاعدة البيانات المحلية (Hive)
+  // نمسح سجل محادثة المساعد الذكي بداية كل تشغيل جديد للتطبيق — يبقى محفوظ
+  // أثناء التنقل بين الشاشات بنفس الجلسة، بس مش بين تشغيلة وتشغيلة.
+  await LocalDbService.instance.clearBox('ai_chat');
   // نسترجع جلسة الدخول المحفوظة قبل التعبئة، حتى لو كان فيه حساب حقيقي متزامن
   // نقدر نجيب مفضلته/سجل زياراته من السيرفر ضمن نفس دورة التعبئة تحت.
   AuthService.instance.restoreSession();
@@ -89,7 +92,7 @@ class NablusGuideApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'دليل نابلس الذكي',
+      title: 'NabliGo',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
       // نخلي أسهم لوح المفاتيح (فوق/تحت) تمرّر الصفحة فعليًا (متل أي موقع ويب عادي)

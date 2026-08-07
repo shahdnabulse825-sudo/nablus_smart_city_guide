@@ -674,7 +674,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       _showSnack(
         context,
         app.t(
-          'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
           'Session expired — please log in as admin again',
         ),
       );
@@ -1174,7 +1174,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               SizedBox(height: 4),
                               Text(
                                 app.t(
-                                  'اختاري قسمًا لإضافة أو تعديل أو حذف عناصره، وارفعي صورة حقيقية لأي عنصر مباشرة — كل تعديل بينحفظ على قاعدة البيانات الحقيقية فورًا.',
+                                  'اختر قسمًا لإضافة أو تعديل أو حذف عناصره، وارفع صورة حقيقية لأي عنصر مباشرة — كل تعديل بينحفظ على قاعدة البيانات الحقيقية فورًا.',
                                   'Choose a section to add, edit, or delete its items, and upload a real photo for any item directly — every change is saved to the real database instantly.',
                                 ),
                                 textDirection: app.dir,
@@ -1619,7 +1619,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
     if (token == null) {
       _showMessage(
         app.t(
-          'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
           'Session expired — please log in as admin again',
         ),
       );
@@ -1649,7 +1649,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         AuthService.instance.adminToken = null;
         _showMessage(
           app.t(
-            'انتهت جلسة الدخول — سجّلي خروج ودخول أدمن من جديد',
+            'انتهت جلسة الدخول — سجّل خروج ودخول أدمن من جديد',
             'Session expired — please log out and log back in as admin',
           ),
         );
@@ -1681,7 +1681,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
       if (token == null) {
         _showMessage(
           app.t(
-            'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+            'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
             'Session expired — please log in as admin again',
           ),
         );
@@ -1698,7 +1698,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         if (status == -1) {
           _showMessage(
             app.t(
-              'فشل الحذف — تأكدي إنه السيرفر شغال',
+              'فشل الحذف — تأكد إنه السيرفر شغال',
               'Delete failed — make sure the server is running',
             ),
           );
@@ -1706,7 +1706,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         } else if (status == 401 || status == 403) {
           _showMessage(
             app.t(
-              'انتهت جلسة الدخول — سجّلي دخول أدمن من جديد',
+              'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
               'Session expired — please log in as admin again',
             ),
           );
@@ -1714,7 +1714,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         } else if (!alreadyGone) {
           _showMessage(
             app.t(
-              'فشل الحذف — تأكدي إنه السيرفر شغال',
+              'فشل الحذف — تأكد إنه السيرفر شغال',
               'Delete failed — make sure the server is running',
             ),
           );
@@ -2087,7 +2087,7 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
         ),
         content: Text(
           app.t(
-            'هل أنت متأكدة من حذف هذا العنصر؟',
+            'هل أنت متأكد من حذف هذا العنصر؟',
             'Are you sure you want to delete this item?',
           ),
           style: TextStyle(color: AppColors.textGrey),
@@ -2571,7 +2571,7 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
                         'Location set (${_lat!.toStringAsFixed(5)}, ${_lng!.toStringAsFixed(5)})',
                       )
                     : app.t(
-                        'اضغطي على الخريطة لتحديد الموقع الدقيق',
+                        'اضغط على الخريطة لتحديد الموقع الدقيق',
                         'Tap the map to set the exact location',
                       ),
                 textDirection: app.dir,

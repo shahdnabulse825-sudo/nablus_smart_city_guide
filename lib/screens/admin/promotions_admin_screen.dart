@@ -86,7 +86,7 @@ class _PromotionsAdminScreenState extends State<PromotionsAdminScreen> {
             style: TextStyle(color: AppColors.textWhite),
           ),
           content: Text(
-            app.t('متأكدة إنك بدك تحذفي هالعرض؟', 'Are you sure you want to delete this offer?'),
+            app.t('متأكد إنك بدك تحذف هالعرض؟', 'Are you sure you want to delete this offer?'),
             style: TextStyle(color: AppColors.textGrey),
           ),
           actions: [
@@ -157,7 +157,7 @@ class _PromotionsAdminScreenState extends State<PromotionsAdminScreen> {
                     : _items.isEmpty
                         ? Center(
                             child: Text(
-                              app.t('ما في عروض حالياً — اضغطي + لإضافة عرض', 'No offers yet — tap + to add one'),
+                              app.t('ما في عروض حالياً — اضغط + لإضافة عرض', 'No offers yet — tap + to add one'),
                               textDirection: app.dir,
                               style: TextStyle(color: AppColors.textGrey),
                             ),
@@ -381,7 +381,7 @@ class _PromotionFormScreenState extends State<_PromotionFormScreen> {
     if (status >= 200 && status < 300) {
       Navigator.of(context).pop(true);
     } else {
-      _showMessage(app.t('فشل الحفظ — تأكدي إنه السيرفر شغال', 'Save failed — make sure the server is running'));
+      _showMessage(app.t('فشل الحفظ — تأكد إنه السيرفر شغال', 'Save failed — make sure the server is running'));
     }
   }
 

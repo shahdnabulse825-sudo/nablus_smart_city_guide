@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const prisma = require('../db');
-const { signToken } = require('../middleware/auth');
+const { signToken, requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -95,6 +95,48 @@ router.post('/reset-password', async (req, res) => {
   const passwordHash = await bcrypt.hash(newPassword, 10);
   await prisma.user.update({ where: { email: cleanEmail }, data: { passwordHash } });
   res.json({ success: true });
+});
+
+// ==================== تعديل بيانات الحساب (اسم/بريد/كلمة مرور) ====================
+router.put('/profile', requireAuth, async (req, res) => {
+  const { name, email, currentPassword, newPassword } = req.body;
+  const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!user) return res.status(404).json({ error: 'الحساب غير موجود' });
+
+  const data = {};
+
+  if (name !== undefined) {
+    if (!name.trim()) return res.status(400).json({ error: 'الرجاء إدخال الاسم' });
+    data.name = name.trim();
+  }
+
+  if (email !== undefined) {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      return res.status(400).json({ error: 'صيغة البريد الإلكتروني غير صحيحة' });
+    }
+    if (cleanEmail !== user.email) {
+      const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      if (existing) return res.status(409).json({ error: 'هذا البريد الإلكتروني مستخدم من حساب آخر' });
+      data.email = cleanEmail;
+    }
+  }
+
+  if (newPassword !== undefined) {
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'أدخل كلمة المرور الحالية لتأكيد التغيير' });
+    }
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) return res.status(401).json({ error: 'كلمة المرور الحالية غير صحيحة' });
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'كلمة المرور الجديدة لازم تكون 6 أحرف على الأقل' });
+    }
+    data.passwordHash = await bcrypt.hash(newPassword, 10);
+  }
+
+  const updated = await prisma.user.update({ where: { id: user.id }, data });
+  const token = signToken({ id: updated.id, role: updated.role, email: updated.email });
+  res.json({ token, user: publicUser(updated) });
 });
 
 module.exports = router;

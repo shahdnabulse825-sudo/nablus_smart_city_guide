@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:intl/intl.dart' hide TextDirection;
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -16,8 +17,6 @@ import 'package:flutter_map/flutter_map.dart';
 import '../map/map_screen.dart';
 import '../news/news_screen.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
-import '../auth/login_screen.dart';
-import '../../services/auth_service.dart';
 import '../../services/api_service.dart';
 import '../category/category_list_screen.dart';
 import '../category/category_data.dart';
@@ -31,9 +30,16 @@ import '../nearby/nearby_places_screen.dart';
 import '../transport/transport_screen.dart';
 import 'recommendations_section.dart';
 import 'sponsored_section.dart';
+import 'quick_info_section.dart';
+import 'mobile_home.dart';
+import 'settings_panel.dart';
+import 'news_ticker.dart';
+import 'quick_actions_row.dart';
+import 'top_highlights_row.dart';
 import '../../services/favorites_service.dart';
 import '../info/about_us_screen.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/fade_slide_in.dart';
 import '../info/privacy_policy_screen.dart';
 import '../info/terms_screen.dart';
 import '../info/faq_screen.dart';
@@ -42,7 +48,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_card.dart';
-import '../../widgets/app_toggle_bar.dart';
+import '../../widgets/glass_container.dart';
+import '../../widgets/heritage_pattern.dart';
 import '../../widgets/keyboard_scrollable.dart';
 export '../../theme/app_colors.dart' show AppColors;
 export '../../theme/app_spacing.dart' show AppSpacing, AppRadius;
@@ -287,20 +294,56 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? () => _scaffoldKey.currentState?.openDrawer()
                       : null,
                 ),
-                BannerSlider(),
-                SearchBar_(),
-                StatsRow(),
-                CategoriesSection(),
-                FavoritePlacesSection(),
-                SponsoredSection(),
-                RecommendationsSection(),
-                EventsAndMapSection(),
-                LatestNewsSection(),
-                FooterSection(
-                  onScrollToTop: () => _scrollController.animateTo(
-                    0,
-                    duration: Duration(milliseconds: 500),
-                    curve: Curves.easeOut,
+                const NewsTicker(),
+                FadeSlideIn(child: BannerSlider()),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 60),
+                  child: SearchBar_(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 100),
+                  child: const QuickActionsRow(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 140),
+                  child: StatsRow(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 160),
+                  child: CategoriesSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 180),
+                  child: const TopHighlightsRow(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 220),
+                  child: FavoritePlacesSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 260),
+                  child: SponsoredSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 300),
+                  child: RecommendationsSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 340),
+                  child: EventsAndMapSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 380),
+                  child: LatestNewsSection(),
+                ),
+                FadeSlideIn(
+                  delay: const Duration(milliseconds: 420),
+                  child: FooterSection(
+                    onScrollToTop: () => _scrollController.animateTo(
+                      0,
+                      duration: Duration(milliseconds: 500),
+                      curve: Curves.easeOut,
+                    ),
                   ),
                 ),
               ],
@@ -314,15 +357,18 @@ class _HomeScreenState extends State<HomeScreen> {
             key: _scaffoldKey,
             backgroundColor: AppColors.bgDark,
             drawer: mobile ? Drawer(child: SideBar()) : null,
-            body: mobile
-                ? content
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SideBar(),
-                      Expanded(child: content),
-                    ],
-                  ),
+            bottomNavigationBar: mobile ? const MobileBottomNav() : null,
+            body: HeritagePatternBackground(
+              child: mobile
+                  ? content
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SideBar(),
+                        Expanded(child: content),
+                      ],
+                    ),
+            ),
           ),
         );
       },
@@ -331,260 +377,354 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ==================== الشريط الجانبي ====================
-class SideBar extends StatelessWidget {
+/// شريط جانبي قابل للطي (ديسكتوب فقط) — بضغطة زر يتقلص لعمود أيقونات ضيّق
+/// (Tooltip بدل النص) بدل ما ياخذ 210px دايمًا، ويرجع يتوسّع بنفس الزر.
+class SideBar extends StatefulWidget {
   const SideBar({super.key});
 
   @override
+  State<SideBar> createState() => _SideBarState();
+}
+
+class _SideBarState extends State<SideBar> {
+  bool _collapsed = false;
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 210,
+    // المحتوى (موسّع/مطوي) بيتبدّل فورًا لما تنضغط الزر، بعكس عرض
+    // AnimatedContainer اللي بياخد 220ms لياخد قيمته النهائية. لو حطينا
+    // المحتوى مباشرة جوّا AnimatedContainer، هيك بيصير قيود تخطيط ضيقة
+    // بمنتصف الأنيميشن (مثلاً عرض 130 لمحتوى مصمم لـ 210) وبيطلع overflow.
+    // الحل: نخلي المحتوى ياخد عرضه المستهدف الثابت دايمًا عبر OverflowBox،
+    // والـ AnimatedContainer الخارجي بس بيقص (clip) الجزء الزائد بصريًا.
+    final targetWidth = _collapsed ? 72.0 : 210.0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeInOut,
+      width: targetWidth,
       color: AppColors.sidebarDark,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // الشعار
-            Row(
-              children: [
-                Container(
+      clipBehavior: Clip.hardEdge,
+      child: OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 0,
+        maxWidth: targetWidth,
+        child: SizedBox(
+          width: targetWidth,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: _collapsed ? 12 : 16,
+              vertical: 20,
+            ),
+            child: _collapsed
+                ? _CollapsedRail(
+                    onExpand: () => setState(() => _collapsed = false),
+                  )
+                : _ExpandedSideBarContent(
+                    onCollapse: () => setState(() => _collapsed = true),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CollapsedRail extends StatelessWidget {
+  final VoidCallback onExpand;
+  const _CollapsedRail({required this.onExpand});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              'assets/images/branding/logo_icon.png',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(height: 14),
+          _RailButton(
+            icon: Icons.chevron_right_rounded,
+            tooltip: app.t('توسيع الشريط', 'Expand sidebar'),
+            onTap: onExpand,
+          ),
+          SizedBox(height: 18),
+          Divider(color: AppColors.borderColor, height: 1),
+          SizedBox(height: 18),
+          _RailButton(
+            icon: Icons.emergency_rounded,
+            iconColor: AppColors.red,
+            tooltip: app.t('الطوارئ', 'Emergency'),
+            onTap: () => showEmergencySheet(context),
+          ),
+          SizedBox(height: 14),
+          _RailButton(
+            icon: Icons.mosque_rounded,
+            iconColor: AppColors.teal,
+            tooltip: app.t('أوقات الصلاة', 'Prayer Times'),
+            onTap: () => showPrayerTimesSheet(context),
+          ),
+          SizedBox(height: 14),
+          _RailButton(
+            icon: Icons.headset_mic_rounded,
+            iconColor: AppColors.teal,
+            tooltip: app.t('تواصل معنا', 'Contact Us'),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (context) => ContactUsScreen())),
+          ),
+          SizedBox(height: 14),
+          _RailButton(
+            icon: Icons.download_rounded,
+            iconColor: AppColors.primary,
+            tooltip: app.t('حمل التطبيق', 'Download App'),
+            onTap: onExpand,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailButton extends StatefulWidget {
+  final IconData icon;
+  final Color? iconColor;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _RailButton({
+    required this.icon,
+    this.iconColor,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  State<_RailButton> createState() => _RailButtonState();
+}
+
+class _RailButtonState extends State<_RailButton> {
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovering = true),
+        onExit: (_) => setState(() => _hovering = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _hovering
+                  ? AppColors.cardDark2
+                  : AppColors.cardDark2.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              widget.icon,
+              size: 20,
+              color: widget.iconColor ?? AppColors.textWhite,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandedSideBarContent extends StatelessWidget {
+  final VoidCallback onCollapse;
+  const _ExpandedSideBarContent({required this.onCollapse});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // الشعار
+          Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/images/branding/logo_icon.png',
                   width: 42,
                   height: 42,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: AppColors.primaryGradient),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(
-                    Icons.location_city,
-                    color: Colors.white,
-                    size: 22,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NabliGo',
+                      textDirection: TextDirection.rtl,
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Explore Nablus',
+                      style: TextStyle(color: AppColors.textGrey, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+              Tooltip(
+                message: AppState.instance.t('طي الشريط', 'Collapse sidebar'),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onCollapse,
+                  child: Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      color: AppColors.cardDark2,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(
+                      Icons.chevron_left_rounded,
+                      size: 16,
+                      color: AppColors.textGrey,
+                    ),
                   ),
                 ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'دليل نابلس الذكي',
-                        textDirection: TextDirection.rtl,
-                        style: TextStyle(
-                          color: AppColors.textWhite,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+
+          // معلومات سريعة (طوارئ، أوقات صلاة، هل تعلم، فعالية اليوم)
+          QuickInfoSection(),
+          SizedBox(height: 16),
+
+          // تواصل معنا
+          SideCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SideSectionTitle(
+                  icon: Icons.headset_mic,
+                  iconBg: AppColors.teal,
+                  titleAr: 'تواصل معنا',
+                  titleEn: 'Contact Us',
+                ),
+                SizedBox(height: 12),
+                ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
+                SizedBox(height: 10),
+                ContactRow(icon: Icons.email, text: 's12144433@stu.najah.edu'),
+                SizedBox(height: 10),
+                ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
+                SizedBox(height: 14),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SocialIcon(
+                      icon: Icons.facebook,
+                      url:
+                          'https://www.facebook.com/share/1PEdrJJzja/?mibextid=wwXIfr',
+                    ),
+                    SocialIcon(
+                      icon: Icons.camera_alt,
+                      url:
+                          'https://www.instagram.com/m.aseedeh?igsh=MTFpdXI2eHU4ajk5cw%3D%3D&utm_source=qr',
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => ContactUsScreen()),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: AppColors.primaryGradient,
                       ),
-                      Text(
-                        'Nablus Smart Guide',
-                        style: TextStyle(
-                          color: AppColors.textGrey,
-                          fontSize: 10,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: AppColors.glowShadow,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.send, size: 14, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text(
+                          AppState.instance.t('أرسل رسالة', 'Send a Message'),
+                          textDirection: AppState.instance.dir,
+                          style: TextStyle(color: Colors.white, fontSize: 11),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 24),
+          ),
+          SizedBox(height: 16),
 
-            // أسعار العملات
-            SideCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SideSectionTitle(
-                    icon: Icons.attach_money,
-                    iconBg: AppColors.gold,
-                    titleAr: 'أسعار العملات',
-                    titleEn: 'Exchange Rates',
+          // تحميل التطبيق
+          SideCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SideSectionTitle(
+                  icon: Icons.download,
+                  iconBg: AppColors.primary,
+                  titleAr: 'حمل التطبيق',
+                  titleEn: 'Download App',
+                ),
+                SizedBox(height: 12),
+                StoreButton(
+                  icon: Icons.play_arrow,
+                  line1: 'GET IT ON',
+                  line2: 'Google Play',
+                ),
+                SizedBox(height: 8),
+                StoreButton(
+                  icon: Icons.apple,
+                  line1: 'Download on the',
+                  line2: 'App Store',
+                ),
+                SizedBox(height: 14),
+                Container(
+                  height: 90,
+                  width: 90,
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  SizedBox(height: 10),
-                  if (AppState.instance.ratesLoading)
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Center(
-                        child: SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      ),
-                    )
-                  else if (AppState.instance.ratesError != null)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          AppState.instance.ratesError!,
-                          textDirection: TextDirection.rtl,
-                          style: TextStyle(color: AppColors.red, fontSize: 10),
-                        ),
-                        SizedBox(height: 6),
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => AppState.instance.fetchRates(),
-                          child: Text(
-                            'إعادة المحاولة',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              color: AppColors.primary,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    CurrencyRow(
-                      flagColor: Colors.blue,
-                      code: 'USD',
-                      rate:
-                          '${AppState.instance.usdToIls.toStringAsFixed(2)} ILS',
-                    ),
-                    Divider(color: AppColors.borderColor, height: 16),
-                    CurrencyRow(
-                      flagColor: Colors.green,
-                      code: 'JOD',
-                      rate:
-                          '${AppState.instance.jodToIls.toStringAsFixed(2)} ILS',
-                    ),
-                    Divider(color: AppColors.borderColor, height: 16),
-                    CurrencyRow(
-                      flagColor: Colors.indigo,
-                      code: 'EUR',
-                      rate:
-                          '${AppState.instance.eurToIls.toStringAsFixed(2)} ILS',
-                    ),
-                  ],
-                ],
-              ),
+                  child: QrImageView(
+                    data: 'https://nablus-guide.com/download',
+                    version: QrVersions.auto,
+                    backgroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 16),
-
-            // تواصل معنا
-            SideCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SideSectionTitle(
-                    icon: Icons.headset_mic,
-                    iconBg: AppColors.teal,
-                    titleAr: 'تواصل معنا',
-                    titleEn: 'Contact Us',
-                  ),
-                  SizedBox(height: 12),
-                  ContactRow(icon: Icons.phone, text: '+970 59 123 4567'),
-                  SizedBox(height: 10),
-                  ContactRow(icon: Icons.email, text: 'info@nablus-guide.com'),
-                  SizedBox(height: 10),
-                  ContactRow(
-                    icon: Icons.location_on,
-                    text: 'Nablus, Palestine',
-                  ),
-                  SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      SocialIcon(
-                        icon: Icons.facebook,
-                        url: 'https://facebook.com',
-                      ),
-                      SocialIcon(
-                        icon: Icons.camera_alt,
-                        url: 'https://instagram.com',
-                      ),
-                      SocialIcon(
-                        icon: Icons.alternate_email,
-                        url: 'https://twitter.com',
-                      ),
-                      SocialIcon(
-                        icon: Icons.play_circle_fill,
-                        url: 'https://youtube.com',
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ContactUsScreen(),
-                      ),
-                    ),
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send, size: 14, color: Colors.white),
-                          SizedBox(width: 6),
-                          Text(
-                            AppState.instance.t(
-                              'أرسلي رسالة',
-                              'Send a Message',
-                            ),
-                            textDirection: AppState.instance.dir,
-                            style: TextStyle(color: Colors.white, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // تحميل التطبيق
-            SideCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SideSectionTitle(
-                    icon: Icons.download,
-                    iconBg: AppColors.primary,
-                    titleAr: 'حمل التطبيق',
-                    titleEn: 'Download App',
-                  ),
-                  SizedBox(height: 12),
-                  StoreButton(
-                    icon: Icons.play_arrow,
-                    line1: 'GET IT ON',
-                    line2: 'Google Play',
-                  ),
-                  SizedBox(height: 8),
-                  StoreButton(
-                    icon: Icons.apple,
-                    line1: 'Download on the',
-                    line2: 'App Store',
-                  ),
-                  SizedBox(height: 14),
-                  Container(
-                    height: 90,
-                    width: 90,
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: QrImageView(
-                      data: 'https://nablus-guide.com/download',
-                      version: QrVersions.auto,
-                      backgroundColor: Colors.white,
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -596,13 +736,9 @@ class SideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassContainer(
       padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor),
-      ),
+      radius: 12,
       child: child,
     );
   }
@@ -650,45 +786,6 @@ class SideSectionTitle extends StatelessWidget {
   }
 }
 
-class CurrencyRow extends StatelessWidget {
-  final Color flagColor;
-  final String code;
-  final String rate;
-  const CurrencyRow({
-    super.key,
-    required this.flagColor,
-    required this.code,
-    required this.rate,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        CircleAvatar(radius: 10, backgroundColor: flagColor),
-        SizedBox(width: 8),
-        Text(
-          code,
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Spacer(),
-        Text(
-          rate,
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class ContactRow extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -696,7 +793,8 @@ class ContactRow extends StatelessWidget {
 
   Future<void> _onTap(BuildContext context) async {
     if (icon == Icons.phone) {
-      await launchUrl(Uri.parse('tel:$text'));
+      final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+      await _launchExternalUrl('https://wa.me/$digits');
     } else if (icon == Icons.email) {
       await launchUrl(Uri.parse('mailto:$text'));
     } else if (icon == Icons.location_on) {
@@ -727,6 +825,18 @@ class ContactRow extends StatelessWidget {
   }
 }
 
+/// يفتح رابط خارجي (واتساب/سوشال ميديا) بأمان على الويب — وضع
+/// LaunchMode.externalApplication على الويب بيستخدم window.open() تحت
+/// الغطا، ومتصفح Chrome (خصوصًا بنافذة --app بدون شريط عنوان) بيحجبه بصمت
+/// كـ popup بدون أي إشعار للمستخدم. الوضع الافتراضي بيحاكي ضغطة رابط حقيقية
+/// (target=_blank) فما بينحجب، وبيضل يفتح تطبيق خارجي حقيقي على أندرويد/iOS.
+Future<void> _launchExternalUrl(String url) {
+  return launchUrl(
+    Uri.parse(url),
+    mode: kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+  );
+}
+
 class SocialIcon extends StatelessWidget {
   final IconData icon;
   final String url;
@@ -736,8 +846,7 @@ class SocialIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+      onTap: () => _launchExternalUrl(url),
       child: Container(
         margin: EdgeInsets.only(right: 8),
         width: 28,
@@ -809,13 +918,13 @@ class TopBar extends StatelessWidget {
       NavItem(
         iconAr: 'الرئيسية',
         iconEn: 'Home',
-        icon: Icons.home,
+        icon: Icons.home_rounded,
         active: true,
       ),
       NavItem(
         iconAr: 'استكشف',
         iconEn: 'Explore',
-        icon: Icons.explore,
+        icon: Icons.explore_rounded,
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => ExploreScreen())),
@@ -823,7 +932,7 @@ class TopBar extends StatelessWidget {
       NavItem(
         iconAr: 'الخريطة',
         iconEn: 'Map',
-        icon: Icons.map,
+        icon: Icons.map_rounded,
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => MapScreen())),
@@ -839,7 +948,7 @@ class TopBar extends StatelessWidget {
       NavItem(
         iconAr: 'الأخبار',
         iconEn: 'News',
-        icon: Icons.article,
+        icon: Icons.article_rounded,
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => NewsScreen())),
@@ -847,116 +956,94 @@ class TopBar extends StatelessWidget {
       NavItem(
         iconAr: 'المساعد الذكي',
         iconEn: 'AI Assistant',
-        icon: Icons.smart_toy,
+        icon: Icons.auto_awesome_rounded,
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => AiAssistantScreen())),
       ),
     ];
+    // بكل المنصات (هاتف وويب وويندوز): جرس الإشعارات + زر إعدادات واحد يفتح
+    // لوحة "زي الأندرويد" (الوضع الليلي/اللغة/الحساب/تسجيل الخروج مجمّعين هناك)
+    // بدل أيقونات متفرقة بالشريط العلوي.
+    final trailingControls = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _NotificationBell(),
+        SizedBox(width: mobile ? 14 : 16),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => showSettingsSheet(context),
+          child: Icon(
+            Icons.settings_rounded,
+            size: 22,
+            color: AppColors.textWhite,
+          ),
+        ),
+      ],
+    );
+
+    if (mobile) {
+      // على الهاتف: Drawer يسار + لوجو + إشعارات وزر إعدادات يمين.
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        color: AppColors.sidebarDark,
+        child: Row(
+          children: [
+            if (onMenuTap != null)
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onMenuTap,
+                child: Icon(
+                  Icons.menu_rounded,
+                  size: 22,
+                  color: AppColors.textWhite,
+                ),
+              ),
+            SizedBox(width: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/branding/logo_icon.png',
+                width: 28,
+                height: 28,
+                fit: BoxFit.cover,
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'NabliGo',
+              style: AppTypography.title(
+                AppColors.textWhite,
+              ).copyWith(fontSize: 16),
+            ),
+            Spacer(),
+            trailingControls,
+          ],
+        ),
+      );
+    }
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: mobile ? 12 : 24, vertical: 14),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       color: AppColors.sidebarDark,
       child: Row(
         children: [
-          if (onMenuTap != null) ...[
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onMenuTap,
-              child: Icon(Icons.menu, size: 22, color: AppColors.textWhite),
-            ),
-            SizedBox(width: 12),
-          ],
-          if (!mobile) ...[
-            Icon(Icons.access_time, size: 16, color: AppColors.textGrey),
-            SizedBox(width: 6),
-            Text(
-              app.currentTime,
-              style: TextStyle(color: AppColors.textGrey, fontSize: 13),
-            ),
-            Spacer(),
-          ],
-          if (mobile)
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(children: navItems),
-              ),
-            )
-          else ...[
-            ...navItems,
-            Spacer(),
-          ],
-          SizedBox(width: mobile ? 10 : 16),
-          _NotificationBell(),
-          SizedBox(width: mobile ? 10 : 16),
-          AppToggleBar(),
-          SizedBox(width: mobile ? 10 : 16),
-          // زر تسجيل الخروج
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _confirmLogout(context),
-            child: Icon(Icons.logout, color: AppColors.red, size: 20),
+          Icon(Icons.access_time, size: 16, color: AppColors.textGrey),
+          SizedBox(width: 6),
+          Text(
+            app.currentTime,
+            style: TextStyle(color: AppColors.textGrey, fontSize: 13),
           ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: navItems,
+            ),
+          ),
+          SizedBox(width: 16),
+          trailingControls,
         ],
-      ),
-    );
-  }
-
-  void _confirmLogout(BuildContext context) {
-    final app = AppState.instance;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => Directionality(
-        textDirection: app.dir,
-        child: AlertDialog(
-          backgroundColor: AppColors.cardDark,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-          title: Text(
-            app.t('تسجيل الخروج', 'Log Out'),
-            textDirection: app.dir,
-            style: TextStyle(
-              color: AppColors.textWhite,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Text(
-            app.t(
-              'هل أنت متأكد من رغبتك بتسجيل الخروج؟',
-              'Are you sure you want to log out?',
-            ),
-            textDirection: app.dir,
-            style: TextStyle(color: AppColors.textGrey),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                app.t('إلغاء', 'Cancel'),
-                style: TextStyle(color: AppColors.textGrey),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await AuthService.instance.logout();
-                if (!context.mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
-                  (route) => false,
-                );
-              },
-              child: Text(
-                app.t('تسجيل الخروج', 'Log Out'),
-                style: TextStyle(
-                  color: AppColors.red,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -1006,7 +1093,7 @@ class _NotificationBellState extends State<_NotificationBell> {
   }
 }
 
-class NavItem extends StatelessWidget {
+class NavItem extends StatefulWidget {
   final String iconAr;
   final String iconEn;
   final IconData icon;
@@ -1022,36 +1109,59 @@ class NavItem extends StatelessWidget {
   });
 
   @override
+  State<NavItem> createState() => _NavItemState();
+}
+
+class _NavItemState extends State<NavItem> {
+  bool _hovering = false;
+
+  @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    final color = active ? AppColors.primary : AppColors.textGrey;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 18, color: color),
-            SizedBox(height: 2),
-            Text(
-              app.t(iconAr, iconEn),
-              textDirection: app.dir,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+    final color = widget.active ? AppColors.primary : AppColors.textGrey;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _hovering
+                  ? AppColors.primary.withValues(alpha: 0.08)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10),
             ),
-            if (active)
-              Container(
-                margin: EdgeInsets.only(top: 3),
-                height: 2,
-                width: 20,
-                color: AppColors.primary,
-              ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(widget.icon, size: 18, color: color),
+                SizedBox(height: 2),
+                Text(
+                  app.t(widget.iconAr, widget.iconEn),
+                  textDirection: app.dir,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                  margin: EdgeInsets.only(top: 3),
+                  height: 2,
+                  width: widget.active ? 20 : 0,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -1072,10 +1182,10 @@ class _BannerSliderState extends State<BannerSlider> {
 
   final List<Map<String, String>> _slides = [
     {
-      'title': '🏛 مرحباً بك في نابلس',
-      'subtitle': 'تاريخ عريق... مستقبل مشرق',
-      'titleEn': '🏛 Welcome to Nablus',
-      'subtitleEn': 'Rich History... Bright Future',
+      'title': '🏛 اكتشف نابلس',
+      'subtitle': 'مدينة التاريخ... والطعام... والثقافة',
+      'titleEn': '🏛 Discover Nablus',
+      'subtitleEn': 'A City of History... Food... and Culture',
       'photoQuery': 'nablus palestine cityscape',
       'localAsset': 'assets/images/banner/nablus_cityscape.jpg',
     },
@@ -1099,17 +1209,19 @@ class _BannerSliderState extends State<BannerSlider> {
 
   @override
   Widget build(BuildContext context) {
+    final mobile = isMobile(context);
+    final bannerHeight = mobile ? 200.0 : 240.0;
     return Padding(
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(mobile ? 14 : 20),
       child: SizedBox(
-        height: 210,
+        height: bannerHeight,
         child: Stack(
           children: [
             CarouselSlider.builder(
               carouselController: _controller,
               itemCount: _slides.length,
               options: CarouselOptions(
-                height: 210,
+                height: bannerHeight,
                 viewportFraction: 1,
                 autoPlay: true,
                 autoPlayInterval: Duration(seconds: 4),
@@ -1136,7 +1248,7 @@ class _BannerSliderState extends State<BannerSlider> {
                         query: slide['photoQuery'] ?? 'nablus palestine city',
                         localAsset: slide['localAsset'],
                         fallbackSeed: 'banner-${slide['titleEn']}',
-                        height: 210,
+                        height: bannerHeight,
                       ),
                       // تدرّج أنيق فوق الصورة لإظهار النص بوضوح مع لمسة من هوية التطبيق
                       Container(
@@ -1191,9 +1303,11 @@ class _BannerSliderState extends State<BannerSlider> {
                               shownTitle,
                               textDirection: app.dir,
                               textAlign: TextAlign.center,
-                              style: AppTypography.display(
-                                Colors.white,
-                              ).copyWith(fontSize: 26, height: 1.2),
+                              style: AppTypography.display(Colors.white)
+                                  .copyWith(
+                                    fontSize: mobile ? 28 : 26,
+                                    height: 1.15,
+                                  ),
                             ),
                             SizedBox(height: 6),
                             Text(
@@ -1226,7 +1340,7 @@ class _BannerSliderState extends State<BannerSlider> {
                                   boxShadow: AppColors.glowShadow,
                                 ),
                                 child: Text(
-                                  app.t('استكشف الآن', 'Explore Now'),
+                                  app.t('ابدأ الاستكشاف', 'Start Exploring'),
                                   textDirection: app.dir,
                                   style: AppTypography.title(Colors.white),
                                 ),
@@ -1243,7 +1357,7 @@ class _BannerSliderState extends State<BannerSlider> {
             // أسهم التنقل باستخدام carousel controller
             Positioned(
               left: 12,
-              top: 90,
+              top: bannerHeight / 2 - 17,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _controller.previousPage(),
@@ -1252,7 +1366,7 @@ class _BannerSliderState extends State<BannerSlider> {
             ),
             Positioned(
               right: 12,
-              top: 90,
+              top: bannerHeight / 2 - 17,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _controller.nextPage(),
@@ -1361,6 +1475,26 @@ class SearchBar_ extends StatelessWidget {
                   ),
                 ),
               ),
+              SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (context) => ExploreScreen()),
+                ),
+                child: Container(
+                  width: 34,
+                  height: 34,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark2,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.tune_rounded,
+                    color: AppColors.textGrey,
+                    size: 17,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -1373,63 +1507,354 @@ class SearchBar_ extends StatelessWidget {
 class StatsRow extends StatelessWidget {
   const StatsRow({super.key});
 
+  static const _weekdaysAr = [
+    'الاثنين',
+    'الثلاثاء',
+    'الأربعاء',
+    'الخميس',
+    'الجمعة',
+    'السبت',
+    'الأحد',
+  ];
+  static const _weekdaysEn = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+    'Sunday',
+  ];
+  static const _monthsAr = [
+    'يناير',
+    'فبراير',
+    'مارس',
+    'أبريل',
+    'مايو',
+    'يونيو',
+    'يوليو',
+    'أغسطس',
+    'سبتمبر',
+    'أكتوبر',
+    'نوفمبر',
+    'ديسمبر',
+  ];
+  static const _monthsEn = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  static String _formattedDate(bool arabic) {
+    final now = DateTime.now();
+    final weekday = arabic
+        ? _weekdaysAr[now.weekday - 1]
+        : _weekdaysEn[now.weekday - 1];
+    final month = arabic ? _monthsAr[now.month - 1] : _monthsEn[now.month - 1];
+    return arabic
+        ? '$weekday، ${now.day} $month ${now.year}'
+        : '$weekday, $month ${now.day}, ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final mobile = isMobile(context);
+    const weatherCard = _WeatherStatCard();
+    const visitorsCard = _VisitorsStatCard();
+    final timeCard = _TimeStatCard(
+      dateText: _formattedDate(AppState.instance.isArabic),
+    );
+
+    if (mobile) {
+      // بعرض الهاتف: تمرير أفقي بعرض ثابت لكل بطاقة حتى ما ينقص النص أبدًا
+      return SizedBox(
+        height: 124,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+          scrollDirection: Axis.horizontal,
+          children: [
+            SizedBox(width: 240, child: weatherCard),
+            SizedBox(width: 14),
+            SizedBox(width: 190, child: visitorsCard),
+            SizedBox(width: 14),
+            SizedBox(width: 200, child: timeCard),
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+      // IntrinsicHeight بدل Row.crossAxisAlignment.stretch — الأخيرة بتحتاج
+      // ارتفاع محدود من الأب عشان "تمدّد" له، لكن هون الـ Row جوّا عمود
+      // بيتمرّر (SingleChildScrollView) يعطيه ارتفاع غير محدود (infinity)،
+      // وتمديد لارتفاع لانهائي بيرمي RenderFlex exception بصمت وبيوقف رسم
+      // كل اللي بعده بالصفحة. IntrinsicHeight بتقيس أطول بطاقة فعليًا
+      // وبتدي الكل نفس الارتفاع المحدود هذا، فبتحقق نفس التناسق بأمان.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: weatherCard),
+            SizedBox(width: 14),
+            Expanded(child: visitorsCard),
+            SizedBox(width: 14),
+            Expanded(child: timeCard),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherStatCard extends StatelessWidget {
+  const _WeatherStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final weather = app.weather;
+    final tempText = app.weatherLoading
+        ? '--'
+        : weather == null
+        ? app.t('غير متاح', 'N/A')
+        : '${weather.temperature.round()}°';
+    final condition = app.weatherLoading
+        ? app.t('جارِ التحميل...', 'Loading...')
+        : weather == null
+        ? ''
+        : (app.isArabic
+              ? weatherConditionFor(weather.weatherCode).descriptionAr
+              : weatherConditionFor(weather.weatherCode).descriptionEn);
+
+    return GlassContainer(
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => WeatherScreen())),
+      padding: EdgeInsets.all(14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(
+              Icons.wb_sunny_rounded,
+              color: AppColors.gold,
+              size: 22,
+            ),
+          ),
+          SizedBox(width: 10),
           Expanded(
-            child: Builder(
-              builder: (context) {
-                final app = AppState.instance;
-                final weather = app.weather;
-                final value = app.weatherLoading
-                    ? app.t('جارِ التحميل...', 'Loading...')
-                    : weather == null
-                    ? app.t('غير متاح', 'Unavailable')
-                    : app.isArabic
-                    ? weatherConditionFor(weather.weatherCode).descriptionAr
-                    : weatherConditionFor(weather.weatherCode).descriptionEn;
-                return StatCard(
-                  icon: Icons.wb_sunny,
-                  iconColor: AppColors.gold,
-                  titleAr: 'الطقس',
-                  titleEn: 'Weather',
-                  value: value,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (context) => WeatherScreen()),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  app.t('الطقس الآن', 'Weather Now'),
+                  textDirection: app.dir,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+                Text(
+                  tempText,
+                  style: AppTypography.title(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 21, fontWeight: FontWeight.w800),
+                ),
+                if (condition.isNotEmpty)
+                  Text(
+                    condition,
+                    textDirection: app.dir,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.caption(AppColors.textGrey),
                   ),
-                );
-              },
+              ],
             ),
           ),
-          SizedBox(width: 14),
+          if (weather != null) ...[
+            SizedBox(width: 6),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _WeatherMiniStat(
+                  value: '${weather.humidity}%',
+                  label: app.t('الرطوبة', 'Humidity'),
+                ),
+                SizedBox(height: 5),
+                _WeatherMiniStat(
+                  value: '${weather.windSpeed.round()}',
+                  label: app.t('كم/س الرياح', 'km/h Wind'),
+                ),
+                SizedBox(height: 5),
+                _WeatherMiniStat(
+                  value: '${weather.uvIndex.round()}',
+                  label: app.t('مؤشر UV', 'UV Index'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _WeatherMiniStat extends StatelessWidget {
+  final String value;
+  final String label;
+  const _WeatherMiniStat({required this.value, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            color: AppColors.textWhite,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        Text(
+          label,
+          textDirection: app.dir,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(color: AppColors.textGrey, fontSize: 8.5),
+        ),
+      ],
+    );
+  }
+}
+
+class _VisitorsStatCard extends StatelessWidget {
+  const _VisitorsStatCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    final count = app.visitorCount;
+    return GlassContainer(
+      padding: EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.purple.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(
+              Icons.people_rounded,
+              color: AppColors.purple,
+              size: 22,
+            ),
+          ),
+          SizedBox(width: 10),
           Expanded(
-            child: Builder(
-              builder: (context) {
-                final app = AppState.instance;
-                final count = app.visitorCount;
-                return StatCard(
-                  icon: Icons.people,
-                  iconColor: AppColors.purple,
-                  titleAr: 'إجمالي الزوار',
-                  titleEn: 'Total Visitors',
-                  value: count == null
-                      ? app.t('غير متاح', 'Unavailable')
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  app.t('إجمالي الزوار الآن', 'Total Visitors Now'),
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+                Text(
+                  count == null
+                      ? app.t('غير متاح', 'N/A')
                       : NumberFormat.decimalPattern().format(count),
-                );
-              },
+                  style: AppTypography.title(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 21, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  app.t('مستخدم نشط', 'active users'),
+                  textDirection: app.dir,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+              ],
             ),
           ),
-          SizedBox(width: 14),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimeStatCard extends StatelessWidget {
+  final String dateText;
+  const _TimeStatCard({required this.dateText});
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return GlassContainer(
+      padding: EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(
+              Icons.access_time_filled_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          SizedBox(width: 10),
           Expanded(
-            child: StatCard(
-              icon: Icons.access_time_filled,
-              iconColor: AppColors.primary,
-              titleAr: 'الوقت الآن',
-              titleEn: 'Current Time',
-              value: AppState.instance.currentTime,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  app.t('الوقت الآن', 'Current Time'),
+                  textDirection: app.dir,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+                Text(
+                  app.currentTime,
+                  style: AppTypography.title(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  dateText,
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption(AppColors.textGrey),
+                ),
+              ],
             ),
           ),
         ],
@@ -1458,22 +1883,22 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    return AppCard(
+    return GlassContainer(
       onTap: onTap,
       padding: EdgeInsets.all(16),
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: Icon(icon, color: iconColor, size: 20),
+            child: Icon(icon, color: iconColor, size: 26),
           ),
-          SizedBox(width: 10),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -1493,7 +1918,7 @@ class StatCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppTypography.title(
                     AppColors.textWhite,
-                  ).copyWith(fontSize: 18),
+                  ).copyWith(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -1513,72 +1938,35 @@ class CategoriesSection extends StatelessWidget {
       'labelAr': 'مطاعم',
       'labelEn': 'Restaurants',
       'icon': Icons.restaurant_rounded,
-      'color': AppColors.red,
-      'photoQuery': 'restaurant food table Nablus',
-      'localAsset': 'assets/images/category_icons/restaurants.jpg',
-      'boxName': 'restaurants',
     },
+    {'labelAr': 'فنادق', 'labelEn': 'Hotels', 'icon': Icons.bed_rounded},
     {
-      'labelAr': 'فنادق',
-      'labelEn': 'Hotels',
-      'icon': Icons.bed_rounded,
-      'color': AppColors.purple,
-      'photoQuery': 'hotel room bed Nablus',
-      'localAsset': 'assets/images/category_icons/hotels.jpg',
-      'boxName': 'hotels',
-    },
-    {
-      'labelAr': 'سياحة ومعالم',
+      'labelAr': 'معالم',
       'labelEn': 'Attractions',
       'icon': Icons.mosque_rounded,
-      'color': AppColors.gold,
-      'photoQuery': 'landmark old city alley Nablus',
-      'localAsset': 'assets/images/category_icons/attractions.jpg',
-      'boxName': 'attractions',
     },
     {
       'labelAr': 'تسوق',
       'labelEn': 'Shopping',
       'icon': Icons.shopping_bag_rounded,
-      'color': AppColors.primary,
-      'photoQuery': 'market shopping bags Nablus',
-      'localAsset': 'assets/images/category_icons/shopping.avif',
-      'boxName': 'shopping',
     },
     {
       'labelAr': 'مواصلات',
       'labelEn': 'Transport',
       'icon': Icons.directions_bus_rounded,
-      'color': AppColors.teal,
-      'photoQuery': 'bus station transport Nablus',
-      'localAsset': 'assets/images/category_icons/transport.png',
-      'boxName': 'transport',
     },
-    {
-      'labelAr': 'صحة',
-      'labelEn': 'Health',
-      'icon': Icons.favorite_rounded,
-      'color': AppColors.teal,
-      'photoQuery': 'hospital medical cross Nablus',
-      'localAsset': 'assets/images/category_icons/health.png',
-      'boxName': 'health',
-    },
+    {'labelAr': 'صحة', 'labelEn': 'Health', 'icon': Icons.favorite_rounded},
     {
       'labelAr': 'صيدليات',
       'labelEn': 'Pharmacies',
       'icon': Icons.local_pharmacy_rounded,
-      'color': AppColors.primary,
-      'photoQuery': 'pharmacy medicine shelves Nablus',
-      'localAsset': 'assets/images/category_icons/pharmacies.png',
-      'boxName': 'pharmacies',
     },
     {
-      'labelAr': 'المزيد',
-      'labelEn': 'More',
-      'icon': Icons.grid_view_rounded,
-      'color': AppColors.textGrey,
-      'boxName': 'more',
+      'labelAr': 'خدمات حكومية',
+      'labelEn': 'Gov Services',
+      'icon': Icons.account_balance_rounded,
     },
+    {'labelAr': 'المزيد', 'labelEn': 'More', 'icon': Icons.grid_view_rounded},
   ];
 
   @override
@@ -1602,22 +1990,13 @@ class CategoriesSection extends StatelessWidget {
                   child: Row(
                     children: items
                         .map(
-                          (item) => SizedBox(
-                            width: 76,
-                            child: CategoryTile(
-                              labelAr: item['labelAr'],
-                              labelEn: item['labelEn'],
-                              icon: item['icon'],
-                              color: item['color'],
-                              photoQuery: item['photoQuery'],
-                              localAsset: item['localAsset'],
-                              serverImageUrl: ApiService.categoryImageUrl(
-                                item['boxName'] as String,
-                              ),
-                              onTap: () => _onCategoryTap(
-                                context,
-                                item['labelAr'] as String,
-                              ),
+                          (item) => _HomeCategoryIcon(
+                            labelAr: item['labelAr'],
+                            labelEn: item['labelEn'],
+                            icon: item['icon'],
+                            onTap: () => _onCategoryTap(
+                              context,
+                              item['labelAr'] as String,
                             ),
                           ),
                         )
@@ -1625,23 +2004,16 @@ class CategoriesSection extends StatelessWidget {
                   ),
                 )
               : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: items
                       .map(
-                        (item) => Expanded(
-                          child: CategoryTile(
-                            labelAr: item['labelAr'],
-                            labelEn: item['labelEn'],
-                            icon: item['icon'],
-                            color: item['color'],
-                            photoQuery: item['photoQuery'],
-                            localAsset: item['localAsset'],
-                            serverImageUrl: ApiService.categoryImageUrl(
-                              item['boxName'] as String,
-                            ),
-                            onTap: () => _onCategoryTap(
-                              context,
-                              item['labelAr'] as String,
-                            ),
+                        (item) => _HomeCategoryIcon(
+                          labelAr: item['labelAr'],
+                          labelEn: item['labelEn'],
+                          icon: item['icon'],
+                          onTap: () => _onCategoryTap(
+                            context,
+                            item['labelAr'] as String,
                           ),
                         ),
                       )
@@ -1661,7 +2033,7 @@ class CategoriesSection extends StatelessWidget {
       Navigator.of(
         context,
       ).push(MaterialPageRoute(builder: (context) => HotelsScreen()));
-    } else if (label == 'سياحة ومعالم') {
+    } else if (label == 'معالم') {
       Navigator.of(context).push(
         MaterialPageRoute(builder: (context) => AttractionCategoriesScreen()),
       );
@@ -1699,14 +2071,95 @@ class CategoriesSection extends StatelessWidget {
   }
 }
 
+/// أيقونة تصنيف دائرية بسيطة (بدون صورة) — لصف "التصنيفات" بالصفحة الرئيسية
+/// فقط، بلون كهرماني موحّد لكل الأيقونات بدل تلوين مختلف لكل تصنيف، مطابقةً
+/// لهوية الثيم الكحلي/الكهرماني المطلوبة. شاشة "استكشف" لسا بتستخدم
+/// [CategoryTile] القديمة (بطاقة صورة) لأنها سياق تصفّح مختلف.
+class _HomeCategoryIcon extends StatefulWidget {
+  final String labelAr;
+  final String labelEn;
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _HomeCategoryIcon({
+    required this.labelAr,
+    required this.labelEn,
+    required this.icon,
+    this.onTap,
+  });
+
+  @override
+  State<_HomeCategoryIcon> createState() => _HomeCategoryIconState();
+}
+
+class _HomeCategoryIconState extends State<_HomeCategoryIcon> {
+  bool _pressed = false;
+  bool _hovering = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppState.instance;
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovering = true),
+      onExit: (_) => setState(() => _hovering = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.92 : (_hovering ? 1.05 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: SizedBox(
+            width: 76,
+            child: Column(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.cardDark2,
+                    border: Border.all(
+                      color: AppColors.primary.withValues(
+                        alpha: _hovering ? 0.55 : 0.25,
+                      ),
+                    ),
+                  ),
+                  child: Icon(widget.icon, color: AppColors.primary, size: 24),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  app.t(widget.labelAr, widget.labelEn),
+                  textDirection: app.dir,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.label(
+                    AppColors.textWhite,
+                  ).copyWith(fontWeight: FontWeight.w500, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CategoryTile extends StatefulWidget {
   final String labelAr;
   final String labelEn;
   final IconData icon;
   final Color color;
   final String? photoQuery;
-  final String? localAsset; // صورة ثابتة رفعها الأدمن يدويًا — لو موجودة ما تتغيّر ديناميكيًا
-  final String? serverImageUrl; // صورة تصنيف رفعها الأدمن من لوحة التحكم — لها الأولوية على الافتراضية
+  final String?
+  localAsset; // صورة ثابتة رفعها الأدمن يدويًا — لو موجودة ما تتغيّر ديناميكيًا
+  final String?
+  serverImageUrl; // صورة تصنيف رفعها الأدمن من لوحة التحكم — لها الأولوية على الافتراضية
+  final int? count; // عدد الأماكن الحقيقي بهذا التصنيف (لو معروف)
   final VoidCallback? onTap;
   const CategoryTile({
     super.key,
@@ -1717,6 +2170,7 @@ class CategoryTile extends StatefulWidget {
     this.photoQuery,
     this.localAsset,
     this.serverImageUrl,
+    this.count,
     this.onTap,
   });
 
@@ -1829,6 +2283,17 @@ class _CategoryTileState extends State<CategoryTile> {
                   AppColors.textWhite,
                 ).copyWith(fontWeight: FontWeight.w500),
               ),
+              if (widget.count != null) ...[
+                SizedBox(height: 2),
+                Text(
+                  app.t('${widget.count} مكان', '${widget.count} places'),
+                  textDirection: app.dir,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.caption(
+                    AppColors.textGrey,
+                  ).copyWith(fontSize: 9.5),
+                ),
+              ],
             ],
           ),
         ),
@@ -1947,7 +2412,9 @@ class FavoritePlacesSection extends StatelessWidget {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const VisitHistoryScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const VisitHistoryScreen(),
+                ),
               ),
               child: Padding(
                 padding: EdgeInsets.only(top: 4),
@@ -1955,7 +2422,11 @@ class FavoritePlacesSection extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   textDirection: app.dir,
                   children: [
-                    Icon(Icons.history_rounded, size: 13, color: AppColors.textGrey),
+                    Icon(
+                      Icons.history_rounded,
+                      size: 13,
+                      color: AppColors.textGrey,
+                    ),
                     SizedBox(width: 4),
                     Text(
                       app.t('سجل الزيارات', 'Visit History'),
@@ -1996,7 +2467,7 @@ class FavoritePlacesSection extends StatelessWidget {
                   SizedBox(height: 2),
                   Text(
                     app.t(
-                      'اضغطي على أيقونة القلب بأي مكان لإضافته هنا',
+                      'اضغط على أيقونة القلب بأي مكان لإضافته هنا',
                       'Tap the heart icon on any place to add it here',
                     ),
                     textDirection: app.dir,
@@ -2087,6 +2558,7 @@ class PlaceCard extends StatelessWidget {
     final shownSubtitle = app.isArabic ? subtitle : (subtitleEn ?? subtitle);
     return AppCard(
       padding: EdgeInsets.zero,
+      radius: AppRadius.xl,
       onTap: () {
         Navigator.of(context).push(
           MaterialPageRoute(
@@ -2110,9 +2582,9 @@ class PlaceCard extends StatelessWidget {
               ThemedImage(
                 query: guessPhotoQuery(subtitle, title),
                 fallbackSeed: title,
-                height: 100,
+                height: 140,
                 borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(AppRadius.lg),
+                  top: Radius.circular(AppRadius.xl),
                 ),
                 localAsset: image,
                 customImageBase64: customImageBase64,
@@ -2737,21 +3209,21 @@ class FooterSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: AppColors.primaryGradient),
-                borderRadius: BorderRadius.circular(8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/branding/logo_icon.png',
+                width: 34,
+                height: 34,
+                fit: BoxFit.cover,
               ),
-              child: Icon(Icons.location_city, color: Colors.white, size: 16),
             ),
             SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
+                  'NabliGo',
                   textDirection: app.dir,
                   style: TextStyle(
                     color: AppColors.textWhite,
@@ -2760,7 +3232,7 @@ class FooterSection extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  app.t('دليلك السياحي الذكي', 'Your Smart City Guide'),
+                  app.t('استكشف نابلس', 'Explore Nablus'),
                   style: TextStyle(color: AppColors.textGrey, fontSize: 9),
                 ),
               ],
@@ -2806,20 +3278,22 @@ class FooterSection extends StatelessWidget {
           ),
         ),
         SizedBox(height: 10),
-        ContactRow(icon: Icons.phone, text: '+970 59 123 4567'),
+        ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
         SizedBox(height: 8),
-        ContactRow(icon: Icons.email, text: 'info@nablus-guide.com'),
+        ContactRow(icon: Icons.email, text: 's12144433@stu.najah.edu'),
         SizedBox(height: 8),
         ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
         SizedBox(height: 10),
         Row(
           children: [
-            SocialIcon(icon: Icons.facebook, url: 'https://facebook.com'),
-            SocialIcon(icon: Icons.camera_alt, url: 'https://instagram.com'),
-            SocialIcon(icon: Icons.alternate_email, url: 'https://twitter.com'),
             SocialIcon(
-              icon: Icons.play_circle_fill,
-              url: 'https://youtube.com',
+              icon: Icons.facebook,
+              url: 'https://www.facebook.com/share/1PEdrJJzja/?mibextid=wwXIfr',
+            ),
+            SocialIcon(
+              icon: Icons.camera_alt,
+              url:
+                  'https://www.instagram.com/m.aseedeh?igsh=MTFpdXI2eHU4ajk5cw%3D%3D&utm_source=qr',
             ),
           ],
         ),

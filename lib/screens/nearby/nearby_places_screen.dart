@@ -3,11 +3,13 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../home/home_screen.dart'; // لإعادة استخدام AppState و AppColors
 import '../../widgets/themed_image.dart';
+import '../../widgets/empty_state.dart';
 import '../common/detail_screen.dart';
 import '../places/all_places_screen.dart';
 import '../map/map_screen.dart' show resolveMapPoint;
 import '../../services/location_service.dart';
 import '../../theme/app_typography.dart';
+import '../../widgets/skeleton_card.dart';
 
 const List<String> _nearbyCategoryOrder = [
   'all',
@@ -272,7 +274,10 @@ class _NearbyPlacesScreenState extends State<NearbyPlacesScreen> {
 
   Widget _buildBody(AppState app) {
     if (_locating) {
-      return Center(child: CircularProgressIndicator(color: AppColors.primary));
+      return SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: SkeletonGrid(isGridView: false, count: 6),
+      );
     }
     if (_error != null) {
       return Center(
@@ -305,11 +310,9 @@ class _NearbyPlacesScreenState extends State<NearbyPlacesScreen> {
     }
     final nearby = _nearby;
     if (nearby.isEmpty) {
-      return Center(
-        child: Text(
-          app.t('لا توجد نتائج بهذا التصنيف', 'No results in this category'),
-          style: AppTypography.body(AppColors.textGrey),
-        ),
+      return EmptyState(
+        titleAr: 'لا توجد نتائج بهذا التصنيف',
+        titleEn: 'No results in this category',
       );
     }
     return ListView.builder(

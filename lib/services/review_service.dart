@@ -56,7 +56,7 @@ class ReviewService {
     );
   }
 
-  /// بترجع null لو نجح، أو رسالة خطأ عربية لو فشل (تشمل حالة "لازم تسجّلي دخول")
+  /// بترجع null لو نجح، أو رسالة خطأ عربية لو فشل (تشمل حالة "لازم تسجّل دخول")
   Future<String?> submitReview({
     required String placeType,
     required String placeNameEn,
@@ -65,7 +65,7 @@ class ReviewService {
   }) async {
     final token = AuthService.instance.userToken;
     if (token == null) {
-      return 'لازم تسجّلي دخول بحساب حقيقي حتى تقدري تكتبي تقييم';
+      return 'لازم تسجّل دخول بحساب حقيقي حتى تقدر تكتب تقييم';
     }
     final result = await ApiService.submitReview(
       token: token,
@@ -75,7 +75,7 @@ class ReviewService {
       comment: comment,
     );
     if (result['ok'] == true) return null;
-    if (result['unreachable'] == true) return 'تعذّر الوصول للسيرفر — تأكدي إنك متصلة بالإنترنت';
+    if (result['unreachable'] == true) return 'تعذّر الوصول للسيرفر — تأكد إنك متصل بالإنترنت';
     return result['error'] as String? ?? 'فشل إرسال التقييم';
   }
 

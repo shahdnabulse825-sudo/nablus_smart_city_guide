@@ -20,11 +20,16 @@ class AboutUsScreen extends StatelessWidget {
               height: 80,
               margin: EdgeInsets.only(bottom: 24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: AppColors.primaryGradient),
                 borderRadius: BorderRadius.circular(22),
                 boxShadow: AppColors.glowShadow,
               ),
-              child: Icon(Icons.location_city_rounded, color: Colors.white, size: 38),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: Image.asset(
+                  'assets/images/branding/logo_icon.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
             ),
           ),
           InfoSection(

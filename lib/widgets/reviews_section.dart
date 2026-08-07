@@ -243,7 +243,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
         SizedBox(width: 8),
         Expanded(
           child: Text(
-            app.t('سجّلي دخول حتى تقدري تقيّمي هذا المكان', 'Log in to rate this place'),
+            app.t('سجّل دخول حتى تقدر تقيّم هذا المكان', 'Log in to rate this place'),
             textDirection: app.dir,
             style: AppTypography.body(AppColors.textGrey).copyWith(fontSize: 12),
           ),

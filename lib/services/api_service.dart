@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'local_db_service.dart';
@@ -17,9 +18,14 @@ class ApiService {
   /// نفسه). بباقي المنصات (ويندوز/iOS Simulator) localhost شغال عادي لأنها نفس
   /// الجهاز فعليًا. لو جرّبتي على موبايل حقيقي متوصّل بالشبكة، لازم تستبدليه
   /// بعنوان IP جهاز السيرفر بالشبكة (مثلاً http://192.168.1.5:4000/api).
-  static String get baseUrl => Platform.isAndroid
-      ? 'http://10.0.2.2:4000/api'
-      : 'http://localhost:4000/api';
+  static String get baseUrl {
+    // dart:io Platform ما إلها تنفيذ عالويب — لازم نتفحّص kIsWeb أول شي قبل
+    // أي استخدام لـ Platform.* حتى ما يرمي استثناء ويوقف كل طلبات السيرفر.
+    if (kIsWeb) return 'http://localhost:4000/api';
+    return Platform.isAndroid
+        ? 'http://10.0.2.2:4000/api'
+        : 'http://localhost:4000/api';
+  }
 
   static const Duration _timeout = Duration(seconds: 3);
 
@@ -372,6 +378,54 @@ class ApiService {
 
   static Future<Map<String, dynamic>> userLogin(String email, String password) =>
       _authRequest('login', {'email': email, 'password': password});
+
+  /// تعديل الاسم/البريد/كلمة المرور لحساب مستخدم حقيقي مسجّل دخول. نفس صيغة
+  /// النتيجة الموحّدة المستخدمة بباقي طلبات الحساب أعلاه.
+  static Future<Map<String, dynamic>> updateProfile({
+    required String token,
+    String? name,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    try {
+      final body = <String, String>{};
+      if (name != null) body['name'] = name;
+      if (email != null) body['email'] = email;
+      if (currentPassword != null) body['currentPassword'] = currentPassword;
+      if (newPassword != null) body['newPassword'] = newPassword;
+      final res = await http
+          .put(
+            Uri.parse('$baseUrl/auth/profile'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
+      final decoded = jsonDecode(res.body);
+      if (res.statusCode == 200 &&
+          decoded is Map &&
+          decoded['token'] is String &&
+          decoded['user'] is Map) {
+        final user = decoded['user'] as Map;
+        return {
+          'ok': true,
+          'token': decoded['token'],
+          'name': user['name'],
+          'email': user['email'],
+        };
+      }
+      return {
+        'ok': false,
+        'error': (decoded is Map ? decoded['error'] as String? : null) ??
+            'فشل تعديل الحساب',
+      };
+    } catch (_) {
+      return {'ok': false, 'unreachable': true};
+    }
+  }
 
   static Future<bool?> checkEmailExists(String email) async {
     try {

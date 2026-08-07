@@ -7,8 +7,8 @@ import 'app_typography.dart';
 /// الافتراضية (الخط، الأزرار، الحقول...) اللي بترث منها كل الودجات تلقائيًا.
 class AppTheme {
   static ThemeData dark() {
-    const bg = Color(0xFF0A0E1A);
-    const textColor = Color(0xFFF5F6FA);
+    const bg = Color(0xFF08131F);
+    const textColor = Color(0xFFF7F9FC);
     return ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: bg,
@@ -34,7 +34,7 @@ class AppTheme {
         ),
       ),
       iconTheme: const IconThemeData(color: textColor),
-      dividerColor: const Color(0xFF283350),
+      dividerColor: Colors.white.withValues(alpha: 0.08),
       // انتقال ناعم وموحّد بين كل الصفحات على كل المنصات، بدل الانتقال الافتراضي
       // المختلف حسب النظام — يشمل تلقائيًا كل استخدامات MaterialPageRoute بالمشروع.
       pageTransitionsTheme: const PageTransitionsTheme(
