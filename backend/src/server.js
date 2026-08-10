@@ -23,6 +23,7 @@ const feedbackRoutes = require('./routes/feedback');
 const checkpointsRoutes = require('./routes/checkpoints');
 const trafficAlertsRoutes = require('./routes/trafficAlerts');
 const promotionsRoutes = require('./routes/promotions');
+const subscriptionRoutes = require('./routes/subscription');
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/checkpoints', checkpointsRoutes);
 app.use('/api/traffic-alerts', trafficAlertsRoutes);
 app.use('/api/promotions', promotionsRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // معالج أخطاء عام (يلتقط أخطاء multer، وفشل الاتصال بقاعدة البيانات، وأي استثناء غير متوقع بالراوترات)
 app.use((err, req, res, next) => {

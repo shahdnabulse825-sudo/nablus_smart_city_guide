@@ -5,6 +5,9 @@ import '../nearby/nearby_places_screen.dart';
 import '../restaurants/restaurants_screen.dart';
 import '../transport/transport_screen.dart';
 import '../weather/weather_screen.dart';
+import '../ai_assistant/day_planner_screen.dart';
+import '../attractions/tour_narrator_screen.dart';
+import '../subscription/premium_screen.dart';
 import '../../widgets/responsive.dart';
 
 /// صف إجراءات سريعة أفقي أسفل شريط البحث — اختصارات لأكثر الأشياء استخدامًا
@@ -65,6 +68,33 @@ class QuickActionsRow extends StatelessWidget {
         onTap: () => Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (context) => WeatherScreen())),
+      ),
+      _QuickAction(
+        icon: Icons.explore_rounded,
+        color: AppColors.purple,
+        labelAr: 'خطط يومك',
+        labelEn: 'Plan Day',
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => DayPlannerScreen())),
+      ),
+      _QuickAction(
+        icon: Icons.auto_stories_rounded,
+        color: AppColors.coral,
+        labelAr: 'راوي الجولات',
+        labelEn: 'Tour Narrator',
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => TourNarratorScreen())),
+      ),
+      _QuickAction(
+        icon: Icons.workspace_premium_rounded,
+        color: AppColors.gold,
+        labelAr: 'بريميوم',
+        labelEn: 'Premium',
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const PremiumScreen())),
       ),
     ];
     if (!isMobile(context)) {

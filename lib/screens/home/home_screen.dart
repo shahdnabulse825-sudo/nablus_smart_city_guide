@@ -628,7 +628,7 @@ class _ExpandedSideBarContent extends StatelessWidget {
                 SizedBox(height: 12),
                 ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
                 SizedBox(height: 10),
-                ContactRow(icon: Icons.email, text: 's12144433@stu.najah.edu'),
+                ContactRow(icon: Icons.email, text: 'nabligo860@gmail.com'),
                 SizedBox(height: 10),
                 ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
                 SizedBox(height: 14),
@@ -2352,22 +2352,29 @@ class SectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        Spacer(),
-        Row(
-          textDirection: TextDirection.rtl,
-          children: [
-            if (emoji != null) ...[
-              Text(emoji!, style: const TextStyle(fontSize: 18)),
-              SizedBox(width: 6),
+        SizedBox(width: 8),
+        Expanded(
+          child: Row(
+            textDirection: TextDirection.rtl,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (emoji != null) ...[
+                Text(emoji!, style: const TextStyle(fontSize: 18)),
+                SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  title,
+                  textDirection: app.dir,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.headline(
+                    AppColors.textWhite,
+                  ).copyWith(fontSize: 18),
+                ),
+              ),
             ],
-            Text(
-              title,
-              textDirection: app.dir,
-              style: AppTypography.headline(
-                AppColors.textWhite,
-              ).copyWith(fontSize: 18),
-            ),
-          ],
+          ),
         ),
       ],
     );
@@ -3280,7 +3287,7 @@ class FooterSection extends StatelessWidget {
         SizedBox(height: 10),
         ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
         SizedBox(height: 8),
-        ContactRow(icon: Icons.email, text: 's12144433@stu.najah.edu'),
+        ContactRow(icon: Icons.email, text: 'nabligo860@gmail.com'),
         SizedBox(height: 8),
         ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
         SizedBox(height: 10),

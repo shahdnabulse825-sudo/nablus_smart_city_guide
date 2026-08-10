@@ -18,6 +18,7 @@ import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/weather_service.dart';
 import '../../services/api_service.dart';
+import '../../services/auth_service.dart';
 import '../../services/location_service.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/app_toggle_bar.dart';
@@ -839,6 +840,7 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
       text,
       history: recentHistory,
       lang: lang,
+      token: AuthService.instance.userToken,
     );
     if (!mounted) return;
     ChatMessage reply;
@@ -856,6 +858,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             ? null
             : _liveEvents.where((e) => e.titleEn == eventTitleEn).firstOrNull,
       );
+    } else if (apiResult['quotaExceeded'] == true) {
+      // وصلت حصة اليوم المجانية — بنعرض رسالة السيرفر الصريحة بدل الرجوع
+      // للردود المحلية القديمة (يلي رح تبان كأنها جاوبت عادي وتخفي المشكلة).
+      final quotaMsg = (apiResult['error'] as String?) ??
+          AppState.instance.t(
+            'وصلتِ حد الاستخدام المجاني اليوم — اشتركي بالبريميوم لاستخدام غير محدود',
+            "You've hit today's free usage limit — subscribe to Premium for unlimited use",
+          );
+      reply = ChatMessage(textAr: quotaMsg, textEn: quotaMsg, isUser: false);
     } else {
       reply = _generateReply(text);
     }

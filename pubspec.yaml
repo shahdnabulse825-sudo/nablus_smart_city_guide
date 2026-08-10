@@ -28,6 +28,7 @@ dependencies:
   geolocator: ^13.0.2
   share_plus: ^10.1.4
   path_provider: ^2.1.4
+  audioplayers: ^5.2.1
   record: ^4.4.4
   image_picker: ^1.1.2
   exif: ^3.3.0
@@ -36,6 +37,14 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+
+# نسخة محلية معدّلة من audioplayers_windows (نفس 3.1.0 الأصلية + فلاغ /await
+# بملف CMake) — بدونها البناء عالويندوز بيفشل بخطأ ترجمة C++ (coroutines) مع
+# نسخة Visual Studio 2019 المثبّتة عالجهاز. لازم تضل هون حتى تشتغل عند أي حدا
+# يسحب المشروع، مش بس عالجهاز اللي صلّحناها فيه.
+dependency_overrides:
+  audioplayers_windows:
+    path: third_party/audioplayers_windows
 
 flutter:
   uses-material-design: true

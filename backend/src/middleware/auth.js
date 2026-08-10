@@ -29,4 +29,23 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { signToken, requireAuth, requireAdmin };
+/// زي requireAuth بس بدون ما يرفض الطلب لو ما في توكن — بيعبّي req.user لو
+/// موجود ورمز صالح، وبيتركه null غير هيك (زائر/ضيف). تُستخدم بمسارات المساعد
+/// الذكي اللي لازم تشتغل للضيوف كمان، بس بتحتاج تعرف هوية المستخدم المسجّل
+/// (لو موجود) حتى تربط حد الاستخدام اليومي والاشتراك بحسابه.
+function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+  } catch (e) {
+    req.user = null;
+  }
+  next();
+}
+
+module.exports = { signToken, requireAuth, requireAdmin, optionalAuth };

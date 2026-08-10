@@ -744,16 +744,23 @@ class ApiService {
   /// بترجع {ok:true, textAr, textEn, placeNameEn, eventTitleEn} لو نجح، أو
   /// {ok:false} لو تعذّر الوصول أو المساعد مش مُفعّل بعد — الشاشة بترجع بهاي
   /// الحالة تلقائيًا للردود المحلية القديمة (_generateReply) بدل ما توقف.
+  /// [token] اختياري — لو موجود (مستخدم مسجّل دخول) بيربط السيرفر الطلب بحسابه
+  /// حتى يحسب حصته اليومية المجانية ويتأكد إذا كان مشتركًا Premium (بدون حد).
+  /// الضيوف (بدون توكن) بيضلوا يقدروا يستخدموا المساعد عادي، بس بدون تتبع حصة.
   static Future<Map<String, dynamic>> askAiAssistant(
     String message, {
     List<Map<String, String>> history = const [],
     String lang = 'ar',
+    String? token,
   }) async {
     try {
       final res = await http
           .post(
             Uri.parse('$baseUrl/ai-chat'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
             body: jsonEncode({
               'message': message,
               'history': history,
@@ -761,7 +768,20 @@ class ApiService {
             }),
           )
           .timeout(const Duration(seconds: 25));
-      if (res.statusCode != 200) return {'ok': false};
+      if (res.statusCode != 200) {
+        String? serverError;
+        try {
+          final decoded = jsonDecode(res.body);
+          if (decoded is Map) serverError = decoded['error'] as String?;
+        } catch (_) {}
+        // 429 = وصلت الحصة اليومية المجانية — رسالة واضحة بدل خطأ عام، حتى
+        // تقدر الواجهة تعرضها وتقترح الاشتراك بالبريميوم بدل ما ترجع لردود محلية.
+        return {
+          'ok': false,
+          'quotaExceeded': res.statusCode == 429,
+          'error': serverError,
+        };
+      }
       final decoded = jsonDecode(res.body);
       if (decoded is! Map) return {'ok': false};
       return {
@@ -799,6 +819,96 @@ class ApiService {
       if (decoded is! Map) return null;
       final text = decoded['text'] as String?;
       return (text == null || text.trim().isEmpty) ? null : text.trim();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// يحوّل نص (زي قصة راوي الجولات) لصوت حقيقي (Orpheus عبر Groq) — يرجّع
+  /// {ok:true, bytes} لو نجح، أو {ok:false, error} برسالة سبب الفشل الحقيقية
+  /// (مثلاً "وصلنا الحد اليومي") بدل رسالة عامة، لو السيرفر رجّعها.
+  static Future<Map<String, dynamic>> textToSpeech(String text, {String? token}) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/ai-chat/speak'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (token != null) 'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'text': text}),
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) return {'ok': true, 'bytes': res.bodyBytes};
+      String? serverError;
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map) serverError = decoded['error'] as String?;
+      } catch (_) {}
+      return {'ok': false, 'quotaExceeded': res.statusCode == 429, 'error': serverError};
+    } catch (_) {
+      return {'ok': false, 'error': null};
+    }
+  }
+
+  // ==================== اشتراك Premium للمساعد الذكي ====================
+  /// {isPremium, textUsedToday, voiceUsedToday, textLimit, voiceLimit} أو null
+  /// لو تعذّر الوصول للسيرفر.
+  static Future<Map<String, dynamic>?> getSubscriptionStatus(String token) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/subscription/status'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? decoded.cast<String, dynamic>() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// "دفع" وهمي بالكامل (لا توجد بوابة دفع حقيقية بهذا المشروع) — يفعّل ميزة
+  /// واحدة محددة فورًا بعد تأكيد شاشة الدفع الوهمية. [feature] هي 'text' أو
+  /// 'voice' أو 'priority' (كل وحدة تُشترى لحالها بسعرها الخاص). يرجّع حالة
+  /// الاشتراكات الثلاثة الجديدة.
+  static Future<Map<String, dynamic>?> subscribeToFeature(String token, String feature) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/subscription/upgrade'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'feature': feature}),
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? decoded.cast<String, dynamic>() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> cancelFeature(String token, String feature) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/subscription/cancel'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'feature': feature}),
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      return decoded is Map ? decoded.cast<String, dynamic>() : null;
     } catch (_) {
       return null;
     }

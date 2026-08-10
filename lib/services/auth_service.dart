@@ -16,6 +16,11 @@ class AuthService {
   bool isAdmin = false;
   String? adminToken; // JWT حقيقي من السيرفر — لازم لأي عملية إضافة/تعديل/حذف بلوحة الأدمن
   String? userToken; // JWT حقيقي من السيرفر لحساب مستخدم عادي (favorites/feedback sync...)
+  // ثلاث اشتراكات منفصلة (à la carte) بالمساعد الذكي — كل وحدة تُشترى لحالها
+  // (يُحدَّثوا من السيرفر، افتراضيًا false).
+  bool premiumText = false; // أسئلة نصية غير محدودة (وبيفتح كمان حد مخطط الرحلة وراوي الجولات)
+  bool premiumVoice = false; // استماع صوتي غير محدود
+  bool premiumPriority = false; // النموذج الأقوى بكل الأسئلة
 
   String _hash(String input) {
     return sha256.convert(utf8.encode(input)).toString();
@@ -42,6 +47,20 @@ class AuthService {
       'name': currentUserName,
       'token': userToken,
     });
+    await refreshPremiumStatus();
+  }
+
+  /// يجيب حالة الاشتراكات الثلاثة الحقيقية من السيرفر ويحدّثها — يتجاهل الفشل
+  /// بصمت (سيرفر مقفول/بدون إنترنت) ويبقي آخر قيمة معروفة كما هي.
+  Future<void> refreshPremiumStatus() async {
+    final token = userToken;
+    if (token == null) return;
+    final status = await ApiService.getSubscriptionStatus(token);
+    if (status != null) {
+      premiumText = status['premiumText'] as bool? ?? false;
+      premiumVoice = status['premiumVoice'] as bool? ?? false;
+      premiumPriority = status['premiumPriority'] as bool? ?? false;
+    }
   }
 
   /// يعدّل اسم/بريد/كلمة مرور حساب المستخدم الحالي (لازم يكون مسجّل دخول
@@ -208,6 +227,7 @@ class AuthService {
           currentUserEmail = email;
           currentUserName = session['name'] as String?;
           userToken = token;
+          refreshPremiumStatus(); // غير منتظرة عمدًا — restoreSession متزامنة، بتحدّث isPremium بالخلفية
           break;
         }
         // جلسة قديمة محلية بالكامل (من قبل ما صار عنا حسابات سيرفر حقيقية)
@@ -229,6 +249,9 @@ class AuthService {
     isAdmin = false;
     adminToken = null;
     userToken = null;
+    premiumText = false;
+    premiumVoice = false;
+    premiumPriority = false;
     await LocalDbService.instance.clearSession();
   }
 

@@ -19,6 +19,22 @@ model User {
   passwordHash String
   role         String   @default("user") // "user" | "admin"
   createdAt    DateTime @default(now())
+
+  // ثلاث اشتراكات Premium منفصلة (à la carte) للمساعد الذكي — كل وحدة تُشترى
+  // لحالها بسعرها الخاص (لا يوجد بوابة دفع حقيقية بهذا المشروع الأكاديمي،
+  // "دفع وهمي" بالكامل يُفعّل الحقل المناسب مباشرة لغرض العرض التوضيحي):
+  // premiumText: أسئلة نصية غير محدودة (بيفتح كمان حد مخطط الرحلة وراوي
+  // الجولات، لأنهم بيستخدموا نفس حصة النص). premiumVoice: استماع صوتي غير
+  // محدود. premiumPriority: يضمن استخدام النموذج الأقوى بكل الأسئلة، مش بس
+  // بتخطيط الرحلة/الرواية.
+  premiumText     Boolean @default(false)
+  premiumVoice    Boolean @default(false)
+  premiumPriority Boolean @default(false)
+  // عداد استخدام يومي للمستخدم المجاني (نص/صوت) — يُصفَّر تلقائيًا كل ما يتغيّر
+  // aiUsageDate عن تاريخ اليوم الحالي، بدل جدولة مهمة صفر منفصلة.
+  aiTextCount  Int      @default(0)
+  aiVoiceCount Int      @default(0)
+  aiUsageDate  String   @default("")
 }
 
 // ==================== الأماكن العامة (مواصلات، صحة، تعليم، بنوك، ترفيه، حكومي فقط) ====================
