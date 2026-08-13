@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/wikimedia_service.dart';
+import '../services/unsplash_service.dart';
 
 /// يفتح الصورة بحجم كامل مع إمكانية التكبير/التصغير باللمس، ويُغلق بالضغط
 /// على الخلفية أو زر الإغلاق. استخدمها بأي مكان عندك فيه ThemedImage رئيسية
@@ -162,7 +163,7 @@ class _ThemedImageState extends State<ThemedImage> {
   @override
   void initState() {
     super.initState();
-    _maybeFetchFromWikimedia();
+    _fetchPhoto();
   }
 
   @override
@@ -170,16 +171,38 @@ class _ThemedImageState extends State<ThemedImage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.query != widget.query) {
       _fetchedUrl = null;
-      _maybeFetchFromWikimedia();
+      _fetchPhoto();
     }
   }
 
-  void _maybeFetchFromWikimedia() {
-    if (!widget.tryRealPhoto || _hasOwnImage || widget.query.isEmpty) return;
-    WikimediaService.instance.getPhotoUrl(widget.query).then((url) {
-      if (!mounted || url == null) return;
-      setState(() => _fetchedUrl = url);
-    });
+  /// يجرّب صورة حقيقية بترتيب أولوية:
+  /// 1. Wikimedia بحث دقيق (فقط لو [tryRealPhoto] مفعّلة — لمعالم حقيقية معروفة بالاسم)
+  /// 2. Unsplash (لو مفتاحه مُفعّل) — لأي مضمون وصفي عام، مثل فعاليات أو أطباق
+  /// 3. Wikimedia بحث عام (بدون أي مفتاح API) — احتياطي أخير لأي مضمون وصفي
+  ///    لو Unsplash مش مُفعّل أو فشل، أفضل من عدم عرض أي صورة حقيقية أبدًا
+  Future<void> _fetchPhoto() async {
+    if (_hasOwnImage || widget.query.isEmpty) return;
+
+    if (widget.tryRealPhoto) {
+      final wikiUrl = await WikimediaService.instance.getPhotoUrl(widget.query);
+      if (wikiUrl != null) {
+        if (mounted) setState(() => _fetchedUrl = wikiUrl);
+        return;
+      }
+    }
+
+    if (UnsplashService.instance.isConfigured) {
+      final unsplashUrl = await UnsplashService.instance.getPhotoUrl(widget.query);
+      if (unsplashUrl != null) {
+        if (mounted) setState(() => _fetchedUrl = unsplashUrl);
+        return;
+      }
+    }
+
+    final fallbackWikiUrl = await WikimediaService.instance.getPhotoUrl(widget.query);
+    if (fallbackWikiUrl != null && mounted) {
+      setState(() => _fetchedUrl = fallbackWikiUrl);
+    }
   }
 
   @override

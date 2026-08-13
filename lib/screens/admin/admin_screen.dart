@@ -736,6 +736,82 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
+  // مفاتيح الأقسام (boxName) اللي عم يترفعلها/يتحذفلها صورة حاليًا — لعرض مؤشر تحميل بمكانها بس
+  final Set<String> _uploadingCategoryImageFor = {};
+
+  /// يفتح منتقي صور ويرفع صورة غلاف جديدة لتصنيف كامل (تعليم/تسوق/...) — تظهر
+  /// فورًا لكل المستخدمين بدل الصورة الافتراضية الجاهزة بالتطبيق.
+  Future<void> _pickAndUploadCategoryImage(
+    BuildContext context,
+    String boxName,
+  ) async {
+    final app = AppState.instance;
+    final token = AuthService.instance.adminToken;
+    if (token == null) {
+      _showSnack(
+        context,
+        app.t(
+          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
+          'Session expired — please log in as admin again',
+        ),
+      );
+      return;
+    }
+    final result = await FilePicker.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+    final file = result?.files.single;
+    if (file?.bytes == null) return;
+
+    setState(() => _uploadingCategoryImageFor.add(boxName));
+    final status = await ApiService.uploadCategoryImage(
+      token,
+      boxName,
+      file!.bytes!,
+      file.name,
+    );
+    await ApiService.syncCategoryImages();
+    if (!mounted) return;
+    setState(() => _uploadingCategoryImageFor.remove(boxName));
+    if (!context.mounted) return;
+    if (status >= 200 && status < 300) {
+      _showSnack(
+        context,
+        app.t('تم تحديث صورة القسم', 'Category image updated'),
+        isError: false,
+      );
+    } else {
+      _showSnack(
+        context,
+        app.t(
+          'فشل رفع الصورة — تأكد إنه السيرفر شغال',
+          'Upload failed — make sure the server is running',
+        ),
+      );
+    }
+  }
+
+  /// يحذف صورة الغلاف المخصّصة لتصنيف ويرجّعه للصورة الافتراضية الجاهزة بالتطبيق.
+  Future<void> _resetCategoryImage(BuildContext context, String boxName) async {
+    final app = AppState.instance;
+    final token = AuthService.instance.adminToken;
+    if (token == null) return;
+    setState(() => _uploadingCategoryImageFor.add(boxName));
+    final ok = await ApiService.deleteCategoryImage(token, boxName);
+    await ApiService.syncCategoryImages();
+    if (!mounted) return;
+    setState(() => _uploadingCategoryImageFor.remove(boxName));
+    if (!context.mounted) return;
+    _showSnack(
+      context,
+      ok
+          ? app.t('تمت استعادة الصورة الافتراضية', 'Reset to default image')
+          : app.t('فشلت العملية — تأكد إنه السيرفر شغال', 'Operation failed — make sure the server is running'),
+      isError: !ok,
+    );
+  }
+
   int _countFor(String boxName) =>
       LocalDbService.instance.getAll(boxName).length;
 
@@ -1340,6 +1416,50 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                                   ),
                                                 ),
                                               ],
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 8,
+                                            left: 8,
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onTap: () =>
+                                                  _pickAndUploadCategoryImage(
+                                                    context,
+                                                    s['boxName'] as String,
+                                                  ),
+                                              onLongPress: () =>
+                                                  _resetCategoryImage(
+                                                    context,
+                                                    s['boxName'] as String,
+                                                  ),
+                                              child: Container(
+                                                padding: EdgeInsets.all(6),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.55),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child:
+                                                    _uploadingCategoryImageFor
+                                                        .contains(
+                                                          s['boxName'],
+                                                        )
+                                                    ? SizedBox(
+                                                        width: 14,
+                                                        height: 14,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color: Colors.white,
+                                                        ),
+                                                      )
+                                                    : Icon(
+                                                        Icons
+                                                            .camera_alt_rounded,
+                                                        color: Colors.white,
+                                                        size: 14,
+                                                      ),
+                                              ),
                                             ),
                                           ),
                                         ],
