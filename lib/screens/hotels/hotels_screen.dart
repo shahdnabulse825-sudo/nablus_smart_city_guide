@@ -1637,21 +1637,30 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                 ),
                               ),
                               SizedBox(width: 8),
-                              Text(
-                                '(${h.reviews} ${app.t('تقييم', 'reviews')})',
-                                style: TextStyle(
-                                  color: AppColors.textGrey,
-                                  fontSize: 11,
+                              Flexible(
+                                child: Text(
+                                  '(${h.reviews} ${app.t('تقييم', 'reviews')})',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.textGrey,
+                                    fontSize: 11,
+                                  ),
                                 ),
                               ),
                               Spacer(),
-                              Text(
-                                priceInfo,
-                                textDirection: app.dir,
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
+                              Flexible(
+                                child: Text(
+                                  priceInfo,
+                                  textDirection: app.dir,
+                                  textAlign: TextAlign.end,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ],

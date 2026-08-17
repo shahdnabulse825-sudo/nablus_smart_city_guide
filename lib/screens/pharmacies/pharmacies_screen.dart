@@ -197,6 +197,7 @@ final List<PharmacyData> pharmaciesSeedData = [
         'صيدلية داخل مستشفى النجاح الوطني الجامعي، تعمل على مدار الساعة لخدمة المرضى والأقسام المختلفة.',
     aboutEn:
         'A pharmacy inside An-Najah National University Hospital, operating around the clock to serve patients and departments.',
+    phone: '09-2331471',
     lat: 32.239066,
     lng: 35.247876,
     image: 'assets/images/pharmaces/najah.jpeg',

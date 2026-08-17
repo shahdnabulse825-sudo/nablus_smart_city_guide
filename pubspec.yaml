@@ -37,6 +37,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
 
 # نسخة محلية معدّلة من audioplayers_windows (نفس 3.1.0 الأصلية + فلاغ /await
 # بملف CMake) — بدونها البناء عالويندوز بيفشل بخطأ ترجمة C++ (coroutines) مع
@@ -45,6 +46,12 @@ dev_dependencies:
 dependency_overrides:
   audioplayers_windows:
     path: third_party/audioplayers_windows
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/branding/logo_icon.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

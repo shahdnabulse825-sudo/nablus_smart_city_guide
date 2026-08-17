@@ -23,7 +23,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "W Restaurant",
@@ -48,7 +50,9 @@
       "phone": "+970 59 736 7788",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "1948 Restaurant",
@@ -73,7 +77,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Ward Restaurant & Café",
@@ -98,7 +104,9 @@
       "phone": "+970 9 234 8573",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Rexos Café & Restaurant",
@@ -123,7 +131,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Pardo Café",
@@ -148,7 +158,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Veranda Café",
@@ -173,7 +185,9 @@
       "phone": "+970 9 235 5778",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Lemon W Nana",
@@ -198,7 +212,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Cedarz Gelato & Coffee House",
@@ -223,7 +239,9 @@
       "phone": "+970 594 802 121",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "غلوريا جينز",
@@ -248,7 +266,9 @@
       "phone": "+970 593 555 111",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "تري هاوس كافيه",
@@ -273,7 +293,9 @@
       "phone": "+970 597 831 061",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "ع الطريق - فرع الدوار",
@@ -298,7 +320,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "الدجاج الملكي فرايزر - شارع فيصل",
@@ -323,7 +347,9 @@
       "phone": "+970 1700 250 250",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "الدجاج الملكي فرايزر - شارع سفيان",
@@ -348,7 +374,9 @@
       "phone": "+970 1700 250 250",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "شاورما الشاطر حسن",
@@ -373,7 +401,9 @@
       "phone": "+970 9 231 5222",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بوبايز فلسطين - سيتي مول نابلس",
@@ -398,7 +428,9 @@
       "phone": "+970 1700 808 080",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "تريو شاورما",
@@ -423,7 +455,9 @@
       "phone": "+970 9 236 7614",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "أورجادا برجرز",
@@ -448,7 +482,9 @@
       "phone": "+972 9 235 7166",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "90s Burger",
@@ -473,7 +509,9 @@
       "phone": "+970 9 235 9090",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "هارت أتاك - جلطة",
@@ -498,7 +536,9 @@
       "phone": "+970 59 566 5960",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيتزا تايم",
@@ -523,7 +563,9 @@
       "phone": "+970 9 234 3440",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فريزدي",
@@ -548,7 +590,9 @@
       "phone": "+970 595 687 077",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "كنافة الأقصى",
@@ -573,7 +617,9 @@
       "phone": "+970 9 237 6412",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "أبو سير للحلويات",
@@ -598,7 +644,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "حلويات بوابة البيك - رفيديا",
@@ -623,7 +671,9 @@
       "phone": "+970 9 238 4644",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "حلويات السرايا",
@@ -648,7 +698,9 @@
       "phone": "+970 9 259 1414",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "حلويات أبو صالحة",
@@ -673,7 +725,9 @@
       "phone": "+970 9 234 1561",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "حلويات أبو صالحة - فرع الدوار",
@@ -698,7 +752,9 @@
       "phone": "+970 9 238 2325",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيتزا إن فلسطين",
@@ -723,7 +779,9 @@
       "phone": "+970 9 235 6936",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "Mono Pizza",
@@ -748,7 +806,9 @@
       "phone": "+970 9 235 5655",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيتزا هاوس",
@@ -773,7 +833,9 @@
       "phone": "+970 9 235 2121",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيتزا تايم",
@@ -798,7 +860,9 @@
       "phone": "+970 1700 202 020",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مطبخ العمدة",
@@ -823,7 +887,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مطعم وفرن الخليلي",
@@ -848,7 +914,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مطعم فتة وعجة",
@@ -873,7 +941,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مطعم كان ياما كان",
@@ -898,7 +968,9 @@
       "phone": "",
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     }
   ],
   "hotels": [
@@ -937,7 +1009,9 @@
       "isFeatured": true,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فندق خان الوكالة",
@@ -973,7 +1047,9 @@
       "isFeatured": true,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فندق الأجنحة الملكية",
@@ -1009,7 +1085,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فندق يلدز بالاس",
@@ -1046,7 +1124,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيت ضيافة تركواز",
@@ -1080,7 +1160,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فندق الياسمين",
@@ -1114,7 +1196,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيت ضيافة سوفان",
@@ -1149,7 +1233,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فندق سليم أفندي",
@@ -1184,7 +1270,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "سكن ديمة",
@@ -1217,7 +1305,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "سكن لين للطالبات",
@@ -1250,7 +1340,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "إسكان النور",
@@ -1283,7 +1375,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     }
   ],
   "pharmacies": [
@@ -1309,7 +1403,9 @@
       "isFeatured": true,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية ليان",
@@ -1335,7 +1431,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية الضميدي",
@@ -1361,7 +1459,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية الفيحاء",
@@ -1387,7 +1487,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية خريم",
@@ -1413,7 +1515,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية رفيديا",
@@ -1439,7 +1543,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية مستشفى النجاح الوطني الجامعي",
@@ -1465,7 +1571,9 @@
       "isFeatured": false,
       "lat": 32.239066,
       "lng": 35.247876,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية المستقبل",
@@ -1489,7 +1597,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية غازي",
@@ -1515,7 +1625,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "صيدلية نور اليوسف",
@@ -1541,7 +1653,9 @@
       "isFeatured": false,
       "lat": null,
       "lng": null,
-      "serverImageUrl": null
+      "serverImageUrl": null,
+      "apiId": null,
+      "ownerEmail": ""
     }
   ],
   "attractions": [
@@ -1977,7 +2091,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "",
-      "website": "https://www.facebook.com/CityMallPS/"
+      "website": "https://www.facebook.com/CityMallPS/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "سوق البلدة القديمة",
@@ -2002,7 +2118,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "",
-      "website": ""
+      "website": "",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "ريد روز فاشن",
@@ -2027,7 +2145,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "fashion",
-      "website": "https://www.facebook.com/RedRoseNablus/"
+      "website": "https://www.facebook.com/RedRoseNablus/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "السيد للألبسة",
@@ -2052,7 +2172,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "fashion",
-      "website": "https://www.facebook.com/ALSayedfashion/"
+      "website": "https://www.facebook.com/ALSayedfashion/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "شوك فاشن",
@@ -2077,7 +2199,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "fashion",
-      "website": "https://www.instagram.com/sok_fashion_ps/"
+      "website": "https://www.instagram.com/sok_fashion_ps/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "ميلانو للأحذية والحقائب",
@@ -2102,7 +2226,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "shoes",
-      "website": "https://www.facebook.com/milano.shoes.nablus0/"
+      "website": "https://www.facebook.com/milano.shoes.nablus0/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "لايكي شوز",
@@ -2127,7 +2253,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "shoes",
-      "website": "https://www.laykishoes.ps/"
+      "website": "https://www.laykishoes.ps/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيبلوس للأحذية والشنط",
@@ -2152,7 +2280,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "shoes",
-      "website": "https://www.facebook.com/peploes.shoes/"
+      "website": "https://www.facebook.com/peploes.shoes/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "جيوكس - بيت الرياضة",
@@ -2177,7 +2307,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "shoes",
-      "website": ""
+      "website": "",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "يا هلا للاتصالات",
@@ -2202,7 +2334,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "electronics",
-      "website": ""
+      "website": "",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "أبو زهرة الكترونيك",
@@ -2227,7 +2361,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "electronics",
-      "website": "https://www.facebook.com/ABU.ZAHRA.ELECTRONICS/"
+      "website": "https://www.facebook.com/ABU.ZAHRA.ELECTRONICS/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "تكنولاب",
@@ -2252,7 +2388,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "electronics",
-      "website": "https://www.facebook.com/technolab.electronics/"
+      "website": "https://www.facebook.com/technolab.electronics/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "محلات نبالشي التجارية",
@@ -2277,7 +2415,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "cosmetics",
-      "website": "https://www.facebook.com/nibalshi/"
+      "website": "https://www.facebook.com/nibalshi/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "فلورمار",
@@ -2302,7 +2442,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "cosmetics",
-      "website": "https://www.instagram.com/flormar_ps/"
+      "website": "https://www.instagram.com/flormar_ps/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "لايف ستايل",
@@ -2327,7 +2469,9 @@
       "lng": 35.2628,
       "serverImageUrl": null,
       "subCategory": "cosmetics",
-      "website": "https://lifestyle.ps/"
+      "website": "https://lifestyle.ps/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "بيرفيومري سامي الشكعة",
@@ -2352,7 +2496,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "cosmetics",
-      "website": "https://www.instagram.com/perfumerysami/"
+      "website": "https://www.instagram.com/perfumerysami/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مجوهرات حواء",
@@ -2377,7 +2523,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "jewelry",
-      "website": "https://www.facebook.com/hawwa.jewelry/"
+      "website": "https://www.facebook.com/hawwa.jewelry/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "دايموند سنتر للمجوهرات",
@@ -2402,7 +2550,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "jewelry",
-      "website": "https://www.instagram.com/diamond_center17/"
+      "website": "https://www.instagram.com/diamond_center17/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مكتبة النصر - الحجاوي",
@@ -2427,7 +2577,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "books",
-      "website": "https://www.alhijjawi.ps/"
+      "website": "https://www.alhijjawi.ps/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مكتبة الكمال",
@@ -2452,7 +2604,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "books",
-      "website": "https://www.facebook.com/alkamal.bookshop/"
+      "website": "https://www.facebook.com/alkamal.bookshop/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مكتبة الإتحاد",
@@ -2477,7 +2631,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "books",
-      "website": "https://www.facebook.com/AL.ITIHAD.BOOKSHOP/"
+      "website": "https://www.facebook.com/AL.ITIHAD.BOOKSHOP/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "مدفع لاند",
@@ -2502,7 +2658,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "entertainment",
-      "website": "https://www.facebook.com/MadfaaLand/"
+      "website": "https://www.facebook.com/MadfaaLand/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "لالا لاند",
@@ -2527,7 +2685,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "entertainment",
-      "website": "https://www.facebook.com/kids.lalaland/"
+      "website": "https://www.facebook.com/kids.lalaland/",
+      "apiId": null,
+      "ownerEmail": ""
     },
     {
       "nameAr": "جابر لاند",
@@ -2552,7 +2712,9 @@
       "lng": null,
       "serverImageUrl": null,
       "subCategory": "entertainment",
-      "website": "https://www.facebook.com/JaberLandNablus/"
+      "website": "https://www.facebook.com/JaberLandNablus/",
+      "apiId": null,
+      "ownerEmail": ""
     }
   ]
 }

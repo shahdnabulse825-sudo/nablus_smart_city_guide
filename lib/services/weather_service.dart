@@ -11,23 +11,29 @@ class WeatherCondition {
 }
 
 WeatherCondition weatherConditionFor(int code) {
-  if (code == 0)
+  if (code == 0) {
     return const WeatherCondition('صافٍ', 'Clear sky', Icons.wb_sunny);
-  if (code == 1)
+  }
+  if (code == 1) {
     return const WeatherCondition(
       'صافٍ غالبًا',
       'Mainly clear',
       Icons.wb_sunny,
     );
-  if (code == 2)
+  }
+  if (code == 2) {
     return const WeatherCondition(
       'غائم جزئيًا',
       'Partly cloudy',
       Icons.wb_cloudy,
     );
-  if (code == 3) return const WeatherCondition('غائم', 'Overcast', Icons.cloud);
-  if (code == 45 || code == 48)
+  }
+  if (code == 3) {
+    return const WeatherCondition('غائم', 'Overcast', Icons.cloud);
+  }
+  if (code == 45 || code == 48) {
     return const WeatherCondition('ضباب', 'Fog', Icons.foggy);
+  }
   if (code >= 51 && code <= 57) {
     return const WeatherCondition('رذاذ خفيف', 'Drizzle', Icons.grain);
   }

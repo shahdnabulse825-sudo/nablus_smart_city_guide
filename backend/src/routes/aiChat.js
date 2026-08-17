@@ -576,41 +576,43 @@ router.post('/', optionalAuth, async (req, res) => {
     isTourNarration: tourNarration,
   });
 
-  // allam-2-7b: نموذج مخصّص للعربي (SDAIA) — جرّبنا Llama عبر Groq/Hugging Face
-  // قبله وطلع رده العربي مشوّه (رموز استفهام بدل الحروف) بسبب quantization،
-  // بعكس هاد الموديل اللي بيرجع عربي سليم دايمًا.
+  // allam-2-7b موديل خفيف عربي موثوق للمحادثة العادية، بس ضعيف بتعليمات معقّدة
+  // (زي بناء جدول رحلة أو نسج قصة سردية من كذا حقيقة) وبيرجع رد عام مكانها.
+  // لهيك بالمهمّتين المعقّدتين (تخطيط رحلة / رواية قصة)، وكمان لمشتركي "أولوية
+  // الاستجابة" (premiumPriority) بكل الأسئلة، منستخدم qwen/qwen3.6-27b (أقوى
+  // موديل متاح حاليًا على Groq بتتبع التعليمات — استبدلنا llama-3.3-70b-versatile
+  // بعد ما Groq حذفته من الخدمة نهائيًا). هاد الموديل "reasoning" — بيفكر بخطوات
+  // داخلية قبل ما يجاوب، وهاي الخطوات بتاكل من نفس حصة max_tokens. لازم
+  // reasoning_format:'hidden' حتى ما يسرب تفكيره الخام (غالبًا إنجليزي/مبعثر)
+  // جوا الرد، وmax_tokens كبيرة كفاية حتى ما يخلص التفكير الحصة كلها ويطلع رد
+  // فاضي أو مقطوع — جرّبنا 700 وبعدها 1800 وطلعوا فاضيين/مقطوعين لهالسبب
+  // بالضبط، تخطيط رحلة معقّد لاحظنا وصل تفكيره لـ~2000 توكن لحاله قبل ما يبلش
+  // يكتب الرد الفعلي.
+  const useStrongModel = tripPlanning || tourNarration || quota.premiumPriority;
+  const groqBody = {
+    model: useStrongModel
+      ? (process.env.GROQ_TRIP_MODEL || 'qwen/qwen3.6-27b')
+      : (process.env.GROQ_MODEL || 'allam-2-7b'),
+    messages: [
+      { role: 'system', content: systemPrompt },
+      ...history,
+      { role: 'user', content: message },
+    ],
+    max_tokens: useStrongModel ? 4000 : 400,
+    // حرارة أعلى شوي لتخطيط الرحلة/الرواية حتى يختار ويصيغ بتنويع أكتر بدل
+    // ما يميل دايمًا لنفس الخيار "الآمن" — العادي يضل منخفض حتى يضل دقيق
+    // بالإجابات الواقعية (أسعار، مواقع...).
+    temperature: (tripPlanning || tourNarration) ? 0.8 : 0.4,
+  };
+  if (useStrongModel) groqBody.reasoning_format = 'hidden';
+
   const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      // allam-2-7b موديل خفيف عربي موثوق للمحادثة العادية، بس ضعيف بتعليمات
-      // معقّدة (زي بناء جدول رحلة أو نسج قصة سردية من كذا حقيقة) وبيرجع رد عام
-      // مكانها. لهيك بالمهمّتين المعقّدتين (تخطيط رحلة / رواية قصة) منستخدم
-      // llama-3.3-70b-versatile (أقوى بكتير بتتبع التعليمات، وجرّبناه عربي
-      // نظيف بدون تشويه — بعكس نسخة Llama الأصغر/المضغوطة اللي جربناها قبل).
-      // مشتركي "أولوية الاستجابة" (premiumPriority) بياخدوا نفس الموديل الأقوى
-      // بكل الأسئلة العادية كمان، مش بس بتخطيط الرحلة/الرواية — هاي القيمة
-      // الحقيقية القابلة للعرض وراء هاد الاشتراك (مش طابور شبكي فعلي، ما في
-      // بنية تحتية لهيك شي بمشروع بهالحجم).
-      model: (tripPlanning || tourNarration || quota.premiumPriority)
-        ? (process.env.GROQ_TRIP_MODEL || 'llama-3.3-70b-versatile')
-        : (process.env.GROQ_MODEL || 'allam-2-7b'),
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...history,
-        { role: 'user', content: message },
-      ],
-      // برنامج يوم كامل أو قصة سردية أطول من رد عادي — بنعطيهم مساحة أكبر حتى
-      // ما ينقطعوا بنص الطريق.
-      max_tokens: (tripPlanning || tourNarration) ? 700 : 400,
-      // حرارة أعلى شوي لتخطيط الرحلة/الرواية حتى يختار ويصيغ بتنويع أكتر بدل
-      // ما يميل دايمًا لنفس الخيار "الآمن" — العادي يضل منخفض حتى يضل دقيق
-      // بالإجابات الواقعية (أسعار، مواقع...).
-      temperature: (tripPlanning || tourNarration) ? 0.8 : 0.4,
-    }),
+    body: JSON.stringify(groqBody),
   });
 
   if (!groqRes.ok) {

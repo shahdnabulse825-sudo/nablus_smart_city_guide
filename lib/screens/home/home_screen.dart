@@ -307,7 +307,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 FadeSlideIn(child: BannerSlider()),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 60),
-                  child: SearchBar_(),
+                  child: AppSearchBar(),
                 ),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 100),
@@ -816,13 +816,17 @@ class SideSectionTitle extends StatelessWidget {
           child: Icon(icon, size: 16, color: iconBg),
         ),
         SizedBox(width: 8),
-        Text(
-          app.t(titleAr, titleEn),
-          textDirection: app.dir,
-          style: TextStyle(
-            color: AppColors.textWhite,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+        Expanded(
+          child: Text(
+            app.t(titleAr, titleEn),
+            textDirection: app.dir,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: AppColors.textWhite,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -931,22 +935,33 @@ class StoreButton extends StatelessWidget {
           border: Border.all(color: AppColors.borderColor),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: Colors.white, size: 20),
             SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(line1, style: TextStyle(color: Colors.white70, fontSize: 8)),
-                Text(
-                  line2,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    line1,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white70, fontSize: 8),
                   ),
-                ),
-              ],
+                  Text(
+                    line2,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1086,9 +1101,28 @@ class TopBar extends StatelessWidget {
           ),
           SizedBox(width: 16),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: navItems,
+            // على نوافذ ديسكتوب أضيق (لابتوبات ~1366-1440px) مجموع عناصر
+            // القائمة الست بعرضها الطبيعي (خصوصًا "المساعد الذكي"/"AI
+            // Assistant" الطويلة) ممكن يتجاوز المساحة المتاحة ويرمي
+            // RenderFlex overflow. ConstrainedBox(minWidth) + Center جوا
+            // السكرول بيخلوها توضّل بالنص لما المساحة كافية (بدل ما تلزق
+            // عالطرف زي سكرول عادي)، وبس لما فعلًا ما تكفي بتصير قابلة
+            // للتمرير الأفقي بدل ما ترمي خطأ.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                    child: Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: navItems,
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
           SizedBox(width: 16),
@@ -1465,8 +1499,8 @@ class _BannerSliderState extends State<BannerSlider> {
 }
 
 // ==================== شريط البحث ====================
-class SearchBar_ extends StatelessWidget {
-  const SearchBar_({super.key});
+class AppSearchBar extends StatelessWidget {
+  const AppSearchBar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -1625,9 +1659,11 @@ class StatsRow extends StatelessWidget {
     );
 
     if (mobile) {
-      // بعرض الهاتف: تمرير أفقي بعرض ثابت لكل بطاقة حتى ما ينقص النص أبدًا
+      // بعرض الهاتف: تمرير أفقي بعرض ثابت لكل بطاقة حتى ما ينقص النص أبدًا.
+      // الارتفاع 148 (مش 124) حتى يتّسع لبطاقة الطقس بعد ما تجيب بياناتها
+      // الحقيقية (رطوبة/رياح/UV تحت درجة الحرارة) بدون overflow.
       return SizedBox(
-        height: 124,
+        height: 148,
         child: ListView(
           padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
           scrollDirection: Axis.horizontal,
@@ -2433,7 +2469,7 @@ class SectionHeader extends StatelessWidget {
 
 // ==================== الأماكن المفضلة ====================
 class FavoritePlacesSection extends StatelessWidget {
-  FavoritePlacesSection({super.key});
+  const FavoritePlacesSection({super.key});
 
   @override
   Widget build(BuildContext context) {

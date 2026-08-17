@@ -103,6 +103,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'يشتهر بالمشاوي والأطباق الشعبية المشوية على الفحم بنكهة مميزة.',
     aboutEn:
         'Known for grilled traditional dishes and charcoal-grilled meats with a distinctive flavor.',
+    phone: '+970 599 653 719',
     image: 'assets/images/restaurants/tanoreen.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFB5651D),
@@ -144,6 +145,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'يجمع بين نكهات المطبخ الفلسطيني التقليدي وتقديم عصري مميز.',
     aboutEn:
         'Blends traditional Palestinian flavors with a distinctive modern presentation.',
+    phone: '+970 566 118 118',
     image: 'assets/images/restaurants/1948_restaurant.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFFB33A2E),
@@ -186,6 +188,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'يقدم قائمة متنوعة من الأطباق الشرقية والمشروبات في أجواء عصرية.',
     aboutEn:
         'Offers a diverse menu of Eastern dishes and drinks in a contemporary atmosphere.',
+    phone: '+970 9 233 8833',
     image: 'assets/images/restaurants/food_spread_platters.jpg',
     placeholderIcon: Icons.restaurant,
     placeholderColor: Color(0xFF9C6B30),
@@ -206,6 +209,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'كافيه عصري بديكور أنيق ومساحة مناسبة للعمل والاجتماعات.',
     aboutEn:
         'A modern café with stylish décor and a comfortable space for work and meetings.',
+    phone: '+970 599 666 621',
     image: 'assets/images/restaurants/pardo_cafe.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFFA85E2C),
@@ -246,6 +250,7 @@ final List<RestaurantData> restaurantsSeedData = [
     time: '10 دقيقة',
     aboutAr: 'معروف بمشروباته المنعشة القائمة على الليمون والنعناع.',
     aboutEn: 'Known for its refreshing lemon-and-mint based drinks.',
+    phone: '+970 599 100 772',
     image: 'assets/images/restaurants/lemon_w_nana.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFF8E5B3F),
@@ -327,6 +332,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'كافيه شعبي بسيط قريب من الدوار يقدم القهوة والمشروبات اليومية.',
     aboutEn:
         'A simple neighborhood café near Al-Dawar serving coffee and daily drinks.',
+    phone: '+970 1700 777 000',
     image: 'assets/images/restaurants/3altareeq_coffee.jpg',
     placeholderIcon: Icons.coffee,
     placeholderColor: Color(0xFF9C6644),
@@ -576,6 +582,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'من أقدم محلات الحلويات في نابلس، يشتهر بالكنافة والمفروكة.',
     aboutEn:
         "One of Nablus's oldest sweet shops, known for kunafa and mafrouka.",
+    phone: '+970 9 235 1115',
     image: 'assets/images/restaurants/abu_seir_sweets.jpg',
     placeholderIcon: Icons.cake,
     placeholderColor: Color(0xFF8E5B3F),
@@ -765,6 +772,7 @@ final List<RestaurantData> restaurantsSeedData = [
         'يشتهر بتقديم الأكلات الشعبية الفلسطينية والمناسف الأصيلة بنكهة بيتية مميزة.',
     aboutEn:
         'Known for serving authentic Palestinian traditional dishes and Mansaf with a distinctive homemade flavor.',
+    phone: '+970 56 800 080',
     image: 'assets/images/restaurants/al_omda_kitchen.jpg',
     placeholderIcon: Icons.dinner_dining,
     placeholderColor: Color(0xFFA0522D),
@@ -788,6 +796,7 @@ final List<RestaurantData> restaurantsSeedData = [
         'يقدم أشهى الأكلات الشعبية البلدية والمشاوي وفطور الصباح الطازج يوميًا.',
     aboutEn:
         'Serves delicious traditional local dishes, grills, and fresh daily breakfast.',
+    phone: '+970 9 236 0227',
     image: 'assets/images/restaurants/al_khalili_pizza.jpg',
     placeholderIcon: Icons.outdoor_grill,
     placeholderColor: Color(0xFF8B5E3C),
@@ -811,6 +820,7 @@ final List<RestaurantData> restaurantsSeedData = [
         'متخصص في الفطور الشعبي كالحمص والفول والفلافل وأنواع الفتة الشهية.',
     aboutEn:
         'Specializes in traditional breakfast dishes like hummus, fava beans, falafel, and various fatteh.',
+    phone: '+970 599 066 871',
     image: 'assets/images/restaurants/vegetable_kebba_platter.jpg',
     placeholderIcon: Icons.free_breakfast,
     placeholderColor: Color(0xFF6B4226),
@@ -831,6 +841,7 @@ final List<RestaurantData> restaurantsSeedData = [
     aboutAr: 'يقدم أطباقًا شهية من المأكولات الشعبية والشرقية بلمسة تقليدية.',
     aboutEn:
         'Offers delicious traditional and Eastern dishes with an authentic touch.',
+    phone: '+970 594 888 869',
     image: 'assets/images/restaurants/kan_ya_ma_kan.jpg',
     placeholderIcon: Icons.restaurant_menu,
     placeholderColor: Color(0xFFB5651D),
@@ -950,7 +961,6 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
 
   bool _loaded = false;
   List<RestaurantData> _liveRestaurants = [];
-  List<dynamic> _keys = [];
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -977,17 +987,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     await ApiService.syncRestaurants();
     final entries = db.getAll('restaurants');
     setState(() {
-      _keys = entries.map((e) => e.key).toList();
       _liveRestaurants = entries.map((e) => mapToRestaurant(e.value)).toList();
       _loaded = true;
-    });
-  }
-
-  void _refreshFromDb() {
-    final entries = LocalDbService.instance.getAll('restaurants');
-    setState(() {
-      _keys = entries.map((e) => e.key).toList();
-      _liveRestaurants = entries.map((e) => mapToRestaurant(e.value)).toList();
     });
   }
 
@@ -1131,6 +1132,23 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
     );
   }
 
+  // رسالة خاصة لزر الاتصال لما المطعم ناقصه رقم هاتف بالبيانات — مختلفة عن
+  // "قيد التطوير" (اللي معناها الميزة نفسها مش جاهزة بعد) لأن ميزة الاتصال
+  // شغالة فعليًا، بس هاد المطعم بالذات ما عنا رقمه لسا.
+  void _showPhoneUnavailable(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppState.instance.t(
+            'رقم الهاتف غير متوفر لهذا المطعم حاليًا',
+            'Phone number not available for this restaurant yet',
+          ),
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
@@ -1156,10 +1174,17 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
         final selected = filteredList.isEmpty
             ? null
             : filteredList[selectedIndex.clamp(0, filteredList.length - 1)];
+        final mobile = isMobile(context);
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
+            // على الموبايل الشريط بيروح لأسفل الشاشة (زر تنقّل ثابت بمتناول
+            // الإبهام) بدل أعلى المحتوى القابل للتمرير، حتى يضل ظاهر ومتاح
+            // دايمًا بدل ما يضيع فوق مع أول سكرول.
+            bottomNavigationBar: mobile
+                ? _TopNav(onComingSoon: _showComingSoon)
+                : null,
             body: KeyboardScrollable(
               controller: _scrollController,
               child: SingleChildScrollView(
@@ -1167,7 +1192,7 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _TopNav(onComingSoon: _showComingSoon),
+                    if (!mobile) _TopNav(onComingSoon: _showComingSoon),
                     _Banner(),
                     Padding(
                       padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
@@ -1314,8 +1339,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
                                                 );
                                             setState(() {});
                                           },
-                                          onShowSnack: (label) =>
-                                              _showComingSoon(context, label),
+                                          onShowSnack: (_) =>
+                                              _showPhoneUnavailable(context),
                                         ),
                                 ),
                               ],
@@ -1410,10 +1435,17 @@ class _RestaurantCategoriesScreenState
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
+        final mobile = isMobile(context);
         return Directionality(
           textDirection: TextDirection.ltr,
           child: Scaffold(
             backgroundColor: AppColors.bgDark,
+            // على الموبايل الشريط بيروح لأسفل الشاشة (زر تنقّل ثابت بمتناول
+            // الإبهام) بدل أعلى المحتوى القابل للتمرير، حتى يضل ظاهر ومتاح
+            // دايمًا بدل ما يضيع فوق مع أول سكرول.
+            bottomNavigationBar: mobile
+                ? _TopNav(onComingSoon: _showComingSoon)
+                : null,
             body: KeyboardScrollable(
               controller: _scrollController,
               child: SingleChildScrollView(
@@ -1421,7 +1453,7 @@ class _RestaurantCategoriesScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _TopNav(onComingSoon: _showComingSoon),
+                    if (!mobile) _TopNav(onComingSoon: _showComingSoon),
                     _Banner(),
                     Padding(
                       padding: EdgeInsets.all(isMobile(context) ? 16 : 24),
@@ -1702,14 +1734,14 @@ class _TopNav extends StatelessWidget {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: AppColors.primaryGradient),
-                borderRadius: BorderRadius.circular(10),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.asset(
+                'assets/images/branding/logo_icon.png',
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
               ),
-              child: Icon(Icons.location_city, color: Colors.white, size: 20),
             ),
           ),
           if (!mobile) ...[
@@ -1718,7 +1750,7 @@ class _TopNav extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  app.t('دليل نابلس الذكي', 'Nablus Smart Guide'),
+                  'NabliGo',
                   textDirection: app.dir,
                   style: TextStyle(
                     color: AppColors.textWhite,
@@ -1727,13 +1759,22 @@ class _TopNav extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Nablus Smart City Guide',
+                  app.t('استكشف نابلس', 'Explore Nablus'),
                   style: TextStyle(color: AppColors.textGrey, fontSize: 9),
                 ),
               ],
             ),
             Spacer(),
-            ...navItems,
+            // على نوافذ ديسكتوب أضيق (~1366-1440px) مجموع عناصر التنقّل
+            // الثمانية بعرضها الطبيعي بيتجاوز المساحة المتاحة ويرمي
+            // RenderFlex overflow — نفس حل الفرع الموبايل تحت (تمرير أفقي)
+            // بدل ما نفترض إنها دايمًا هتلاقي مساحة كافية.
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(children: navItems),
+              ),
+            ),
             Spacer(),
           ] else
             Expanded(
@@ -2609,30 +2650,41 @@ class _RestaurantCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      data.priceRange,
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
+                    Flexible(
+                      child: Text(
+                        data.priceRange,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time,
-                          size: 11,
-                          color: AppColors.textGrey,
-                        ),
-                        SizedBox(width: 3),
-                        Text(
-                          data.time,
-                          style: TextStyle(
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 11,
                             color: AppColors.textGrey,
-                            fontSize: 10,
                           ),
-                        ),
-                      ],
+                          SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              data.time,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: AppColors.textGrey,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -2976,10 +3028,12 @@ class _DetailPanel extends StatelessWidget {
                       color: AppColors.textGrey,
                     ),
                     SizedBox(width: 4),
-                    Text(
-                      location,
-                      textDirection: app.dir,
-                      style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                    Expanded(
+                      child: Text(
+                        location,
+                        textDirection: app.dir,
+                        style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+                      ),
                     ),
                   ],
                 ),
