@@ -1053,15 +1053,23 @@ class TopBar extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         color: AppColors.sidebarDark,
         child: Row(
+          // start (مش center) حتى أيقونة الشحطات تنزل لتحت عن باقي عناصر
+          // الشريط (اللوجو والإشعارات) بدل ما تسحبهم معها لتحت.
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (onMenuTap != null)
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: onMenuTap,
-                child: Icon(
-                  Icons.menu_rounded,
-                  size: 22,
-                  color: AppColors.textWhite,
+              // بادينغ فوق الأيقونة بمقدار ~1 سم (63 بكسل منطقي) حتى تنزل
+              // شوي لتحت وتصير أسهل بالضغط عليها.
+              Padding(
+                padding: const EdgeInsets.only(top: 63),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onMenuTap,
+                  child: Icon(
+                    Icons.menu_rounded,
+                    size: 22,
+                    color: AppColors.textWhite,
+                  ),
                 ),
               ),
             SizedBox(width: 12),
@@ -1082,7 +1090,12 @@ class TopBar extends StatelessWidget {
               ).copyWith(fontSize: 16),
             ),
             Spacer(),
-            trailingControls,
+            // نفس مقدار نزول أيقونة الشحطات (~1 سم) حتى الإشعارات والإعدادات
+            // تصير بنفس الصف السفلي وأسهل بالضغط عليها.
+            Padding(
+              padding: const EdgeInsets.only(top: 63),
+              child: trailingControls,
+            ),
           ],
         ),
       );
