@@ -148,6 +148,8 @@ class _NearbyPlacesScreenState extends State<NearbyPlacesScreen> {
           customImageBase64: p.customImageBase64,
           localAsset: p.image,
           placeType: p.categoryKey,
+          apiId: p.apiId,
+          ownerEmail: p.ownerEmail,
         ),
       ),
     );

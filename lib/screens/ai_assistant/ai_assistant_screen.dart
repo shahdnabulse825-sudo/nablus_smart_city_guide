@@ -985,6 +985,8 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
           locationEn: p.locationEn,
           customImageBase64: p.customImageBase64,
           placeType: p.categoryKey,
+          apiId: p.apiId,
+          ownerEmail: p.ownerEmail,
         ),
       ),
     );

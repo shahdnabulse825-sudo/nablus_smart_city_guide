@@ -57,6 +57,7 @@ export '../../widgets/app_card.dart' show AppCard;
 import '../../widgets/themed_image.dart';
 import '../../services/weather_service.dart';
 import '../weather/weather_screen.dart';
+import '../../services/local_db_service.dart';
 
 // ==================== إدارة الحالة العامة (الثيم / اللغة / العملات / الوقت) ====================
 class AppState extends ChangeNotifier {
@@ -78,6 +79,14 @@ class AppState extends ChangeNotifier {
   bool isArabic = true;
   void toggleLanguage() {
     isArabic = !isArabic;
+    notifyListeners();
+  }
+
+  // ---------- شريط الأخبار المتحرك بالصفحة الرئيسية ----------
+  bool hideNewsTicker = LocalDbService.instance.getBoolSetting('hideNewsTicker');
+  Future<void> toggleNewsTicker() async {
+    hideNewsTicker = !hideNewsTicker;
+    await LocalDbService.instance.setBoolSetting('hideNewsTicker', hideNewsTicker);
     notifyListeners();
   }
 
@@ -294,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? () => _scaffoldKey.currentState?.openDrawer()
                       : null,
                 ),
-                const NewsTicker(),
+                if (!AppState.instance.hideNewsTicker) const NewsTicker(),
                 FadeSlideIn(child: BannerSlider()),
                 FadeSlideIn(
                   delay: const Duration(milliseconds: 60),
@@ -543,6 +552,12 @@ class _RailButtonState extends State<_RailButton> {
   }
 }
 
+// ملف APK حقيقي قابل للتحميل المباشر (بدون نشر على Google Play) — مستضاف عبر
+// نفس سيرفر الباك اند المحلي (backend/downloads/). لازم يكون الهاتف على نفس
+// شبكة الواي فاي متل جهاز السيرفر. لو تغيّر عنوان IP جهازك (Get-NetIPAddress
+// بالـ PowerShell)، لازم تحدّثي هاد الرابط.
+const String apkDownloadUrl = 'http://192.168.1.4:4000/downloads/nabligo.apk';
+
 class _ExpandedSideBarContent extends StatelessWidget {
   final VoidCallback onCollapse;
   const _ExpandedSideBarContent({required this.onCollapse});
@@ -698,28 +713,57 @@ class _ExpandedSideBarContent extends StatelessWidget {
                   icon: Icons.play_arrow,
                   line1: 'GET IT ON',
                   line2: 'Google Play',
+                  onTap: () => launchUrl(
+                    Uri.parse(apkDownloadUrl),
+                    mode: LaunchMode.externalApplication,
+                  ),
                 ),
                 SizedBox(height: 8),
                 StoreButton(
                   icon: Icons.apple,
                   line1: 'Download on the',
                   line2: 'App Store',
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppState.instance.t(
+                          'نسخة الآيفون قريبًا — بتحتاج حساب مطوّر آبل مدفوع',
+                          'iPhone version coming soon — requires a paid Apple developer account',
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 SizedBox(height: 14),
-                Container(
-                  height: 90,
-                  width: 90,
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                GestureDetector(
+                  onTap: () => launchUrl(
+                    Uri.parse(apkDownloadUrl),
+                    mode: LaunchMode.externalApplication,
                   ),
-                  child: QrImageView(
-                    data: 'https://nablus-guide.com/download',
-                    version: QrVersions.auto,
-                    backgroundColor: Colors.white,
-                    padding: EdgeInsets.zero,
+                  child: Container(
+                    height: 90,
+                    width: 90,
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: QrImageView(
+                      data: apkDownloadUrl,
+                      version: QrVersions.auto,
+                      backgroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  AppState.instance.t(
+                    'صوّري الرمز أو اضغطي الزر لتحميل ملف APK حقيقي مباشرة — لازم هاتفك يكون على نفس شبكة الواي فاي متل هاد الجهاز',
+                    'Scan the code or tap the button to download a real APK directly — your phone must be on the same Wi-Fi network as this device',
+                  ),
+                  textDirection: AppState.instance.dir,
+                  style: TextStyle(color: AppColors.textGrey, fontSize: 10, height: 1.5),
                 ),
               ],
             ),
@@ -865,41 +909,47 @@ class StoreButton extends StatelessWidget {
   final IconData icon;
   final String line1;
   final String line2;
+  final VoidCallback? onTap;
   const StoreButton({
     super.key,
     required this.icon,
     required this.line1,
     required this.line2,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 20),
-          SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(line1, style: TextStyle(color: Colors.white70, fontSize: 8)),
-              Text(
-                line2,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.borderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(line1, style: TextStyle(color: Colors.white70, fontSize: 8)),
+                Text(
+                  line2,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

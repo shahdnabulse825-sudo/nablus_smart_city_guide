@@ -34,6 +34,8 @@ Map<String, dynamic> restaurantToMap(RestaurantData r) => {
   'lat': r.lat,
   'lng': r.lng,
   'serverImageUrl': r.serverImageUrl,
+  'apiId': r.apiId,
+  'ownerEmail': r.ownerEmail,
 };
 
 RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
@@ -63,6 +65,8 @@ RestaurantData mapToRestaurant(Map<String, dynamic> m) => RestaurantData(
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
+  ownerEmail: m['ownerEmail'] ?? '',
 );
 
 // ==================== الفنادق ====================
@@ -94,6 +98,8 @@ Map<String, dynamic> hotelToMap(HotelData h) => {
   'lat': h.lat,
   'lng': h.lng,
   'serverImageUrl': h.serverImageUrl,
+  'apiId': h.apiId,
+  'ownerEmail': h.ownerEmail,
 };
 
 HotelData mapToHotel(Map<String, dynamic> m) => HotelData(
@@ -129,6 +135,8 @@ HotelData mapToHotel(Map<String, dynamic> m) => HotelData(
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
+  ownerEmail: m['ownerEmail'] ?? '',
 );
 
 // ==================== الصيدليات ====================
@@ -155,6 +163,8 @@ Map<String, dynamic> pharmacyToMap(PharmacyData p) => {
   'lat': p.lat,
   'lng': p.lng,
   'serverImageUrl': p.serverImageUrl,
+  'apiId': p.apiId,
+  'ownerEmail': p.ownerEmail,
 };
 
 PharmacyData mapToPharmacy(Map<String, dynamic> m) => PharmacyData(
@@ -183,6 +193,8 @@ PharmacyData mapToPharmacy(Map<String, dynamic> m) => PharmacyData(
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
+  ownerEmail: m['ownerEmail'] ?? '',
 );
 
 // ==================== المعالم السياحية ====================
@@ -262,6 +274,8 @@ Map<String, dynamic> shoppingVenueToMap(ShoppingVenueData v) => {
   'serverImageUrl': v.serverImageUrl,
   'subCategory': v.subCategory,
   'website': v.website,
+  'apiId': v.apiId,
+  'ownerEmail': v.ownerEmail,
 };
 
 ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueData(
@@ -291,6 +305,8 @@ ShoppingVenueData mapToShoppingVenue(Map<String, dynamic> m) => ShoppingVenueDat
   serverImageUrl: m['serverImageUrl'],
   subCategory: m['subCategory'] ?? '',
   website: m['website'] ?? '',
+  apiId: m['apiId'],
+  ownerEmail: m['ownerEmail'] ?? '',
 );
 
 // ==================== العناصر العامة (سياحة/تسوق/مواصلات/صحة) ====================

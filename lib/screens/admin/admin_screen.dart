@@ -14,6 +14,7 @@ import '../notifications/notifications_screen.dart';
 import '../../services/feedback_service.dart';
 import '../../theme/app_typography.dart';
 import 'promotions_admin_screen.dart';
+import 'ownership_requests_admin_screen.dart';
 import '../../widgets/responsive.dart';
 import '../map/map_screen.dart' show nablusCenter;
 import '../../widgets/app_toggle_bar.dart';
@@ -643,11 +644,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   String _searchQuery = '';
+  int _pendingOwnershipCount = 0;
 
   @override
   void initState() {
     super.initState();
     _checkServer();
+    _loadPendingOwnershipCount();
+  }
+
+  Future<void> _loadPendingOwnershipCount() async {
+    final token = AuthService.instance.adminToken;
+    if (token == null) return;
+    final items = await ApiService.fetchAllOwnershipRequests(
+      token,
+      status: 'pending',
+    );
+    if (mounted && items != null) {
+      setState(() => _pendingOwnershipCount = items.length);
+    }
   }
 
   @override
@@ -960,6 +975,47 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                     ),
                                     child: Text(
                                       '${FeedbackService.instance.unreadCount}',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 8,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: isMobile(context) ? 10 : 16),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const OwnershipRequestsAdminScreen(),
+                              ),
+                            );
+                            _loadPendingOwnershipCount();
+                          },
+                          child: Stack(
+                            children: [
+                              Icon(
+                                Icons.storefront_rounded,
+                                color: AppColors.textWhite,
+                                size: 22,
+                              ),
+                              if (_pendingOwnershipCount > 0)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: EdgeInsets.all(3),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.red,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      '$_pendingOwnershipCount',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 8,
@@ -2860,4 +2916,50 @@ class _AdminFormScreenState extends State<AdminFormScreen> {
       ),
     );
   }
+}
+
+/// يفتح نفس فورم الإضافة/التعديل اللي تستخدمه لوحة الأدمن، بس لصاحب محل عادي
+/// يعدّل على محله المعتمد هو بس — عبر [AuthService.userToken] بدل adminToken،
+/// وبدون أي خيار حذف (مش موجود أصلًا بـ[AdminFormScreen] نفسها، هو موجود فقط
+/// بشاشة قائمة الأدمن [AdminCollectionScreen]). تُستخدم من شاشات تفاصيل
+/// المطاعم/الفنادق/الصيدليات/التسوق وشاشة "أعمالي".
+Future<void> openOwnerEditForm(
+  BuildContext context, {
+  required String boxName, // restaurants | hotels | pharmacies | shopping
+  required AdminSchema schema,
+  required String apiId,
+  required Map<String, dynamic> initialValues,
+}) async {
+  final app = AppState.instance;
+  final token = AuthService.instance.userToken;
+  if (token == null) return;
+
+  final result = await Navigator.of(context).push<_AdminFormResult>(
+    MaterialPageRoute(
+      builder: (context) =>
+          AdminFormScreen(schema: schema, initialValues: initialValues),
+    ),
+  );
+  if (result == null || !context.mounted) return;
+
+  final status = await ApiService.updateItem(
+    token,
+    boxName,
+    apiId,
+    result.fields,
+    imageBytes: result.imageBytes,
+    imageFilename: result.imageFilename,
+  );
+  if (!context.mounted) return;
+  final ok = status >= 200 && status < 300;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        ok
+            ? app.t('تم الحفظ بنجاح', 'Saved successfully')
+            : app.t('فشل الحفظ — حاولي مرة تانية', 'Save failed — try again'),
+      ),
+      backgroundColor: ok ? AppColors.teal : AppColors.red,
+    ),
+  );
 }

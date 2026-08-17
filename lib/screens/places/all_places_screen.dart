@@ -47,6 +47,10 @@ class UniversalPlace {
   final String? priceTier; // 'cheap' | 'medium' | 'high' | null (not all categories have a price tier)
   final bool is24Hours;
   final String? subCategory; // فقط لأماكن التسوق: fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
+  // معرّف السجل بالسيرفر وبريد صاحبه — فقط للأقسام التجارية القابلة للملكية
+  // (مطعم/فندق/صيدلية/تسوق). انظر [BusinessClaimSection].
+  final String? apiId;
+  final String ownerEmail;
 
   UniversalPlace({
     required this.nameAr,
@@ -71,6 +75,8 @@ class UniversalPlace {
     this.priceTier,
     this.is24Hours = false,
     this.subCategory,
+    this.apiId,
+    this.ownerEmail = '',
   });
 }
 
@@ -118,6 +124,8 @@ UniversalPlace _fromHotel(HotelData h) => UniversalPlace(
   lat: h.lat,
   lng: h.lng,
   priceTier: h.priceTier,
+  apiId: h.apiId,
+  ownerEmail: h.ownerEmail,
 );
 
 UniversalPlace _fromAttraction(AttractionData a) => UniversalPlace(
@@ -173,6 +181,8 @@ UniversalPlace _fromShoppingVenue(ShoppingVenueData v) => UniversalPlace(
   lat: v.lat,
   lng: v.lng,
   subCategory: v.subCategory,
+  apiId: v.apiId,
+  ownerEmail: v.ownerEmail,
 );
 
 UniversalPlace _fromPharmacy(PharmacyData p) => UniversalPlace(
@@ -196,6 +206,8 @@ UniversalPlace _fromPharmacy(PharmacyData p) => UniversalPlace(
   lat: p.lat,
   lng: p.lng,
   is24Hours: p.is24Hours,
+  apiId: p.apiId,
+  ownerEmail: p.ownerEmail,
 );
 
 UniversalPlace _fromRestaurant(RestaurantData r) => UniversalPlace(
@@ -219,6 +231,8 @@ UniversalPlace _fromRestaurant(RestaurantData r) => UniversalPlace(
   lat: r.lat,
   lng: r.lng,
   priceTier: r.priceTier,
+  apiId: r.apiId,
+  ownerEmail: r.ownerEmail,
 );
 
 List<ListingItem> _liveListings(String boxName) => LocalDbService.instance
@@ -681,6 +695,8 @@ class _AllPlacesScreenState extends State<AllPlacesScreen> {
                                               p.customImageBase64,
                                           localAsset: p.image,
                                           placeType: p.categoryKey,
+                                          apiId: p.apiId,
+                                          ownerEmail: p.ownerEmail,
                                         ),
                                       ),
                                     );

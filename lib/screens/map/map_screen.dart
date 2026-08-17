@@ -19,11 +19,18 @@ import '../places/all_places_screen.dart' show allPlaces, UniversalPlace;
 // الزخرفية البحتة (معلم عام/حديقة) اللي مالها مراجعات أصلًا.
 String? reviewPlaceTypeFor(String mapCategoryKey) {
   const map = {
+    // اللائحة المنسّقة يدويًا (mapPlaces) بتستخدم صيغة الجمع، بينما الأماكن
+    // الحقيقية الجاية من قاعدة البيانات (عبر mapPlaceFromUniversal) بتستخدم
+    // نفس مفردة UniversalPlace.categoryKey (مفرد) مباشرة بدون أي تحويل.
     'restaurants': 'restaurant',
     'hotels': 'hotel',
     'pharmacies': 'pharmacy',
     'attractions': 'attraction',
     'shopping': 'shopping',
+    'restaurant': 'restaurant',
+    'hotel': 'hotel',
+    'pharmacy': 'pharmacy',
+    'attraction': 'attraction',
   };
   return map[mapCategoryKey];
 }
@@ -43,6 +50,8 @@ class MapPlace {
   final String locationAr;
   final String locationEn;
   final bool is24Hours;
+  final String? apiId;
+  final String ownerEmail;
 
   MapPlace({
     required this.nameAr,
@@ -58,6 +67,8 @@ class MapPlace {
     this.locationAr = '',
     this.locationEn = '',
     this.is24Hours = false,
+    this.apiId,
+    this.ownerEmail = '',
   });
 
   LatLng get point => LatLng(lat, lng);
@@ -105,6 +116,8 @@ MapPlace mapPlaceFromUniversal(UniversalPlace p) {
     locationAr: p.locationAr,
     locationEn: p.locationEn,
     is24Hours: p.is24Hours,
+    apiId: p.apiId,
+    ownerEmail: p.ownerEmail,
   );
 }
 
@@ -1339,6 +1352,8 @@ class _SelectedPlaceCard extends StatelessWidget {
                         subtitleEn: p.categoryEn,
                         rating: p.rating,
                         placeType: reviewPlaceTypeFor(p.categoryKey),
+                        apiId: p.apiId,
+                        ownerEmail: p.ownerEmail,
                       ),
                     ),
                   );

@@ -76,9 +76,19 @@ router.post('/transcribe', audioUpload.single('audio'), async (req, res) => {
     new Blob([req.file.buffer], { type: req.file.mimetype || 'audio/m4a' }),
     req.file.originalname || 'audio.m4a',
   );
-  form.append('model', 'whisper-large-v3-turbo');
+  // whisper-large-v3 (مش نسخة turbo) — turbo أسرع بس دقّته أقل خصوصًا بالعربي/
+  // الأسماء المحلية، وهاد تطبيق أساسه عربي فالدقة أهم من سرعة الرد بجزء ثانية.
+  form.append('model', 'whisper-large-v3');
   form.append('language', lang);
   form.append('response_format', 'json');
+  // تلميح مفردات — بيساعد Whisper يتعرف صح على أسماء أماكن نابلس المحلية
+  // (بدل ما يخمّن كلمة عربية عامة تشبهها صوتيًا).
+  form.append(
+    'prompt',
+    lang === 'ar'
+      ? 'نابلس، البلدة القديمة، رفيديا، الكنافة النابلسية، جبل جرزيم، مطاعم، فنادق، صيدليات، معالم سياحية، تسوق'
+      : 'Nablus, Old City, Rafidia, Kunafa, Mount Gerizim, restaurants, hotels, pharmacies, attractions, shopping',
+  );
 
   const groqRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
     method: 'POST',
@@ -156,6 +166,74 @@ function extractKeywords(message) {
     .filter((w) => w.length >= 3 && !STOPWORDS.has(w.toLowerCase()));
 }
 
+// ==================== تحمّل الأخطاء الإملائية (عربي/إنجليزي) ====================
+// توحيد الحروف العربية المتشابهة إملائيًا/الحركات حتى المقارنة تتجاهل فروق
+// شائعة (أ/إ/آ ← ا، ى ← ي، ة ← ه) وتشطب التشكيل والتطويل — بدون هيك أي فرق
+// بسيط بالكتابة بيكسر أي تطابق حرفي.
+function normalizeArabic(s) {
+  return s
+    .normalize('NFKD')
+    .replace(/[ً-ٰٟ]/g, '')
+    .replace(/ـ/g, '')
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .toLowerCase()
+    .trim();
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+// بترجع true لو الكلمتين قريبين لبعض بحدود "مسافة تحرير" متناسبة مع طولهم —
+// كلمة قصيرة بتسمح بفرق حرف واحد بس، كلمة أطول بتسمح بفرقين، حتى ما نطلع
+// تطابقات عشوائية بين كلمات قصيرة مختلفة تمامًا زي "شي"/"في".
+function isFuzzyMatch(a, b) {
+  const na = normalizeArabic(a);
+  const nb = normalizeArabic(b);
+  if (!na || !nb) return false;
+  if (na.includes(nb) || nb.includes(na)) return true;
+  const maxLen = Math.max(na.length, nb.length);
+  const tolerance = maxLen <= 4 ? 1 : maxLen <= 8 ? 2 : 3;
+  return levenshtein(na, nb) <= tolerance;
+}
+
+// مرادفات كل قسم (عربي/إنجليزي، مفرد/جمع) — تُطابق بمرونة إملائية (isFuzzyMatch)
+// مش بالحرف، حتى غلطة بسيطة زي "البطاعم" بدل "المطاعم" تنفهم صح كـ"مطاعم".
+const CATEGORY_KEYWORDS = {
+  restaurant: ['مطعم', 'مطاعم', 'المطعم', 'المطاعم', 'اكل', 'أكل', 'restaurant', 'restaurants', 'food'],
+  hotel: ['فندق', 'فنادق', 'الفندق', 'الفنادق', 'hotel', 'hotels'],
+  pharmacy: ['صيدلية', 'صيدليات', 'الصيدلية', 'الصيدليات', 'دواء', 'pharmacy', 'pharmacies'],
+  attraction: ['معلم', 'معالم', 'المعالم', 'سياحة', 'سياحي', 'attraction', 'attractions', 'landmark'],
+  shopping: ['تسوق', 'محل', 'محلات', 'التسوق', 'shopping', 'shop', 'shops', 'mall'],
+};
+
+// بتدوّر بكلمات الرسالة عن أي تصنيف مطابق (بمرونة إملائية) — بترجع أول
+// تصنيف تلاقيه، أو null لو ما في.
+function matchCategory(keywords) {
+  for (const [category, variants] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((k) => variants.some((v) => isFuzzyMatch(k, v)))) {
+      return category;
+    }
+  }
+  return null;
+}
+
 // كلمات بتدل إنه المستخدم بده يخطط يوم/رحلة كاملة، مش يسأل عن مكان محدد —
 // هاي الحالة محتاجة استرجاع بيانات مختلف (تشكيلة متنوعة من أفضل الأماكن بكل
 // تصنيف)، مش بحث بكلمات مفتاحية عادي (اللي رح يرجّع نتائج فاضية أو عشوائية).
@@ -200,11 +278,39 @@ function extractBudget(message) {
   return null;
 }
 
+const _normalizePlaces = (rows, categoryAr, categoryEn) =>
+  rows.map((r) => ({
+    nameAr: r.nameAr,
+    nameEn: r.nameEn,
+    categoryAr: r.categoryAr || r.typeAr || categoryAr,
+    categoryEn: r.categoryEn || r.typeEn || categoryEn,
+    locationAr: r.locationAr,
+    rating: r.rating,
+    aboutAr: r.aboutAr,
+  }));
+
+// جدول كل قسم تجاري (بدون "الخدمات" العامة listings — ما إلها اسم تصنيف
+// مفرد واحد واضح نطابقه بمرونة) — يُستخدم لما الرسالة تذكر اسم قسم كامل
+// (زي "مطاعم" أو حتى "البطاعم" بغلطة إملائية) بدل اسم مكان محدد.
+const CATEGORY_TABLE = {
+  restaurant: { model: () => prisma.restaurant, categoryAr: 'مطعم', categoryEn: 'Restaurant' },
+  hotel: { model: () => prisma.hotel, categoryAr: 'فندق', categoryEn: 'Hotel' },
+  pharmacy: { model: () => prisma.pharmacy, categoryAr: 'صيدلية', categoryEn: 'Pharmacy' },
+  attraction: { model: () => prisma.attraction, categoryAr: 'معلم سياحي', categoryEn: 'Attraction' },
+  shopping: { model: () => prisma.shoppingVenue, categoryAr: 'تسوق', categoryEn: 'Shopping' },
+};
+
 /// بتدوّر بالقاعدة الحقيقية (نفس بيانات التطبيق) عن أماكن مطابقة لكلمات رسالة
 /// المستخدم — هاي "الاسترجاع" (retrieval) اللي بيخلي رد النموذج اللغوي مبني على
-/// بيانات حقيقية بدل ما يختلق أماكن مش موجودة أصلًا.
+/// بيانات حقيقية بدل ما يختلق أماكن مش موجودة أصلًا. أول شي بتجرب تطابق حرفي
+/// عادي، وبعدها (لو ما في نتيجة) بتفحص لو الرسالة بتذكر اسم قسم كامل بغلطة
+/// إملائية بسيطة (زي "البطاعم" بدل "المطاعم") وبترجع أفضل أماكنه. ملاحظة:
+/// جرّبنا كمان مطابقة مرنة عامة على أسماء الأماكن نفسها (كلمة بكلمة)، بس
+/// طلعت غير دقيقة (بتطابق كلمات غير مرتبطة أصلاً بسبب قِصر الكلمات العربية)
+/// فاكتفينا بمطابقة الأقسام المعروفة فقط — أدق وكافية للحالة يلي طلبها المستخدم.
 async function retrievePlaces(keywords, limit = 5) {
   if (keywords.length === 0) return [];
+
   const orNameType = (fields) => ({
     OR: keywords.flatMap((k) => fields.map((f) => ({ [f]: { contains: k } }))),
   });
@@ -230,25 +336,27 @@ async function retrievePlaces(keywords, limit = 5) {
     }),
   ]);
 
-  const normalize = (rows, categoryAr, categoryEn) =>
-    rows.map((r) => ({
-      nameAr: r.nameAr,
-      nameEn: r.nameEn,
-      categoryAr: r.categoryAr || r.typeAr || categoryAr,
-      categoryEn: r.categoryEn || r.typeEn || categoryEn,
-      locationAr: r.locationAr,
-      rating: r.rating,
-      aboutAr: r.aboutAr,
-    }));
-
-  const all = [
-    ...normalize(restaurants, 'مطعم', 'Restaurant'),
-    ...normalize(hotels, 'فندق', 'Hotel'),
-    ...normalize(pharmacies, 'صيدلية', 'Pharmacy'),
-    ...normalize(attractions, 'معلم سياحي', 'Attraction'),
-    ...normalize(shopping, 'تسوق', 'Shopping'),
-    ...normalize(listings, 'خدمة', 'Service'),
+  let all = [
+    ..._normalizePlaces(restaurants, 'مطعم', 'Restaurant'),
+    ..._normalizePlaces(hotels, 'فندق', 'Hotel'),
+    ..._normalizePlaces(pharmacies, 'صيدلية', 'Pharmacy'),
+    ..._normalizePlaces(attractions, 'معلم سياحي', 'Attraction'),
+    ..._normalizePlaces(shopping, 'تسوق', 'Shopping'),
+    ..._normalizePlaces(listings, 'خدمة', 'Service'),
   ];
+
+  // ولا نتيجة عبر التطابق الحرفي؟ جرّبي التعرف على اسم قسم كامل بمرونة إملائية
+  // (زي "البطاعم" ← مطاعم) — بيغطي أشيع حالة (المستخدم بده يستعرض قسم كامل،
+  // مش اسم مكان محدد) بدون تعقيد أو نتائج عشوائية.
+  if (all.length === 0) {
+    const category = matchCategory(keywords);
+    if (category) {
+      const t = CATEGORY_TABLE[category];
+      const rows = await t.model().findMany({ orderBy: { rating: 'desc' }, take: limit });
+      return _normalizePlaces(rows, t.categoryAr, t.categoryEn).slice(0, limit);
+    }
+  }
+
   all.sort((a, b) => b.rating - a.rating);
   return all.slice(0, limit);
 }

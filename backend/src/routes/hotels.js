@@ -75,9 +75,12 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
   res.status(201).json(item);
 });
 
-router.put('/:id', requireAuth, requireAdmin, upload.single('image'), async (req, res) => {
+router.put('/:id', requireAuth, upload.single('image'), async (req, res) => {
   const existing = await prisma.hotel.findUnique({ where: { id: req.params.id } });
   if (!existing) return res.status(404).json({ error: 'الفندق غير موجود' });
+  if (req.user.role !== 'admin' && existing.ownerEmail !== req.user.email) {
+    return res.status(403).json({ error: 'ليس لديك صلاحية تعديل هذا الفندق' });
+  }
 
   const b = req.body;
   let imageUrl = existing.imageUrl;

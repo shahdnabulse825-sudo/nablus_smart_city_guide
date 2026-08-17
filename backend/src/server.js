@@ -24,12 +24,17 @@ const checkpointsRoutes = require('./routes/checkpoints');
 const trafficAlertsRoutes = require('./routes/trafficAlerts');
 const promotionsRoutes = require('./routes/promotions');
 const subscriptionRoutes = require('./routes/subscription');
+const ownershipRequestsRoutes = require('./routes/ownershipRequests');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// نسخة APK حقيقية قابلة للتحميل المباشر (بدون نشر على Google Play) — يفتحها
+// المستخدم عبر رمز QR أو زر "حمل التطبيق" بالصفحة الرئيسية، بشرط يكون جهازه
+// على نفس شبكة الواي فاي متل جهاز السيرفر (ما في استضافة عامة لهاد المشروع).
+app.use('/downloads', express.static(path.join(__dirname, '..', 'downloads')));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'nablus-smart-guide-backend' });
@@ -55,6 +60,7 @@ app.use('/api/checkpoints', checkpointsRoutes);
 app.use('/api/traffic-alerts', trafficAlertsRoutes);
 app.use('/api/promotions', promotionsRoutes);
 app.use('/api/subscription', subscriptionRoutes);
+app.use('/api/ownership-requests', ownershipRequestsRoutes);
 
 // معالج أخطاء عام (يلتقط أخطاء multer، وفشل الاتصال بقاعدة البيانات، وأي استثناء غير متوقع بالراوترات)
 app.use((err, req, res, next) => {

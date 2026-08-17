@@ -94,6 +94,7 @@ model Hotel {
   isFeatured    Boolean  @default(false)
   lat           Float? // إحداثيات دقيقة حدّدها الأدمن بالضغط على الخريطة
   lng           Float?
+  ownerEmail    String   @default("") // بريد صاحب المحل (User.email) لو مرتبط بحساب — فاضي يعني بدون مالك
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -121,6 +122,7 @@ model Pharmacy {
   isFeatured  Boolean  @default(false)
   lat         Float?
   lng         Float?
+  ownerEmail  String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -175,6 +177,7 @@ model ShoppingVenue {
   lng           Float?
   subCategory   String   @default("") // fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
   website       String   @default("")
+  ownerEmail    String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -202,6 +205,7 @@ model Restaurant {
   colorValue    Int      @default(7114727) // لون RGB فقط بدون بايت الشفافية (0x6C5CE7)
   lat           Float?
   lng           Float?
+  ownerEmail    String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -380,4 +384,26 @@ model Promotion {
   endDate       DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+// ==================== طلبات ملكية المحلات (صاحب مطعم/فندق/صيدلية/محل يطلب ربط حسابه بمحله) ====================
+// بعد موافقة الأدمن، بيتحدّث ownerEmail على المحل نفسه (بجدوله المخصص) — هاد
+// الجدول بيحتفظ فقط بسجل الطلب وحالته (pending/approved/rejected) للمراجعة.
+model OwnershipRequest {
+  id             String   @id @default(cuid())
+  placeType      String // restaurant | hotel | pharmacy | shopping
+  placeId        String
+  placeNameAr    String   @default("")
+  placeNameEn    String   @default("")
+  requesterEmail String
+  requesterName  String   @default("")
+  message        String   @default("") // ملاحظة اختيارية من صاحب الطلب (مثلاً وسيلة إثبات ملكية)
+  status         String   @default("pending") // pending | approved | rejected
+  reviewedBy     String   @default("") // بريد الأدمن اللي راجع الطلب
+  reviewNote     String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([status])
+  @@index([requesterEmail])
 }

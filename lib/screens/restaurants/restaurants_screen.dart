@@ -15,6 +15,7 @@ import '../hotels/hotels_screen.dart';
 import '../attractions/attractions_screen.dart';
 import '../../widgets/responsive.dart';
 import '../common/detail_screen.dart';
+import '../../widgets/business_claim_section.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/skeleton_card.dart';
 import '../../widgets/app_toggle_bar.dart';
@@ -52,6 +53,9 @@ class RestaurantData {
   final double? lng;
   final String?
   serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
+  final String? apiId; // معرّف السجل على السيرفر (لو موجود) — لازم لطلب/تعديل الملكية
+  final String
+  ownerEmail; // بريد صاحب المحل لو ربط حسابه (فاضي يعني بدون مالك)
 
   RestaurantData({
     required this.nameAr,
@@ -77,6 +81,8 @@ class RestaurantData {
     this.lat,
     this.lng,
     this.serverImageUrl,
+    this.apiId,
+    this.ownerEmail = '',
   });
 }
 
@@ -1104,6 +1110,8 @@ class _RestaurantsScreenState extends State<RestaurantsScreen> {
           localAsset: r.image,
           phone: r.phone,
           placeType: 'restaurant',
+          apiId: r.apiId,
+          ownerEmail: r.ownerEmail,
         ),
       ),
     );
@@ -1671,6 +1679,26 @@ class _TopNav extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: mobile ? 12 : 24, vertical: 14),
       child: Row(
         children: [
+          if (Navigator.of(context).canPop()) ...[
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark2,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppColors.textWhite,
+                  size: 18,
+                ),
+              ),
+            ),
+            SizedBox(width: 10),
+          ],
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => Navigator.of(context).maybePop(),
@@ -3090,6 +3118,11 @@ class _DetailPanel extends StatelessWidget {
                       ),
                     ),
                   ),
+                ),
+                BusinessClaimSection(
+                  placeType: 'restaurant',
+                  apiId: r.apiId,
+                  ownerEmail: r.ownerEmail,
                 ),
               ],
             ),

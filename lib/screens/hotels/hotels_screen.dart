@@ -19,6 +19,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/location_service.dart';
 import '../../widgets/nearest_to_me_chip.dart';
+import '../../widgets/business_claim_section.dart';
 
 // ==================== بيانات الفندق ====================
 class HotelData {
@@ -50,6 +51,8 @@ class HotelData {
   final double? lat;
   final double? lng;
   final String? serverImageUrl;
+  final String? apiId;
+  final String ownerEmail;
 
   HotelData({
     required this.nameAr,
@@ -79,6 +82,8 @@ class HotelData {
     this.lat,
     this.lng,
     this.serverImageUrl,
+    this.apiId,
+    this.ownerEmail = '',
   });
 }
 
@@ -1930,6 +1935,11 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                                 style: AppTypography.label(AppColors.textWhite),
                               ),
                             ),
+                          ),
+                          BusinessClaimSection(
+                            placeType: 'hotel',
+                            apiId: h.apiId,
+                            ownerEmail: h.ownerEmail,
                           ),
                         ],
                       ),

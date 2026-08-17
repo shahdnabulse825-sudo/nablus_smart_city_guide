@@ -5,6 +5,7 @@ import '../../widgets/app_toggle_bar.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_typography.dart';
 import '../auth/login_screen.dart';
+import 'my_businesses_screen.dart';
 
 /// يفتح لوحة الإعدادات كـ Bottom Sheet — نفس أسلوب البطاقات القابلة للتوسيع
 /// المستخدم بقسم "نبض نابلس"، بدل ما يكون في أيقونات متفرقة بالشريط العلوي.
@@ -62,6 +63,52 @@ class _SettingsSheet extends StatelessWidget {
                 titleEn: '👤 Account',
                 child: const _AccountContent(),
               ),
+              if (AuthService.instance.userToken != null) ...[
+                Divider(color: AppColors.borderColor, height: 18),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const MyBusinessesScreen(),
+                      ),
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: AppColors.teal,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          Icons.storefront_rounded,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          app.t('🏪 أعمالي', '🏪 My Businesses'),
+                          textDirection: app.dir,
+                          style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 14),
+                        ),
+                      ),
+                      Icon(
+                        app.isArabic
+                            ? Icons.arrow_back_ios_new_rounded
+                            : Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: AppColors.textGrey,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               Divider(color: AppColors.borderColor, height: 18),
               ExpandableInfoCard(
                 icon: Icons.dark_mode_rounded,
@@ -153,16 +200,38 @@ class _AppearanceContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final app = AppState.instance;
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Text(
-            app.t('الوضع الليلي واللغة', 'Dark mode & language'),
-            textDirection: app.dir,
-            style: TextStyle(color: AppColors.textGrey, fontSize: 12),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                app.t('الوضع الليلي واللغة', 'Dark mode & language'),
+                textDirection: app.dir,
+                style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+              ),
+            ),
+            const AppToggleBar(),
+          ],
         ),
-        const AppToggleBar(),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                app.t('إخفاء شريط الأخبار المتحرك', 'Hide the news ticker'),
+                textDirection: app.dir,
+                style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+              ),
+            ),
+            Switch(
+              value: app.hideNewsTicker,
+              activeThumbColor: AppColors.primary,
+              onChanged: (_) => app.toggleNewsTicker(),
+            ),
+          ],
+        ),
       ],
     );
   }

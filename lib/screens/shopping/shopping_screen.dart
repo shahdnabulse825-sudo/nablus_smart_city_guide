@@ -22,6 +22,7 @@ import 'package:geolocator/geolocator.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 import '../../services/location_service.dart';
 import '../../widgets/nearest_to_me_chip.dart';
+import '../../widgets/business_claim_section.dart';
 
 // ==================== بيانات مركز تجاري (مكان حقيقي) ====================
 class ShoppingVenueData {
@@ -48,6 +49,8 @@ class ShoppingVenueData {
   final String? serverImageUrl;
   final String subCategory; // fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
   final String website; // رابط الموقع أو صفحة التواصل الاجتماعي (اختياري)
+  final String? apiId;
+  final String ownerEmail;
 
   ShoppingVenueData({
     required this.nameAr,
@@ -73,6 +76,8 @@ class ShoppingVenueData {
     this.serverImageUrl,
     this.subCategory = '',
     this.website = '',
+    this.apiId,
+    this.ownerEmail = '',
   });
 }
 
@@ -2505,6 +2510,11 @@ class _ShoppingVenueDetailScreenState
                               ),
                             ),
                           ),
+                        ),
+                        BusinessClaimSection(
+                          placeType: 'shopping',
+                          apiId: v.apiId,
+                          ownerEmail: v.ownerEmail,
                         ),
                       ],
                     ),

@@ -17,6 +17,7 @@ import '../../widgets/keyboard_scrollable.dart';
 import '../../widgets/pagination_bar.dart';
 import '../../widgets/sort_toggle.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../widgets/business_claim_section.dart';
 
 // ==================== بيانات الصيدلية ====================
 class PharmacyData {
@@ -42,6 +43,8 @@ class PharmacyData {
   final double? lat;
   final double? lng;
   final String? serverImageUrl;
+  final String? apiId;
+  final String ownerEmail;
 
   PharmacyData({
     required this.nameAr,
@@ -66,6 +69,8 @@ class PharmacyData {
     this.lat,
     this.lng,
     this.serverImageUrl,
+    this.apiId,
+    this.ownerEmail = '',
   });
 }
 
@@ -1711,6 +1716,11 @@ class PharmacyDetailScreen extends StatelessWidget {
                               style: AppTypography.label(AppColors.textWhite),
                             ),
                           ),
+                        ),
+                        BusinessClaimSection(
+                          placeType: 'pharmacy',
+                          apiId: p.apiId,
+                          ownerEmail: p.ownerEmail,
                         ),
                       ],
                     ),

@@ -36,6 +36,7 @@ class LocalDbService {
     'checkpoints',
     'traffic_alerts',
     'promotions',
+    'settings',
   ];
 
   final Map<String, Box> _boxes = {};
@@ -227,5 +228,15 @@ class LocalDbService {
 
   Future<void> clearSession() async {
     await _box('session').delete('current');
+  }
+
+  // ---------- إعدادات بسيطة عامة (تفضيلات واجهة، زي إخفاء شريط الأخبار) ----------
+  bool getBoolSetting(String key, {bool defaultValue = false}) {
+    final v = _box('settings').get(key);
+    return v is bool ? v : defaultValue;
+  }
+
+  Future<void> setBoolSetting(String key, bool value) async {
+    await _box('settings').put(key, value);
   }
 }

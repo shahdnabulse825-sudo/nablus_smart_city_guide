@@ -725,6 +725,142 @@ class ApiService {
     }
   }
 
+  // ==================== طلبات ملكية المحلات (مطاعم/فنادق/صيدليات/تسوق) ====================
+  /// صاحب محل يطلب ربط حسابه بمحل موجود (placeType: restaurant|hotel|pharmacy|shopping).
+  /// بيرجّع كود حالة HTTP الحقيقي (201 لو نجح، 409 لو عنده طلب معلّق أصلًا أو المحل إله فعلًا)،
+  /// أو -1 لو فشل الاتصال بالسيرفر.
+  static Future<int> submitOwnershipClaim(
+    String token,
+    String placeType,
+    String placeId, {
+    String message = '',
+  }) async {
+    try {
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/ownership-requests'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              'placeType': placeType,
+              'placeId': placeId,
+              'message': message,
+            }),
+          )
+          .timeout(_timeout);
+      return res.statusCode;
+    } catch (_) {
+      return -1;
+    }
+  }
+
+  /// كل طلبات ملكية المستخدم الحالي (بكل الحالات) — لمعرفة إذا في طلب معلّق على محل معيّن.
+  static Future<List<Map<String, dynamic>>?> fetchMyOwnershipRequests(
+    String token,
+  ) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/ownership-requests/mine'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// كل المحلات المعتمدة الحالي مالكها (لشاشة "أعمالي") — كل عنصر فيه حقل placeType إضافي.
+  static Future<List<Map<String, dynamic>>?> fetchMyOwnedListings(
+    String token,
+  ) async {
+    try {
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/ownership-requests/my-listings'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// كل طلبات الملكية — للوحة الأدمن فقط (بتحتاج adminToken). [status] اختياري
+  /// (pending/approved/rejected) لتصفية القائمة.
+  static Future<List<Map<String, dynamic>>?> fetchAllOwnershipRequests(
+    String adminToken, {
+    String? status,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl/ownership-requests').replace(
+        queryParameters: status != null ? {'status': status} : null,
+      );
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $adminToken'})
+          .timeout(_timeout);
+      if (res.statusCode != 200) return null;
+      final decoded = jsonDecode(res.body);
+      if (decoded is! List) return null;
+      return decoded.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<bool> approveOwnershipRequest(
+    String adminToken,
+    String id,
+  ) async {
+    try {
+      final res = await http
+          .put(
+            Uri.parse(
+              '$baseUrl/ownership-requests/${Uri.encodeComponent(id)}/approve',
+            ),
+            headers: {'Authorization': 'Bearer $adminToken'},
+          )
+          .timeout(_timeout);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> rejectOwnershipRequest(
+    String adminToken,
+    String id, {
+    String reviewNote = '',
+  }) async {
+    try {
+      final res = await http
+          .put(
+            Uri.parse(
+              '$baseUrl/ownership-requests/${Uri.encodeComponent(id)}/reject',
+            ),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $adminToken',
+            },
+            body: jsonEncode({'reviewNote': reviewNote}),
+          )
+          .timeout(_timeout);
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ==================== أخبار حقيقية مباشرة عن الضفة الغربية (Al Jazeera) ====================
   static Future<List<Map<String, dynamic>>?> fetchLiveWestBankNews() async {
     try {

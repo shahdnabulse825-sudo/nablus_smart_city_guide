@@ -494,6 +494,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
           customImageBase64: p.customImageBase64,
           localAsset: p.image,
           placeType: p.categoryKey,
+          apiId: p.apiId,
+          ownerEmail: p.ownerEmail,
         ),
       ),
     );
