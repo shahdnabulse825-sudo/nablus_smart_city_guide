@@ -561,14 +561,22 @@ class _TransportTopBar extends StatelessWidget {
       color: AppColors.sidebarDark,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
+        // start (مش center) حتى زر الرجوع وزر AR/الوضع الليلي ينزلوا لتحت
+        // عن اللوجو والعنوان عالموبايل، بعيد عن شريط الحالة يلي بيغطّي عليهم.
+        crossAxisAlignment: isMobile(context)
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
-            child: Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
-              child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+          Padding(
+            padding: EdgeInsets.only(top: isMobile(context) ? 63 : 0),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+              child: Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(color: AppColors.cardDark, shape: BoxShape.circle),
+                child: Icon(Icons.arrow_back_rounded, color: AppColors.textWhite, size: 18),
+              ),
             ),
           ),
           SizedBox(width: 12),
@@ -591,7 +599,10 @@ class _TransportTopBar extends StatelessWidget {
               style: AppTypography.title(AppColors.textWhite).copyWith(fontSize: 16),
             ),
           ),
-          AppToggleBar(),
+          Padding(
+            padding: EdgeInsets.only(top: isMobile(context) ? 63 : 0),
+            child: AppToggleBar(),
+          ),
         ],
       ),
     );
