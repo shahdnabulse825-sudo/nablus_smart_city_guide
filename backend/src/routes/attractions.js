@@ -35,6 +35,17 @@ function optCoordUpdate(v, existing) {
   return optCoord(v);
 }
 
+function optDate(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function optDateUpdate(v, existing) {
+  if (v === undefined) return existing;
+  return optDate(v);
+}
+
 router.get('/', async (req, res) => {
   const items = await prisma.attraction.findMany({ orderBy: [{ isFeatured: 'desc' }, { rating: 'desc' }] });
   res.json(items);
@@ -69,6 +80,8 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       isFeatured: boolField(b.isFeatured, false),
       lat: optCoord(b.lat),
       lng: optCoord(b.lng),
+      suspendedUntil: optDate(b.suspendedUntil),
+      suspendReason: b.suspendReason || '',
     },
   });
   res.status(201).json(item);
@@ -113,6 +126,8 @@ router.put('/:id', requireAuth, requireAdmin, upload.single('image'), async (req
       imageUrl,
       lat: optCoordUpdate(b.lat, existing.lat),
       lng: optCoordUpdate(b.lng, existing.lng),
+      suspendedUntil: optDateUpdate(b.suspendedUntil, existing.suspendedUntil),
+      suspendReason: b.suspendReason ?? existing.suspendReason,
     },
   });
   res.json(item);

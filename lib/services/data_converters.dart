@@ -220,6 +220,7 @@ Map<String, dynamic> attractionToMap(AttractionData a) => {
   'lat': a.lat,
   'lng': a.lng,
   'serverImageUrl': a.serverImageUrl,
+  'apiId': a.apiId,
 };
 
 AttractionData mapToAttraction(Map<String, dynamic> m) => AttractionData(
@@ -247,6 +248,7 @@ AttractionData mapToAttraction(Map<String, dynamic> m) => AttractionData(
   lat: (m['lat'] as num?)?.toDouble(),
   lng: (m['lng'] as num?)?.toDouble(),
   serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
 );
 
 // ==================== المراكز التجارية (تسوق) ====================
@@ -334,6 +336,7 @@ Map<String, dynamic> listingToMap(ListingItem it) => {
   'lng': it.lng,
   'subTypeKey': it.subTypeKey,
   'serverImageUrl': it.serverImageUrl,
+  'apiId': it.apiId,
 };
 
 ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
@@ -363,6 +366,7 @@ ListingItem mapToListing(Map<String, dynamic> m) => ListingItem(
   lng: (m['lng'] as num?)?.toDouble(),
   subTypeKey: m['subTypeKey'],
   serverImageUrl: m['serverImageUrl'],
+  apiId: m['apiId'],
 );
 
 // ==================== الأخبار ====================

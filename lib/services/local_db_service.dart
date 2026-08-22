@@ -84,6 +84,30 @@ class LocalDbService {
     }
   }
 
+  /// حالة تعليق مكان (تحت الصيانة) لو موجودة وسارية — بتفحص مباشرة صندوق [boxName]
+  /// المحلي (متزامن أصلًا مع السيرفر) عن عنصر بنفس [apiId]. تُستخدم من كل شاشة
+  /// بتعرض تفاصيل مكان (سواء الشاشة العامة [DetailScreen] أو أي بانل تفاصيل
+  /// مخصّص بشاشة قسم معيّن) حتى تُظهر شارة "معلّق للصيانة" بشكل موحّد.
+  ({DateTime? until, String reason})? suspensionStatus(
+    String boxName,
+    String? apiId,
+  ) {
+    if (apiId == null) return null;
+    for (final entry in getAll(boxName)) {
+      if (entry.value['apiId'] != apiId) continue;
+      final raw = entry.value['suspendedUntil'];
+      final until = (raw is String && raw.isNotEmpty)
+          ? DateTime.tryParse(raw)
+          : null;
+      if (until == null || !until.isAfter(DateTime.now())) return null;
+      return (
+        until: until,
+        reason: (entry.value['suspendReason'] as String?) ?? '',
+      );
+    }
+    return null;
+  }
+
   Box _box(String boxName) {
     final box = _boxes[boxName];
     if (box == null) {
@@ -107,16 +131,25 @@ class LocalDbService {
   /// هاي مهمة لأنها نفس الدالة اللي بتُستخدم لدمج ردّ الـ API (اللي ممكن يكون جزئي
   /// أو مؤقتًا أقل من بيانات الكود) — حذف تلقائي هون كان رح يمسح عناصر صحيحة موجودة
   /// محليًا بس مش راجعة بالردّ الحالي. للحذف الفعلي حسب بيانات الكود استخدم [syncSeedExact].
-  Future<void> syncSeed(String boxName, List<Map<String, dynamic>> seedData) async {
+  ///
+  /// [key] هو الحقل المستخدم لمطابقة العنصر الموجود محليًا بعنصر seedData الجديد
+  /// (افتراضيًا 'nameEn' لأغلب الأقسام) — الأخبار والفعاليات ما إلها 'nameEn'
+  /// (عندها 'titleEn' بدل)، فلازم تمرّري key: 'titleEn' إلها، وإلا المطابقة دايمًا
+  /// بتفشل وبينضاف نسخة جديدة مكررة من كل عنصر بكل مزامنة بدل ما يتحدّث الموجود.
+  Future<void> syncSeed(
+    String boxName,
+    List<Map<String, dynamic>> seedData, {
+    String key = 'nameEn',
+  }) async {
     final box = _box(boxName);
     final existing = getAll(boxName);
     final byName = {
       for (final e in existing)
-        if ((e.value['nameEn'] as String?)?.isNotEmpty == true) e.value['nameEn']: e,
+        if ((e.value[key] as String?)?.isNotEmpty == true) e.value[key]: e,
     };
     for (final item in seedData) {
-      final nameEn = item['nameEn'] as String?;
-      final match = nameEn == null ? null : byName[nameEn];
+      final keyValue = item[key] as String?;
+      final match = keyValue == null ? null : byName[keyValue];
       if (match == null) {
         await box.add(Map<String, dynamic>.from(item));
       } else if (!_mapsEqual(match.value, item)) {
@@ -143,6 +176,30 @@ class LocalDbService {
       if (nameEn != null && nameEn.isNotEmpty && !currentNames.contains(nameEn)) {
         await box.delete(entry.key);
       }
+    }
+  }
+
+  /// تحذف أي نسخ مكررة من صندوق (بتحافظ على أول نسخة بس لكل قيمة [key]) — تُستخدم
+  /// مرة وحدة عند بدء التطبيق لتنظيف تكرار قديم نتج عن خلل بمطابقة المزامنة (كانت
+  /// [syncSeed] تطابق دايمًا بحقل 'nameEn' حتى للأخبار/الفعاليات اللي إلها 'titleEn'
+  /// بدل، فكل مزامنة كانت تضيف نسخة جديدة بدل ما تحدّث الموجودة).
+  Future<void> dedupeByKey(String boxName, String key) async {
+    final box = _box(boxName);
+    final seen = <String>{};
+    final toDelete = <dynamic>[];
+    for (final k in box.keys) {
+      final value = box.get(k);
+      if (value is! Map) continue;
+      final keyValue = value[key] as String?;
+      if (keyValue == null || keyValue.isEmpty) continue;
+      if (seen.contains(keyValue)) {
+        toDelete.add(k);
+      } else {
+        seen.add(keyValue);
+      }
+    }
+    for (final k in toDelete) {
+      await box.delete(k);
     }
   }
 

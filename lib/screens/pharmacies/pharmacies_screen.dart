@@ -5,6 +5,7 @@ import '../home/home_screen.dart'; // لإعادة استخدام AppState و Ap
 import '../../widgets/themed_image.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/suspension_banner.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/favorites_service.dart';
@@ -1580,6 +1581,14 @@ class PharmacyDetailScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 22),
+                        if (LocalDbService.instance.suspensionStatus(
+                              'pharmacies',
+                              p.apiId,
+                            )
+                            case final suspension?) ...[
+                          SuspensionBanner(suspension: suspension),
+                          SizedBox(height: 16),
+                        ],
                         if (p.phone.isNotEmpty) ...[
                           SizedBox(
                             width: double.infinity,

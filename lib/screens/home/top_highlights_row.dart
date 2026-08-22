@@ -342,8 +342,8 @@ class _LatestNewsColumn extends StatelessWidget {
   static const _item = {
     'titleAr': 'افتتاح مشروع تطوير السوق القديم',
     'titleEn': 'Old Market Development Project Launched',
-    'dateAr': '5 أغسطس 2025',
-    'dateEn': 'August 5, 2025',
+    'dateAr': '20 أغسطس 2026',
+    'dateEn': 'August 20, 2026',
     'photoQuery': 'old market renovation street',
   };
 

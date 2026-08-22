@@ -49,6 +49,17 @@ const _featuredCapableSchemas = {
   AdminSchema.shoppingVenue,
 };
 
+// كل الأماكن الفعلية (الأقسام الغنية الخمسة + الأقسام العامة) اللي يقدر
+// الأدمن يعلّقها مؤقتًا للصيانة — ما عدا الأخبار/الفعاليات (مش "أماكن" فعليًا).
+const _suspendCapableSchemas = {
+  AdminSchema.restaurant,
+  AdminSchema.hotel,
+  AdminSchema.pharmacy,
+  AdminSchema.attraction,
+  AdminSchema.shoppingVenue,
+  AdminSchema.listing,
+};
+
 enum _FieldType { text, multiline, number, toggle, dropdown }
 
 class _FieldConfig {
@@ -491,6 +502,21 @@ String _subtitleFieldValue(Map<String, dynamic> item, AdminSchema schema) {
   }
 }
 
+// ==================== حالة تعليق المكان (تحت الصيانة) ====================
+// suspendedUntil مخزّن محليًا كنص ISO 8601 (جاي من السيرفر عبر المزامنة
+// العامة بدون أي تعديل بـ[ApiService._syncBoxFromApi]، لأنها بتنسخ كل حقول
+// الرد تلقائيًا). المكان معلّق فقط لو الموعد موجود ولسا ما مضى.
+DateTime? _suspendedUntil(Map<String, dynamic> item) {
+  final raw = item['suspendedUntil'];
+  if (raw is! String || raw.isEmpty) return null;
+  return DateTime.tryParse(raw);
+}
+
+bool _isSuspended(Map<String, dynamic> item) {
+  final until = _suspendedUntil(item);
+  return until != null && until.isAfter(DateTime.now());
+}
+
 // ==================== الشاشة الرئيسية للإدارة: لوحة تحكم بأقسام البيانات ====================
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -675,71 +701,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _checkServer() async {
     final ok = await ApiService.isServerReachable();
     if (mounted) setState(() => _serverOk = ok);
-  }
-
-  bool _syncingAll = false;
-
-  /// بينشئ على السيرفر أي عنصر موجود محليًا بس (عليه أيقونة الغيمة المشطوبة —
-  /// apiId فاضي) بكل الأقسام دفعة وحدة، حتى يصير الكل متزامن ومقدور تعديله
-  /// بشكل صحيح (تحديث حقيقي مش نسخة جديدة كل مرة).
-  Future<void> _syncAllLocalToServer(BuildContext context) async {
-    final app = AppState.instance;
-    final token = AuthService.instance.adminToken;
-    if (token == null) {
-      _showSnack(
-        context,
-        app.t(
-          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
-          'Session expired — please log in as admin again',
-        ),
-      );
-      return;
-    }
-    setState(() => _syncingAll = true);
-    int created = 0;
-    int failed = 0;
-    for (final s in _sections) {
-      final boxName = s['boxName'] as String;
-      // نجيب أحدث نسخة من السيرفر أول شي حتى ما ننشئ عنصر موجود أصلًا بس
-      // بأسماء مختلفة شوي (نفس منطق _refresh).
-      await ApiService.syncBox(boxName);
-      final items = LocalDbService.instance.getAll(boxName);
-      for (final entry in items) {
-        final apiId = entry.value['apiId'] as String?;
-        if (apiId != null) continue; // متزامن أصلًا
-        final fields = Map<String, dynamic>.from(entry.value)
-          ..remove('apiId')
-          ..remove('serverImageUrl')
-          ..remove('customImageBase64')
-          ..remove('image')
-          ..remove('lat')
-          ..remove('lng')
-          ..remove('subTypeKey');
-        final status = await ApiService.createItem(token, boxName, fields);
-        if (status >= 200 && status < 300) {
-          created++;
-        } else {
-          failed++;
-        }
-      }
-      // نعيد المزامنة حتى العناصر يلي انضافت هلأ تاخد apiId الحقيقي محليًا
-      await ApiService.syncBox(boxName);
-    }
-    if (!mounted) return;
-    setState(() {
-      _syncingAll = false;
-      _serverOk = true;
-    });
-    if (context.mounted) {
-      _showSnack(
-        context,
-        app.t(
-          'تمت المزامنة: أُضيف $created عنصر جديد للسيرفر${failed > 0 ? ' (فشل $failed)' : ''}',
-          'Sync complete: $created new items added to the server${failed > 0 ? ' ($failed failed)' : ''}',
-        ),
-        isError: failed > 0,
-      );
-    }
   }
 
   void _showSnack(BuildContext context, String message, {bool isError = true}) {
@@ -1117,65 +1078,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                                     value: '${_sections.length}',
                                   ),
                                 ),
-                                SizedBox(width: 14),
-                                Expanded(
-                                  child: _StatCard(
-                                    icon: Icons.dns_rounded,
-                                    color: _serverOk == true
-                                        ? AppColors.teal
-                                        : AppColors.red,
-                                    labelAr: 'حالة السيرفر',
-                                    labelEn: 'Server Status',
-                                    value: _serverOk == null
-                                        ? app.t('...', '...')
-                                        : (_serverOk!
-                                              ? app.t('شغال', 'Online')
-                                              : app.t('مقفول', 'Offline')),
-                                  ),
-                                ),
                               ],
-                            ),
-                            SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: _syncingAll
-                                    ? null
-                                    : () => _syncAllLocalToServer(context),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: AppColors.borderColor),
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                                  ),
-                                ),
-                                icon: _syncingAll
-                                    ? SizedBox(
-                                        width: 14,
-                                        height: 14,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppColors.primary,
-                                        ),
-                                      )
-                                    : Icon(
-                                        Icons.cloud_upload_rounded,
-                                        size: 16,
-                                        color: AppColors.primary,
-                                      ),
-                                label: Text(
-                                  _syncingAll
-                                      ? app.t(
-                                          'جارِ المزامنة...',
-                                          'Syncing...',
-                                        )
-                                      : app.t(
-                                          'مزامنة كل العناصر المحلية مع السيرفر',
-                                          'Sync all local-only items to the server',
-                                        ),
-                                  style: TextStyle(color: AppColors.textWhite),
-                                ),
-                              ),
                             ),
                             SizedBox(height: 24),
                             Container(
@@ -1902,6 +1805,347 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
     await _refresh();
   }
 
+  Future<void> _suspend(
+    String apiId, {
+    required DateTime until,
+    required String reason,
+  }) async {
+    final app = AppState.instance;
+    final token = AuthService.instance.adminToken;
+    if (token == null) {
+      _showMessage(
+        app.t(
+          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
+          'Session expired — please log in as admin again',
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    final status = await ApiService.suspendItem(
+      token,
+      widget.boxName,
+      apiId,
+      until: until,
+      reason: reason,
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (status < 200 || status >= 300) {
+      _showMessage(
+        app.t(
+          'فشل تعليق المكان — تأكد إنه السيرفر شغال',
+          'Failed to suspend the place — make sure the server is running',
+        ),
+      );
+      return;
+    }
+    _showMessage(
+      app.t('تم تعليق المكان بنجاح', 'Place suspended successfully'),
+      isError: false,
+    );
+    await _refresh();
+  }
+
+  Future<void> _reactivate(String apiId) async {
+    final app = AppState.instance;
+    final token = AuthService.instance.adminToken;
+    if (token == null) {
+      _showMessage(
+        app.t(
+          'انتهت جلسة الدخول — سجّل دخول أدمن من جديد',
+          'Session expired — please log in as admin again',
+        ),
+      );
+      return;
+    }
+    setState(() => _saving = true);
+    final status = await ApiService.reactivateItem(token, widget.boxName, apiId);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (status < 200 || status >= 300) {
+      _showMessage(
+        app.t(
+          'فشلت إعادة التنشيط — تأكد إنه السيرفر شغال',
+          'Failed to reactivate — make sure the server is running',
+        ),
+      );
+      return;
+    }
+    _showMessage(
+      app.t('المكان نشط الآن', 'The place is now active'),
+      isError: false,
+    );
+    await _refresh();
+  }
+
+  Future<void> _openSuspendFlow(Map<String, dynamic> item, String apiId) async {
+    if (_isSuspended(item)) {
+      await _showSuspensionInfoDialog(item, apiId);
+    } else {
+      await _showSuspendDialog(apiId);
+    }
+  }
+
+  Future<void> _showSuspensionInfoDialog(
+    Map<String, dynamic> item,
+    String apiId,
+  ) async {
+    final app = AppState.instance;
+    final until = _suspendedUntil(item);
+    final reason = (item['suspendReason'] as String?) ?? '';
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: app.dir,
+        child: AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text(
+            app.t('المكان معلّق للصيانة', 'Place suspended for maintenance'),
+            style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (until != null)
+                Text(
+                  app.t(
+                    'من المتوقع أن يعود نشطًا تلقائيًا بتاريخ ${_formatDateTime(until)}',
+                    'Expected to automatically reopen on ${_formatDateTime(until)}',
+                  ),
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+              if (reason.isNotEmpty) ...[
+                SizedBox(height: 8),
+                Text(
+                  app.t('السبب: $reason', 'Reason: $reason'),
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+                await _showSuspendDialog(apiId);
+              },
+              child: Text(
+                app.t('تعديل المدة/السبب', 'Edit duration/reason'),
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _reactivate(apiId);
+              },
+              child: Text(
+                app.t('إعادة التنشيط الآن', 'Reactivate now'),
+                style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSuspendDialog(String apiId) async {
+    final app = AppState.instance;
+    final reasonController = TextEditingController();
+    Duration selected = const Duration(days: 1);
+    final customAmountController = TextEditingController(text: '1');
+    String customUnit = 'days'; // days | hours
+
+    final presets = <String, Duration>{
+      app.t('يوم واحد', '1 day'): const Duration(days: 1),
+      app.t('3 أيام', '3 days'): const Duration(days: 3),
+      app.t('أسبوع', '1 week'): const Duration(days: 7),
+      app.t('أسبوعين', '2 weeks'): const Duration(days: 14),
+      app.t('شهر', '1 month'): const Duration(days: 30),
+    };
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => Directionality(
+          textDirection: app.dir,
+          child: AlertDialog(
+            backgroundColor: AppColors.cardDark,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            title: Text(
+              app.t('تعليق المكان للصيانة', 'Suspend place for maintenance'),
+              style: TextStyle(color: AppColors.textWhite, fontWeight: FontWeight.bold),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    app.t('مدة التعليق', 'Suspension duration'),
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                  ),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final entry in presets.entries)
+                        ChoiceChip(
+                          label: Text(entry.key),
+                          selected: selected == entry.value,
+                          selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                          backgroundColor: AppColors.cardDark2,
+                          labelStyle: TextStyle(
+                            color: selected == entry.value
+                                ? AppColors.primary
+                                : AppColors.textGrey,
+                            fontSize: 12,
+                          ),
+                          onSelected: (_) =>
+                              setDialogState(() => selected = entry.value),
+                        ),
+                      ChoiceChip(
+                        label: Text(app.t('مخصّصة', 'Custom')),
+                        selected: !presets.values.contains(selected),
+                        selectedColor: AppColors.primary.withValues(alpha: 0.25),
+                        backgroundColor: AppColors.cardDark2,
+                        labelStyle: TextStyle(
+                          color: !presets.values.contains(selected)
+                              ? AppColors.primary
+                              : AppColors.textGrey,
+                          fontSize: 12,
+                        ),
+                        onSelected: (_) => setDialogState(() {
+                          final n =
+                              int.tryParse(customAmountController.text.trim()) ?? 1;
+                          selected = customUnit == 'hours'
+                              ? Duration(hours: n)
+                              : Duration(days: n);
+                        }),
+                      ),
+                    ],
+                  ),
+                  if (!presets.values.contains(selected)) ...[
+                    SizedBox(height: 12),
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 70,
+                          child: TextField(
+                            controller: customAmountController,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(color: AppColors.textWhite),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              filled: true,
+                              fillColor: AppColors.cardDark2,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            onChanged: (v) => setDialogState(() {
+                              final n = int.tryParse(v.trim()) ?? 1;
+                              selected = customUnit == 'hours'
+                                  ? Duration(hours: n)
+                                  : Duration(days: n);
+                            }),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        DropdownButton<String>(
+                          value: customUnit,
+                          dropdownColor: AppColors.cardDark,
+                          style: TextStyle(color: AppColors.textWhite),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'hours',
+                              child: Text(app.t('ساعة', 'hours')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'days',
+                              child: Text(app.t('يوم', 'days')),
+                            ),
+                          ],
+                          onChanged: (v) => setDialogState(() {
+                            customUnit = v ?? 'days';
+                            final n =
+                                int.tryParse(customAmountController.text.trim()) ?? 1;
+                            selected = customUnit == 'hours'
+                                ? Duration(hours: n)
+                                : Duration(days: n);
+                          }),
+                        ),
+                      ],
+                    ),
+                  ],
+                  SizedBox(height: 16),
+                  Text(
+                    app.t('سبب التعليق (اختياري)', 'Suspension reason (optional)'),
+                    style: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                  ),
+                  SizedBox(height: 8),
+                  TextField(
+                    controller: reasonController,
+                    maxLines: 2,
+                    style: TextStyle(color: AppColors.textWhite),
+                    decoration: InputDecoration(
+                      hintText: app.t(
+                        'مثال: صيانة كهربائية',
+                        'e.g. electrical maintenance',
+                      ),
+                      hintStyle: TextStyle(color: AppColors.textGrey, fontSize: 12),
+                      filled: true,
+                      fillColor: AppColors.cardDark2,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text(
+                  app.t('إلغاء', 'Cancel'),
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  _suspend(
+                    apiId,
+                    until: DateTime.now().add(selected),
+                    reason: reasonController.text.trim(),
+                  );
+                },
+                child: Text(
+                  app.t('تعليق المكان', 'Suspend place'),
+                  style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime dt) {
+    final local = dt.toLocal();
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(local.day)}/${two(local.month)}/${local.year} ${two(local.hour)}:${two(local.minute)}';
+  }
+
   List<MapEntry<dynamic, Map<String, dynamic>>> get _filtered {
     if (searchQuery.isEmpty) return _items;
     final q = searchQuery.toLowerCase();
@@ -2165,9 +2409,74 @@ class _AdminCollectionScreenState extends State<AdminCollectionScreen> {
                                                 fontSize: 11,
                                               ),
                                             ),
+                                            if (_isSuspended(item)) ...[
+                                              SizedBox(height: 4),
+                                              Container(
+                                                padding: EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.red
+                                                      .withValues(alpha: 0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.build_circle_rounded,
+                                                      size: 11,
+                                                      color: AppColors.red,
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Text(
+                                                      app.t(
+                                                        'معلّق للصيانة',
+                                                        'Suspended',
+                                                      ),
+                                                      style: TextStyle(
+                                                        color: AppColors.red,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),
+                                      if (_suspendCapableSchemas.contains(
+                                            widget.schema,
+                                          ) &&
+                                          apiId != null)
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _saving
+                                              ? null
+                                              : () =>
+                                                  _openSuspendFlow(item, apiId),
+                                          child: Container(
+                                            padding: EdgeInsets.all(8),
+                                            margin: EdgeInsets.only(left: 8),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.cardDark2,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Icon(
+                                              Icons.build_circle_outlined,
+                                              size: 16,
+                                              color: _isSuspended(item)
+                                                  ? AppColors.red
+                                                  : AppColors.textGrey,
+                                            ),
+                                          ),
+                                        ),
                                       GestureDetector(
                                         behavior: HitTestBehavior.opaque,
                                         onTap: _saving

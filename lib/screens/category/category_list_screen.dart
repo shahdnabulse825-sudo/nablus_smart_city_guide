@@ -17,6 +17,7 @@ import '../../widgets/pagination_bar.dart';
 import '../../widgets/sort_toggle.dart';
 import '../../widgets/skeleton_card.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/suspension_banner.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/location_service.dart';
@@ -184,6 +185,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
           // boxName 'banks' مفردها 'bank' بمفردات categoryKey الموحّدة
           // بباقي الشاشات (all_places/explore/nearby...) — لازم نطابقها هون.
           placeType: widget.boxName == 'banks' ? 'bank' : widget.boxName,
+          apiId: it.apiId,
         ),
       ),
     );
@@ -358,6 +360,7 @@ class _CategoryListScreenState extends State<CategoryListScreen> {
                                       ? _EmptyPanel()
                                       : _DetailPanel(
                                           item: selected,
+                                          boxName: widget.boxName,
                                           isFavorite: FavoritesService.instance
                                               .isFavorite(selected.nameEn),
                                           onFavorite: () async {
@@ -1265,10 +1268,12 @@ class _ItemListTile extends StatelessWidget {
 // ==================== بانل التفاصيل ====================
 class _DetailPanel extends StatelessWidget {
   final ListingItem item;
+  final String boxName;
   final bool isFavorite;
   final VoidCallback onFavorite;
   const _DetailPanel({
     required this.item,
+    required this.boxName,
     required this.isFavorite,
     required this.onFavorite,
   });
@@ -1417,6 +1422,11 @@ class _DetailPanel extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 16),
+                if (LocalDbService.instance.suspensionStatus(boxName, it.apiId)
+                    case final suspension?) ...[
+                  SuspensionBanner(suspension: suspension),
+                  SizedBox(height: 16),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

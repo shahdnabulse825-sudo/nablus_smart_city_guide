@@ -21,6 +21,17 @@ function numField(v, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function optDate(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function optDateUpdate(v, existing) {
+  if (v === undefined) return existing;
+  return optDate(v);
+}
+
 // ==================== كل العناصر (فلترة اختيارية حسب category) ====================
 router.get('/', async (req, res) => {
   const { category } = req.query;
@@ -67,6 +78,8 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       imageUrl: req.file ? `/uploads/${req.file.filename}` : null,
       iconCodePoint: numField(b.iconCodePoint, 0xe55f),
       colorValue: numField(b.colorValue, 0x3b82f6) & 0xffffff,
+      suspendedUntil: optDate(b.suspendedUntil),
+      suspendReason: b.suspendReason || '',
     },
   });
   res.status(201).json(item);
@@ -114,6 +127,8 @@ router.put('/:id', requireAuth, requireAdmin, upload.single('image'), async (req
       phone: b.phone ?? existing.phone,
       photoQuery: b.photoQuery ?? existing.photoQuery,
       imageUrl,
+      suspendedUntil: optDateUpdate(b.suspendedUntil, existing.suspendedUntil),
+      suspendReason: b.suspendReason ?? existing.suspendReason,
     },
   });
   res.json(item);

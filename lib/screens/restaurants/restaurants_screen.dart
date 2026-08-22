@@ -16,6 +16,7 @@ import '../attractions/attractions_screen.dart';
 import '../../widgets/responsive.dart';
 import '../common/detail_screen.dart';
 import '../../widgets/business_claim_section.dart';
+import '../../widgets/suspension_banner.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/skeleton_card.dart';
 import '../../widgets/app_toggle_bar.dart';
@@ -3038,6 +3039,14 @@ class _DetailPanel extends StatelessWidget {
                   ],
                 ),
                 SizedBox(height: 16),
+                if (LocalDbService.instance.suspensionStatus(
+                      'restaurants',
+                      r.apiId,
+                    )
+                    case final suspension?) ...[
+                  SuspensionBanner(suspension: suspension),
+                  SizedBox(height: 16),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

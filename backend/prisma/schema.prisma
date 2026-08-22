@@ -60,6 +60,10 @@ model Listing {
   imageUrl          String? // رابط صورة حقيقية رفعها الأدمن (لو موجودة)
   iconCodePoint     Int      @default(58719) // Icons.place (0xe55f)
   colorValue        Int      @default(3946230) // لون RGB فقط بدون بايت الشفافية (0x3B82F6)
+  // تعليق مؤقت للصيانة (يحدده الأدمن بمدة، وممكن ينهيه يدويًا أبكر) — انظر شرح
+  // مطابق أسفل نموذج Restaurant.
+  suspendedUntil    DateTime?
+  suspendReason     String   @default("")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -95,6 +99,11 @@ model Hotel {
   lat           Float? // إحداثيات دقيقة حدّدها الأدمن بالضغط على الخريطة
   lng           Float?
   ownerEmail    String   @default("") // بريد صاحب المحل (User.email) لو مرتبط بحساب — فاضي يعني بدون مالك
+  // تعليق مؤقت للصيانة: الأدمن بيحدد تاريخ/وقت انتهاء التعليق (suspendedUntil)،
+  // والمكان بيرجع نشط تلقائيًا (بالحساب فقط، بدون مهمة مجدولة) لما الوقت الحالي
+  // يتخطاه — أو الأدمن يقدر يلغي التعليق يدويًا قبل الموعد لو خلصت الصيانة أبكر.
+  suspendedUntil DateTime?
+  suspendReason  String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -123,6 +132,8 @@ model Pharmacy {
   lat         Float?
   lng         Float?
   ownerEmail  String   @default("")
+  suspendedUntil DateTime?
+  suspendReason  String @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -149,6 +160,8 @@ model Attraction {
   isFeatured    Boolean  @default(false)
   lat           Float?
   lng           Float?
+  suspendedUntil DateTime?
+  suspendReason  String @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -178,6 +191,8 @@ model ShoppingVenue {
   subCategory   String   @default("") // fashion | shoes | electronics | cosmetics | jewelry | books | entertainment
   website       String   @default("")
   ownerEmail    String   @default("")
+  suspendedUntil DateTime?
+  suspendReason  String @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -206,6 +221,10 @@ model Restaurant {
   lat           Float?
   lng           Float?
   ownerEmail    String   @default("")
+  // تعليق مؤقت للصيانة (يحدده الأدمن بمدة، وممكن ينهيه يدويًا أبكر لو خلصت
+  // الصيانة قبل الموعد) — المكان بيرجع نشط تلقائيًا بالحساب لما suspendedUntil يمضي.
+  suspendedUntil DateTime?
+  suspendReason  String   @default("")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

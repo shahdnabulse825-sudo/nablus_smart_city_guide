@@ -23,6 +23,17 @@ function optCoordUpdate(v, existing) {
   return optCoord(v);
 }
 
+function optDate(v) {
+  if (v === undefined || v === null || v === '') return null;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function optDateUpdate(v, existing) {
+  if (v === undefined) return existing;
+  return optDate(v);
+}
+
 // نخزّن القوائم (gallery/amenities/tags) كنص واحد مفصول بفواصل (SQLite ما بيدعم مصفوفات)
 function listField(v) {
   if (Array.isArray(v)) return v.map((s) => String(s).trim()).filter(Boolean).join(',');
@@ -70,6 +81,8 @@ router.post('/', requireAuth, requireAdmin, upload.single('image'), async (req, 
       isFeatured: b.isFeatured === 'true' || b.isFeatured === true,
       lat: optCoord(b.lat),
       lng: optCoord(b.lng),
+      suspendedUntil: optDate(b.suspendedUntil),
+      suspendReason: b.suspendReason || '',
     },
   });
   res.status(201).json(item);
@@ -123,6 +136,8 @@ router.put('/:id', requireAuth, upload.single('image'), async (req, res) => {
       imageUrl,
       lat: optCoordUpdate(b.lat, existing.lat),
       lng: optCoordUpdate(b.lng, existing.lng),
+      suspendedUntil: optDateUpdate(b.suspendedUntil, existing.suspendedUntil),
+      suspendReason: b.suspendReason ?? existing.suspendReason,
     },
   });
   res.json(item);

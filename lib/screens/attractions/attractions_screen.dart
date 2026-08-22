@@ -7,6 +7,7 @@ import '../../widgets/nearest_to_me_chip.dart';
 import '../../widgets/themed_image.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/responsive.dart';
+import '../../widgets/suspension_banner.dart';
 import '../../services/local_db_service.dart';
 import '../../services/data_converters.dart';
 import '../../services/favorites_service.dart';
@@ -46,6 +47,8 @@ class AttractionData {
   final double? lat;
   final double? lng;
   final String? serverImageUrl;
+  // معرّف السجل بالسيرفر (لو متزامن) — لفحص حالة تعليق المكان (تحت الصيانة).
+  final String? apiId;
 
   AttractionData({
     required this.nameAr,
@@ -69,6 +72,7 @@ class AttractionData {
     this.lat,
     this.lng,
     this.serverImageUrl,
+    this.apiId,
   });
 }
 
@@ -2128,6 +2132,14 @@ class AttractionDetailScreen extends StatelessWidget {
                             height: 1.6,
                           ),
                         ),
+                        if (LocalDbService.instance.suspensionStatus(
+                              'attractions',
+                              a.apiId,
+                            )
+                            case final suspension?) ...[
+                          SizedBox(height: 16),
+                          SuspensionBanner(suspension: suspension),
+                        ],
                         if (nearestHotel != null ||
                             nearestRestaurant != null ||
                             nearestCafe != null) ...[

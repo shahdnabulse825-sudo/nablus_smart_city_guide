@@ -8,6 +8,37 @@ import '../../theme/app_typography.dart';
 import '../../services/recent_activity_service.dart';
 import '../../widgets/reviews_section.dart';
 import '../../widgets/business_claim_section.dart';
+import '../../services/local_db_service.dart';
+import '../../widgets/suspension_banner.dart';
+
+/// خريطة placeType (المستخدم أصلًا بكل شاشات الأماكن) → اسم صندوق Hive
+/// المطابق — تُستخدم فقط لفحص حالة تعليق المكان (تحت الصيانة)، بدون الحاجة
+/// لتمرير حقول جديدة من كل شاشة تفتح [DetailScreen] (12+ نقطة استدعاء).
+const _placeTypeToBox = {
+  'restaurant': 'restaurants',
+  'hotel': 'hotels',
+  'pharmacy': 'pharmacies',
+  'attraction': 'attractions',
+  'shopping': 'shopping',
+  'transport': 'transport',
+  'health': 'health',
+  'education': 'education',
+  'bank': 'banks',
+  'entertainment': 'entertainment',
+  'government': 'government',
+};
+
+/// حالة تعليق المكان الحالية (لو موجودة) بناءً على [placeType]/[apiId] — تفوّض
+/// مباشرة لـ[LocalDbService.suspensionStatus] (نفس الدالة المستخدمة من أي بانل
+/// تفاصيل تاني بالتطبيق) بعد تحويل placeType لاسم الصندوق المطابق.
+({DateTime? until, String reason})? _suspensionStatus(
+  String? placeType,
+  String? apiId,
+) {
+  final boxName = placeType == null ? null : _placeTypeToBox[placeType];
+  if (boxName == null) return null;
+  return LocalDbService.instance.suspensionStatus(boxName, apiId);
+}
 
 /// شاشة تفاصيل عامة تُستخدم لأي كرت (مكان مفضل، خبر، فعالية...) عند الضغط عليه.
 /// كل الحقول اختيارية ما عدا العنوان، فتقدر تستخدمها لأي نوع محتوى.
@@ -71,6 +102,7 @@ class DetailScreen extends StatelessWidget {
                   'لا يوجد وصف تفصيلي لهذا المحتوى بعد. يمكن إضافة المزيد من المعلومات هنا لاحقًا.')
             : (descriptionEn ??
                   'No detailed description available yet. More information can be added here later.');
+        final suspension = _suspensionStatus(placeType, apiId);
 
         return Directionality(
           textDirection: TextDirection.ltr,
@@ -163,6 +195,10 @@ class DetailScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        if (suspension != null) ...[
+                          SuspensionBanner(suspension: suspension),
+                          SizedBox(height: 16),
+                        ],
                         if (rating != null || extraInfo != null)
                           Row(
                             children: [

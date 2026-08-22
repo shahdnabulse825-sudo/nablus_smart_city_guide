@@ -53,10 +53,16 @@ class ApiService {
   /// يجيب قائمة من السيرفر ويدمجها بصندوق Hive المحلي [boxName]، محافظًا على
   /// image/customImageBase64 المحليين (السيرفر لسا ما عنده صور مرفوعة)، وفاكًّا
   /// حقول القوائم بـ[listFields] من نص مفصول بفواصل (SQLite ما بيدعم مصفوفات).
+  ///
+  /// [matchKey] هو الحقل المستخدم لمطابقة عنصر السيرفر بعنصره المحلي (افتراضيًا
+  /// 'nameEn') — الأخبار والفعاليات ما إلها 'nameEn' (عندها 'titleEn' بدل)، فلازم
+  /// نمرّر 'titleEn' إلهم، وإلا كل مزامنة بتضيف نسخة جديدة مكررة بدل ما تحدّث
+  /// الموجودة أصلًا (لأن المطابقة دايمًا بتفشل).
   static Future<void> _syncBoxFromApi(
     String boxName,
     String apiPath, {
     List<String> listFields = const [],
+    String matchKey = 'nameEn',
   }) async {
     final items = await _fetchList(apiPath);
     if (items == null) return;
@@ -64,13 +70,13 @@ class ApiService {
     final db = LocalDbService.instance;
     final existingByName = {
       for (final e in db.getAll(boxName))
-        if ((e.value['nameEn'] as String?)?.isNotEmpty == true)
-          e.value['nameEn']: e.value,
+        if ((e.value[matchKey] as String?)?.isNotEmpty == true)
+          e.value[matchKey]: e.value,
     };
 
     final merged = items.map((item) {
       final map = Map<String, dynamic>.from(item);
-      final prev = existingByName[map['nameEn']];
+      final prev = existingByName[map[matchKey]];
       for (final f in listFields) {
         map[f] = _splitCsv(map[f]);
       }
@@ -95,7 +101,7 @@ class ApiService {
       return map;
     }).toList();
 
-    await db.syncSeed(boxName, merged);
+    await db.syncSeed(boxName, merged, key: matchKey);
   }
 
   static Future<void> syncHotels() => _syncBoxFromApi(
@@ -115,9 +121,11 @@ class ApiService {
 
   static Future<void> syncShopping() => _syncBoxFromApi('shopping', 'shopping');
 
-  static Future<void> syncNews() => _syncBoxFromApi('news', 'news');
+  static Future<void> syncNews() =>
+      _syncBoxFromApi('news', 'news', matchKey: 'titleEn');
 
-  static Future<void> syncEvents() => _syncBoxFromApi('events', 'events');
+  static Future<void> syncEvents() =>
+      _syncBoxFromApi('events', 'events', matchKey: 'titleEn');
 
   /// العروض/الإعلانات كلها من السيرفر فقط (ما في بيانات محلية ابتدائية) — فبنستخدم
   /// syncSeedExact مباشرة (مش الدمج الإضافي المعتاد) حتى العرض المنتهي صلاحيته
@@ -1205,6 +1213,30 @@ class ApiService {
       return -1;
     }
   }
+
+  /// يعلّق مكانًا (مطعم/فندق/صيدلية/معلم/محل تسوق/قسم عام) للصيانة حتى تاريخ
+  /// [until] — بيرسل الحقلين فقط (بدون باقي بيانات الفورم) لأن راوت التعديل
+  /// بالسيرفر بيحافظ تلقائيًا على أي حقل ما ينبعتش (نفس منطق مسح lat/lng).
+  static Future<int> suspendItem(
+    String token,
+    String boxName,
+    String apiId, {
+    required DateTime until,
+    String reason = '',
+  }) => updateItem(token, boxName, apiId, {
+    'suspendedUntil': until.toIso8601String(),
+    'suspendReason': reason,
+  });
+
+  /// يلغي تعليق مكان فورًا (قبل موعد الانتهاء المحدد أو بعده) ويرجّعه نشطًا.
+  static Future<int> reactivateItem(
+    String token,
+    String boxName,
+    String apiId,
+  ) => updateItem(token, boxName, apiId, {
+    'suspendedUntil': null,
+    'suspendReason': '',
+  });
 
   /// يرفع/يستبدل صورة تصنيف كامل (مطاعم/صحة/...) — يرجّع كود حالة HTTP.
   static Future<int> uploadCategoryImage(

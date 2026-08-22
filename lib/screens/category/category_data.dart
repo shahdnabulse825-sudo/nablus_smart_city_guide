@@ -25,6 +25,9 @@ class ListingItem {
   final double? lng;
   final String? subTypeKey; // مفتاح التصنيف الفرعي (مثلاً taxiOffices/busStations) لشاشات الاختيار الفرعي
   final String? serverImageUrl; // صورة رفعها الأدمن ومخزّنة على السيرفر (/uploads/...)
+  // معرّف السجل بالسيرفر (لو متزامن) — تُستخدم لفحص حالة تعليق المكان (تحت
+  // الصيانة) عبر [LocalDbService.suspensionStatus]. فاضي يعني عنصر محلي فقط.
+  final String? apiId;
 
   ListingItem({
     required this.nameAr,
@@ -50,6 +53,7 @@ class ListingItem {
     this.lng,
     this.subTypeKey,
     this.serverImageUrl,
+    this.apiId,
   });
 }
 

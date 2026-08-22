@@ -77,6 +77,10 @@ Future<void> _seedAllBoxes() async {
   await ApiService.syncShopping();
   await ApiService.syncNews();
   await ApiService.syncEvents();
+  // تنظيف تكرار قديم بالأخبار/الفعاليات نتج عن خلل بمطابقة المزامنة (انظر شرح
+  // [LocalDbService.dedupeByKey]) — تنفع تتشال بعد فترة لما نتأكد كل الأجهزة انظفت.
+  await db.dedupeByKey('news', 'titleEn');
+  await db.dedupeByKey('events', 'titleEn');
   await ApiService.syncPromotions();
   await ApiService.syncCategoryImages();
   if (AuthService.instance.userToken != null) {

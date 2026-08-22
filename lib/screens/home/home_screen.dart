@@ -641,11 +641,23 @@ class _ExpandedSideBarContent extends StatelessWidget {
                   titleEn: 'Contact Us',
                 ),
                 SizedBox(height: 12),
-                ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
+                ContactRow(
+                  icon: Icons.phone,
+                  text: '+972 59 437 1950',
+                  textColor: Colors.white70,
+                ),
                 SizedBox(height: 10),
-                ContactRow(icon: Icons.email, text: 'nabligo860@gmail.com'),
+                ContactRow(
+                  icon: Icons.email,
+                  text: 'nabligo790@gmail.com',
+                  textColor: Colors.white70,
+                ),
                 SizedBox(height: 10),
-                ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
+                ContactRow(
+                  icon: Icons.location_on,
+                  text: 'Nablus, Palestine',
+                  textColor: Colors.white70,
+                ),
                 SizedBox(height: 14),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
@@ -763,7 +775,7 @@ class _ExpandedSideBarContent extends StatelessWidget {
                     'Scan the code or tap the button to download a real APK directly — your phone must be on the same Wi-Fi network as this device',
                   ),
                   textDirection: AppState.instance.dir,
-                  style: TextStyle(color: AppColors.textGrey, fontSize: 10, height: 1.5),
+                  style: TextStyle(color: Colors.white70, fontSize: 10, height: 1.5),
                 ),
               ],
             ),
@@ -823,7 +835,9 @@ class SideSectionTitle extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: AppColors.textWhite,
+              // دايمًا فوق بطاقة زجاجية داكنة (GlassContainer) بكل الأحوال —
+              // فالنص لازم يضل فاتح بغض النظر عن الوضع الليلي/النهاري.
+              color: Colors.white,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -837,7 +851,16 @@ class SideSectionTitle extends StatelessWidget {
 class ContactRow extends StatelessWidget {
   final IconData icon;
   final String text;
-  const ContactRow({super.key, required this.icon, required this.text});
+  // لو انحدد، بيتجاوز اللون الافتراضي — لازم لاستخدامات فوق بطاقة زجاجية
+  // داكنة (GlassContainer) حيث AppColors.textGrey العادي (مصمم لخلفية فاتحة)
+  // بيصير شبه غير مرئي.
+  final Color? textColor;
+  const ContactRow({
+    super.key,
+    required this.icon,
+    required this.text,
+    this.textColor,
+  });
 
   Future<void> _onTap(BuildContext context) async {
     if (icon == Icons.phone) {
@@ -864,7 +887,7 @@ class ContactRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: AppColors.textGrey, fontSize: 11),
+              style: TextStyle(color: textColor ?? AppColors.textGrey, fontSize: 11),
             ),
           ),
         ],
@@ -3147,26 +3170,26 @@ class LatestNewsSection extends StatelessWidget {
     {
       'title': 'افتتاح مشروع تطوير البلدة القديمة',
       'titleEn': 'Old City Development Project Launched',
-      'date': '10 مايو 2025',
-      'dateEn': 'May 10, 2025',
+      'date': '20 أغسطس 2026',
+      'dateEn': 'August 20, 2026',
     },
     {
       'title': 'نابلس تستضيف المؤتمر السياحي الدولي',
       'titleEn': 'Nablus Hosts International Tourism Conference',
-      'date': '8 مايو 2025',
-      'dateEn': 'May 8, 2025',
+      'date': '18 أغسطس 2026',
+      'dateEn': 'August 18, 2026',
     },
     {
       'title': 'تحسن حركة السياحة في نابلس',
       'titleEn': 'Tourism Activity Improves in Nablus',
-      'date': '5 مايو 2025',
-      'dateEn': 'May 5, 2025',
+      'date': '15 أغسطس 2026',
+      'dateEn': 'August 15, 2026',
     },
     {
       'title': 'فعاليات ثقافية جديدة في المدينة',
       'titleEn': 'New Cultural Events in the City',
-      'date': '2 مايو 2025',
-      'dateEn': 'May 2, 2025',
+      'date': '12 أغسطس 2026',
+      'dateEn': 'August 12, 2026',
     },
   ];
 
@@ -3386,7 +3409,7 @@ class FooterSection extends StatelessWidget {
         SizedBox(height: 10),
         ContactRow(icon: Icons.phone, text: '+972 59 437 1950'),
         SizedBox(height: 8),
-        ContactRow(icon: Icons.email, text: 'nabligo860@gmail.com'),
+        ContactRow(icon: Icons.email, text: 'nabligo790@gmail.com'),
         SizedBox(height: 8),
         ContactRow(icon: Icons.location_on, text: 'Nablus, Palestine'),
         SizedBox(height: 10),
